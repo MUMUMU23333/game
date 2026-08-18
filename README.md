@@ -1,9 +1,9 @@
-# 🐂 《牛牛勇敢向前冲 4.3 · 爽快音效与史诗打击特效版》 (Bull Run 4.3: Juicy Sound & Epic Impact VFX)
+# 🐂 《牛牛勇敢向前冲 4.4 · 高亮黑天鹅与牛熊双境氛围版》 (Bull Run 4.4: Luminous Black Swan & Dynamic Dual-Market Atmospheres)
 
 > **华尔街金融大逃杀 · 掌机级横屏跑酷 · 原生 HTML5 Canvas + Web Audio API 工业级独立单文件神作**  
 > 制作人：**蒋尊森** | 核心架构：**独立小游戏工坊 & 全栈架构专家团**
 
-[![Game Version](https://img.shields.io/badge/version-4.3.0--JuicyVFX-gold.svg)](https://github.com/MUMUMU23333/game)
+[![Game Version](https://img.shields.io/badge/version-4.4.0--DualMood-gold.svg)](https://github.com/MUMUMU23333/game)
 [![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live%20Demo-brightgreen.svg)](https://mumumu23333.github.io/game/)
 [![FPS](https://img.shields.io/badge/Target%20FPS-60%20Lock-blue.svg)](https://github.com/MUMUMU23333/game)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -18,28 +18,27 @@
 
 ---
 
-## ✨ 4.3 爽快音效与史诗打击特效版重磅升级
+## ✨ 4.4 高亮黑天鹅与牛熊双境氛围版重磅升级
 
-1. 🎵 **动态五声音阶拾取音效与连板泛音 (Dynamic Pentatonic Coin SFX)**：
-   - 采用纯净温润三角波 + 晶莹正弦波双振荡器合成马里奥级金币音效；
-   - 连续拾取金币触发 **动态五声音阶爬升（Pentatonic Major Scale Climb）**；连击达到 5 连板以上时额外注入璀璨的高八度泛音共鸣与彩虹星芒爆散！
-2. 💥 **拳拳到肉击中反馈与破甲打击感 (Juicy Boss Hit Impact & White Flash)**：
-   - **双频复合打击音效**：`130Hz -> 38Hz` 超低频肉体击中重音（Sub-bass punch）+ `880Hz -> 320Hz` 清脆金属破甲撞击音；暴击触发 `1200Hz` 强力爆破音！
-   - **受击白闪（Damage Flash）**：Boss 被击中瞬间全身高亮白闪 3~5 帧；
-   - **物理受击后挫（Recoil Twitch）**：Boss 受击时产生 8~14px 的物理后仰与弹性恢复；
-   - **浮动暴击跳字与火花**：爆出 `🔥 暴击 -XX HP` / `💥 -XX HP` 弹跳动态伤害数字与散射粒子。
-3. 👑 **击败 Boss 史诗级终极爆鸣与凯旋交响 (Epic Boss Defeat Climax)**：
-   - **三段式终极音效**：`130Hz -> 25Hz` 震颤全屏的超重低频爆鸣下潜 + 3 段锯齿波连续连锁爆炸 + 6 音大和弦凯旋交响号角 Fanfare！
-   - **史诗 14 帧长定格（Hitstop）** + **镜头剧烈震颤（Shake 20px）** + **全屏耀眼金光闪烁**；
-   - **3 重全屏震波**（`BURST_RAYS` 射线 + `RING` 金环 + `STAR_CROSS` 星芒）与 30+ 簇全彩爆炸火花；
-   - **24 连发黄金火山大金币雨** 弧形抛物线磁吸飞入右上角 HUD，狂揽 **¥60,000 ~ ¥100,000 终极分红**！
-4. 🐊 **熊市三大独立 Boss 左右突进攻击 AI (Bear Boss Intelligent AI)**：
-   - 包含 **🐊 鳄鱼庄家**、**🐻 空头巨熊**、**🐋 控盘巨鲸**，具备 **悬停巡逻（HOVER）**、**狂暴突进（LUNGE）** 与 **后撤重整（RETREAT）**，顶部实时专属动态血条！
-5. 🕹️ **主角前进与后退自由走位 (Forward / Backward Navigation)**：
-   - 触控与键盘（`A`/`D`/`←`/`→`）全支持，在 35px ~ 650px 宽广空间内自由微操拉扯！
-6. 🪙 **金币弹幕射击与量化金币炮道具 (Coin Bullet Attack & Ammo Cannon)**：
-   - 按下 `J`/`X` 或屏幕金色按钮快速射出高能旋转金币子弹，拾取量化金币炮直接补充 +30 发弹药！
-7. 🔒 **单熊市严格单 Boss 锁定防重机制**：离开熊市 Boss 自动撤退逃窜，彻底杜绝重复刷怪与同屏冲突 BUG！
+1. 🦢 **全新黑炭灰高辨识度黑天鹅与高光描边 (Crisp Outline Black Swan)**：
+   - 保留冷峻优雅的黑炭与黑曜石羽翼基底（`#18181b` / `#27272a` / `#3f3f46`）；
+   - **高反差纯白亮线双重描边（Crisp White Highlight Outline + Neon Glow）**：全身羽翼、S型颈项与头部均勾勒出锐利的高反差亮白轮廓与赛博冰蓝微光光晕，**在任何黑夜、阴雨或烈日背景下均 100% 鲜明刺目，绝对不与背景融为一体**！
+   - 搭配鲜亮金琥珀喙嘴（`#f59e0b`）、黑色鼻瘤、猩红发光眼（`#ff1744`）与高亮警示横幅。
+2. 🌧️ **熊市灰暗压抑沮丧氛围重构 (Gloomy & Depressed Bear Market)**：
+   - 遭遇暴跌、阴跌或熊市 Boss 现身时，天空平滑渐变为压抑深沉的暗夜暴雨穹顶（`#06070d` -> `#140f1a` -> `#1a1120`）；
+   - 伴随 **低垂沉重的雷暴乌云**、**冷冽倾斜的阴跌雨丝（Rain Streaks）**、**漫天飘落的割肉爆仓灰烬** 与 **远方偶发的暗红低频电闪**；
+   - 跑道地面平滑渐变为冰冷破裂的灰黑冷石与暗红警戒线，将熊市寒冬的萧瑟绝望感拉满！
+3. ☀️ **牛市欢快明朗与鸟语花香氛围 (Joyful & Sunny Bull Market)**：
+   - 进入牛市多头主升浪与狂欢时，背景平滑绽放为蔚蓝晴空与金色阳光（`#1976d2` -> `#64b5f6` -> `#fff9c4`）；
+   - 伴随暖阳日晕、悠然白云、远空飞鸟、随风翻滚的粉樱与金叶，以及地面盛开的五彩小野花！
+4. 🎵 **五声音阶拾取音效与连击泛音 (Dynamic Pentatonic Coin SFX)**：
+   - 连续拾取金币音调沿五声音阶动态爬升（`C5 -> D5 -> E5 -> G5 -> A5 -> C6 -> D6`）；5 连板触发璀璨高八度泛音与彩虹星芒！
+5. 💥 **拳拳到肉击中反馈与破甲打击感**：
+   - 超低频肉体重音（`130Hz -> 38Hz`）+ 金属破甲声 + 3~5 帧受击白闪 + 8~14px 物理受击后挫！
+6. 👑 **击败 Boss 史诗级三段式爆鸣与 24 连发火山金币雨**：
+   - 14 帧定格慢放 + 20px 镜头震颤 + 全屏金闪 + 3 重震波 + ¥60,000~¥100,000 终极分红！
+7. 🐊 **熊市三大 Boss 独立 AI 与主角前后走位微操**：
+   - 鳄鱼庄家、空头巨熊、控盘巨鲸左右突进撕咬；支持 A/D/←/→ 自由拉扯走位与 J/X 金币弹幕反击！
 
 ---
 
