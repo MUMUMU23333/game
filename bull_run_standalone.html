@@ -195,34 +195,45 @@
       pointer-events: none;
       z-index: 10;
     }
-    .ctrl-group { display: flex; gap: 8px; pointer-events: auto; }
+    .ctrl-group { display: flex; gap: 5px; pointer-events: auto; }
     .btn-touch {
-      width: 52px;
-      height: 52px;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
-      background: rgba(15,23,42,0.78);
-      border: 2px solid rgba(255,255,255,0.3);
+      background: rgba(15,23,42,0.82);
+      border: 1.8px solid rgba(255,255,255,0.3);
       color: #fff;
       font-weight: 900;
-      font-size: 12px;
+      font-size: 11px;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       backdrop-filter: blur(6px);
-      box-shadow: 0 4px 14px rgba(0,0,0,0.6);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.6);
       cursor: pointer;
       touch-action: manipulation;
       transition: transform 0.08s, background 0.08s, border-color 0.08s;
+      user-select: none;
+      -webkit-user-select: none;
     }
     .btn-touch:active {
       transform: scale(0.92);
       background: rgba(255,215,0,0.3);
       border-color: #ffd700;
     }
-    .btn-touch span { font-size: 15px; margin-bottom: 1px; }
-    .btn-touch label { font-size: 9.5px; font-weight: 800; cursor: pointer; }
-    .btn-dash { border-color: rgba(255,82,82,0.5); }
+    .btn-touch span { font-size: 13.5px; margin-bottom: 1px; }
+    .btn-touch label { font-size: 8.5px; font-weight: 800; cursor: pointer; white-space: nowrap; }
+    .btn-dash { border-color: rgba(255,82,82,0.6); }
+    .btn-shoot {
+      border-color: #ffd700;
+      background: linear-gradient(135deg, rgba(255,215,0,0.25), rgba(255,145,0,0.25));
+      box-shadow: 0 0 8px rgba(255,215,0,0.4);
+    }
+    .btn-shoot:active {
+      background: rgba(255,215,0,0.6);
+      box-shadow: 0 0 15px #ffd700;
+    }
     .btn-rage {
       border-color: #ff1744;
       background: linear-gradient(135deg, rgba(255,23,68,0.8), rgba(255,145,0,0.8));
@@ -618,10 +629,13 @@
   <!-- Touch Controls -->
   <div id="touchControls">
     <div class="ctrl-group">
-      <button id="btnSlide" class="btn-touch"><span>🛡️</span><label>滑铲/格挡</label></button>
+      <button id="btnLeft" class="btn-touch" title="后退/减速"><span>◀️</span><label>后退</label></button>
+      <button id="btnRight" class="btn-touch" title="前进/加速"><span>▶️</span><label>前进</label></button>
+      <button id="btnSlide" class="btn-touch"><span>🛡️</span><label>滑铲</label></button>
       <button id="btnJump" class="btn-touch"><span>⬆️</span><label id="jumpLabel">跳跃</label></button>
     </div>
     <div class="ctrl-group">
+      <button id="btnShoot" class="btn-touch btn-shoot" title="金币射击攻击Boss"><span>🪙</span><label id="shootAmmoLabel">金币射击</label></button>
       <button id="btnDash" class="btn-touch btn-dash"><span>💥</span><label id="dashLabel">顶撞</label></button>
       <button id="btnRage" class="btn-touch btn-rage" style="display:none;"><span>🔥</span><label>狂暴</label></button>
     </div>
@@ -998,6 +1012,20 @@ const SoundEngine = {
   playLevelUp() { this.playTone(720, 0.25, 'triangle', 0.3); },
   playPowerup() { this.playTone(600, 0.2, 'square', 0.25); },
   playHurt() { this.playTone(160, 0.25, 'sawtooth', 0.25); },
+  playCoinShoot() {
+    if (this.isMuted || !this.ctx) return;
+    try {
+      const t = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(880, t);
+      osc.frequency.exponentialRampToValueAtTime(1760, t + 0.08);
+      gain.gain.setValueAtTime(0.2, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+      osc.connect(gain); gain.connect(this.ctx.destination);
+      osc.start(t); osc.stop(t + 0.08);
+    } catch(e) {}
+  },
   playCoin() {
     if (this.isMuted || !this.ctx) return;
     try {
@@ -1391,6 +1419,7 @@ const Player = {
     this.addRage(amt);
   },
   x: 120, y: GROUND_Y - 50, w: 52, h: 46, vy: 0, isGrounded: true, jumpCount: 0, jumpForce: 13.8,
+  moveLeft: false, moveRight: false, coinAmmo: 30, shootCd: 0,
   isSliding: false, slideTimer: 0,
   isDashing: false, dashTimer: 0, dashCd: 0,
   isRaging: false, rage: 0, rageTimer: 0, rageGainMult: 1.0, shields: 0, hasUsedStateFund: false,
@@ -1404,6 +1433,8 @@ const Player = {
 
   reset() {
     this.x = 120; this.y = GROUND_Y - 50; this.vy = 0;
+    this.moveLeft = false; this.moveRight = false;
+    this.coinAmmo = 30; this.shootCd = 0;
     this.isGrounded = true; this.jumpCount = 0; this.jumpForce = 13.8;
     this.isSliding = false; this.slideTimer = 0;
     this.isDashing = false; this.dashTimer = 0; this.dashCd = 0;
@@ -1430,6 +1461,31 @@ const Player = {
 
     if (buffs.magnetBonus) this.magnetRange += buffs.magnetBonus;
     this.coinValueMult = Account.equipment.dragonScroll.owned ? 1.4 : 1.0;
+  },
+
+  moveForward(active) {
+    this.moveRight = !!active;
+  },
+
+  moveBackward(active) {
+    this.moveLeft = !!active;
+  },
+
+  shootCoin() {
+    if (Game.state !== 'PLAYING' || this.inCart) return;
+    if (this.shootCd > 0) return;
+    this.shootCd = 8; // 快速射击间隔
+
+    const isPowered = this.coinAmmo > 0 || this.isRaging || Player.isGodMode;
+    if (this.coinAmmo > 0) this.coinAmmo--;
+
+    CoinBulletManager.spawn(this.x + this.w, this.y + (this.isSliding ? 14 : 20), isPowered);
+    this.squashX = 0.9; this.squashY = 1.12;
+
+    const label = document.getElementById('shootAmmoLabel');
+    if (label) {
+      label.textContent = this.coinAmmo > 0 ? `金币(${this.coinAmmo})` : '金币射击';
+    }
   },
 
   jump() {
@@ -1687,6 +1743,17 @@ const Player = {
       if (this.isSliding && --this.slideTimer <= 0) this.isSliding = false;
       if (this.isDashing && --this.dashTimer <= 0) this.isDashing = false;
       if (this.dashCd > 0) this.dashCd--;
+
+      // 玩家主动前后走位 (Forward / Backward Horizontal Movement)
+      if (this.moveLeft) {
+        this.x -= 4.8;
+        if (this.x < 35) this.x = 35;
+      }
+      if (this.moveRight) {
+        this.x += 4.8;
+        if (this.x > CANVAS_WIDTH - 150) this.x = CANVAS_WIDTH - 150;
+      }
+      if (this.shootCd > 0) this.shootCd--;
 
       // 跑步高频蹬地扬尘与疾跑火花
       if (this.isGrounded && !this.isSliding && Game.state === 'PLAYING') {
@@ -2498,7 +2565,7 @@ const ItemManager = {
 
     if (!hasBuffInScene && this.buffCooldown <= 0 && ++this.buffSpawnTimer > spawnThreshold && Math.random() < spawnRate) {
       this.buffSpawnTimer = 0;
-      const buffPool = ['STIMULUS', 'REBOUND', 'BOTTOM_BUY', 'GOLDEN_ARROW'];
+      const buffPool = ['STIMULUS', 'REBOUND', 'BOTTOM_BUY', 'GOLDEN_ARROW', 'COIN_CANNON'];
       const buffType = buffPool[Math.floor(Math.random() * buffPool.length)];
       
       let buffY = GROUND_Y - 135;
@@ -2616,6 +2683,14 @@ const ItemManager = {
             const arrowBonus = Math.floor((600 + clearedCount * 200) * diffCfg.coinMult);
             Game.profits += arrowBonus;
             Player.gainRage(15);
+          } else if (it.buffType === 'COIN_CANNON') {
+            flashColor = 'rgba(255, 215, 0, 0.45)';
+            floatBadge = '🪙 量化金币加特林 · 弹药+30发！';
+            badgeColor = '#ffd700';
+            Player.coinAmmo = Math.min(99, (Player.coinAmmo || 0) + 30);
+            const label = document.getElementById('shootAmmoLabel');
+            if (label) label.textContent = `金币(${Player.coinAmmo})`;
+            Player.gainRage(10);
           }
 
           Game.triggerScreenFlash(flashColor, 18);
@@ -2761,6 +2836,16 @@ const ItemManager = {
           ctx.lineTo(it.size * 0.4, it.size * 0.7);
           ctx.lineTo(4, it.size * 0.7);
           ctx.fill();
+        } else if (it.buffType === 'COIN_CANNON') {
+          ctx.fillStyle = '#ffd700';
+          ctx.beginPath();
+          ctx.arc(it.size / 2, it.size / 2, 7, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#b45309';
+          ctx.font = '900 8px monospace';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('¥', it.size / 2, it.size / 2);
         }
 
       } else if (it.type === 'BOX') {
@@ -2937,81 +3022,247 @@ const StageManager = {
   }
 };
 
+const CoinBulletManager = {
+  bullets: [],
+  reset() { this.bullets = []; },
+  spawn(x, y, isBig = false) {
+    this.bullets.push({
+      x, y,
+      vx: 13.5,
+      damage: isBig ? 35 : 20,
+      size: isBig ? 11 : 7.5,
+      isBig,
+      rot: 0
+    });
+    SoundEngine.playCoinShoot();
+  },
+  update() {
+    for (let i = this.bullets.length - 1; i >= 0; i--) {
+      const b = this.bullets[i];
+      b.x += b.vx;
+      b.rot += 0.28;
+      
+      // Check hit Boss
+      if (BossManager.active) {
+        const bx = BossManager.x + 35;
+        const by = BossManager.y + 30;
+        const dx = Math.abs(b.x - bx);
+        const dy = Math.abs(b.y - by);
+        if (dx < 50 && dy < 42) {
+          BossManager.takeDamage(b.damage);
+          Game.spawnParticles(b.x, b.y, '#ffd700', 4, 2.5, 2.0);
+          Game.spawnShockwave(b.x, b.y, '#ffd700', 18, 2.0, 'RING');
+          this.bullets.splice(i, 1);
+          continue;
+        }
+      }
+      
+      // Check hit Obstacles / Monsters
+      let hitObs = false;
+      for (let j = ObstacleManager.obstacles.length - 1; j >= 0; j--) {
+        const o = ObstacleManager.obstacles[j];
+        if (b.x > o.x && b.x < o.x + o.w && b.y > o.y && b.y < o.y + o.h) {
+          Game.spawnParticles(o.x + o.w / 2, o.y + o.h / 2, '#ffd700', 5, 2.5, 2.0);
+          Game.spawnShockwave(o.x + o.w / 2, o.y + o.h / 2, '#00e676', 22, 2.0, 'STAR_CROSS');
+          Game.spawnFloatingText(`💥 击溃做空怪 +¥500`, o.x, o.y - 10, '#ffd700', 14);
+          Game.profits += 500;
+          Game.punchProfitHUD();
+          ObstacleManager.obstacles.splice(j, 1);
+          hitObs = true;
+          break;
+        }
+      }
+      if (hitObs) {
+        this.bullets.splice(i, 1);
+        continue;
+      }
+      
+      if (b.x > CANVAS_WIDTH + 60) {
+        this.bullets.splice(i, 1);
+      }
+    }
+  },
+  draw(ctx) {
+    this.bullets.forEach(b => {
+      ctx.save();
+      ctx.translate(b.x, b.y);
+      ctx.rotate(b.rot);
+      ctx.shadowColor = '#ffd700';
+      ctx.shadowBlur = 8;
+      ctx.fillStyle = '#ffd700';
+      ctx.beginPath();
+      ctx.arc(0, 0, b.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      
+      ctx.fillStyle = '#b45309';
+      ctx.font = `900 ${Math.max(7, b.size * 1.1)}px monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('¥', 0, 0.5);
+      ctx.restore();
+    });
+  }
+};
+
+const BOSS_TYPES = [
+  {
+    id: 'CROCODILE',
+    name: '🐊 鳄鱼庄家 (Crocodile Market Maker)',
+    title: '【高频做空机构】',
+    maxHp: 120,
+    color: '#2e7d32',
+    accentColor: '#1b5e20',
+    rewardGold: 60000
+  },
+  {
+    id: 'BEAR',
+    name: '🐻 空头巨熊 (Wall Street Giant Bear)',
+    title: '【华尔街巨型做空基金】',
+    maxHp: 150,
+    color: '#d32f2f',
+    accentColor: '#3e2723',
+    rewardGold: 80000
+  },
+  {
+    id: 'WHALE',
+    name: '🐋 控盘巨鲸 (Wall Street Whale)',
+    title: '【万亿级深海收割巨鲸】',
+    maxHp: 180,
+    color: '#0288d1',
+    accentColor: '#01579b',
+    rewardGold: 100000
+  }
+];
+
 const BossManager = {
   active: false,
-  hp: 100,
-  maxHp: 100,
-  x: CANVAS_WIDTH - 130,
+  bossIndex: 0,
+  currentBoss: null,
+  hp: 120,
+  maxHp: 120,
+  x: CANVAS_WIDTH - 140,
   y: 120,
-  vy: 1.5,
+  vy: 1.6,
   attackTimer: 0,
   defeated: false,
+  bearPhaseSpawned: false,
+  state: 'HOVER', // 'HOVER' | 'LUNGE' | 'RETREAT'
+  lungeTimer: 0,
+  warningFlash: 0,
 
   reset() {
     this.active = false;
-    this.hp = 100;
-    this.maxHp = 100;
-    this.x = CANVAS_WIDTH - 130;
+    this.bossIndex = 0;
+    this.currentBoss = null;
+    this.hp = 120;
+    this.maxHp = 120;
+    this.x = CANVAS_WIDTH - 140;
     this.y = 120;
-    this.vy = 1.5;
+    this.vy = 1.6;
     this.attackTimer = 0;
     this.defeated = false;
+    this.bearPhaseSpawned = false;
+    this.state = 'HOVER';
+    this.lungeTimer = 0;
+    this.warningFlash = 0;
   },
 
-  spawn() {
-    if (this.active || this.defeated) return;
+  spawnRandomBearBoss() {
+    if (this.active || this.bearPhaseSpawned) return;
+    const bType = BOSS_TYPES[this.bossIndex % BOSS_TYPES.length];
+    this.bossIndex++;
+    this.currentBoss = bType;
     this.active = true;
-    this.hp = 100;
-    this.maxHp = 100;
-    this.x = CANVAS_WIDTH - 130;
+    this.hp = bType.maxHp;
+    this.maxHp = bType.maxHp;
+    this.x = CANVAS_WIDTH - 140;
     this.y = 120;
+    this.vy = 1.6;
+    this.state = 'HOVER';
+    this.lungeTimer = 0;
+    this.attackTimer = 0;
+
     SoundEngine.playLevelUp();
-    Game.triggerShake(12, 20);
-    Game.triggerScreenFlash('rgba(255, 23, 68, 0.45)', 25);
-    Game.spawnFloatingText('🐊 警报！鳄鱼庄家现身操盘！', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 40, '#ff1744', 22);
+    Game.triggerShake(12, 22);
+    Game.triggerScreenFlash('rgba(255, 23, 68, 0.5)', 25);
+    Game.spawnFloatingText(`⚠️ 熊市警报！${bType.name} 现身操盘！`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 40, '#ff1744', 22);
+  },
+
+  retreat() {
+    if (!this.active) return;
+    this.active = false;
+    Game.spawnFloatingText(`💨 熊市消退，${this.currentBoss ? this.currentBoss.name : '庄家'} 撤单撤离！`, CANVAS_WIDTH / 2, 90, '#00e5ff', 18);
   },
 
   update(speed) {
     if (!this.active) return;
-    this.y += this.vy;
-    if (this.y < 50 || this.y > 180) this.vy *= -1;
 
+    // 1. 上下平滑游弋
+    this.y += this.vy;
+    if (this.y < 55 || this.y > 185) this.vy *= -1;
+
+    // 2. 左右智能追踪/突进 AI (Horizontal Lunge & Patrol)
     this.attackTimer++;
-    if (this.attackTimer >= 80) {
-      this.attackTimer = 0;
-      if (Math.random() < 0.65) {
+    if (this.state === 'HOVER') {
+      // 保持在中后场悬停巡逻，微微左右晃动
+      const patrolX = CANVAS_WIDTH - 150 + Math.sin(this.attackTimer * 0.04) * 45;
+      this.x += (patrolX - this.x) * 0.08;
+
+      // 周期性发动横向突刺撕咬
+      if (this.attackTimer >= 130) {
+        this.attackTimer = 0;
+        this.state = 'LUNGE';
+        this.lungeTimer = 45;
+        this.warningFlash = 25;
+        SoundEngine.playTrap();
+        Game.spawnFloatingText(`⚡ ${this.currentBoss ? this.currentBoss.name : 'Boss'} 狂暴前扑！快后退/起跳！`, this.x - 20, this.y - 20, '#ff1744', 16);
+      }
+
+      // 周期性投掷做空障碍
+      if (this.attackTimer % 55 === 0) {
         ObstacleManager.obstacles.push({
-          type: 'SWAN',
+          type: this.currentBoss.id === 'BEAR' ? 'BEAR_CLAW' : (this.currentBoss.id === 'WHALE' ? 'SWAN' : 'SWAN'),
           x: this.x - 20,
           y: this.y + 10,
           w: 48, h: 44,
-          damage: 30,
+          damage: 25,
           t: 0
         });
-      } else {
-        ItemManager.items.push({
-          type: 'BOX',
-          x: this.x - 20,
-          y: this.y + 10,
-          size: 28,
-          vy: 0
-        });
+      }
+    } else if (this.state === 'LUNGE') {
+      // 疾速冲向玩家当前 X 位置 (左右突刺攻击)
+      this.x -= 7.8;
+      if (this.x <= Player.x + 70 || this.x <= 80 || --this.lungeTimer <= 0) {
+        this.state = 'RETREAT';
+      }
+    } else if (this.state === 'RETREAT') {
+      // 突刺完毕后退回右侧大本营
+      this.x += 5.2;
+      if (this.x >= CANVAS_WIDTH - 140) {
+        this.x = CANVAS_WIDTH - 140;
+        this.state = 'HOVER';
+        this.attackTimer = 0;
       }
     }
 
+    // 3. 与玩家碰撞判定
     const playerCenterX = Player.x + Player.w / 2;
     const playerCenterY = Player.y + Player.h / 2;
     const bossCenterX = this.x + 40;
-    const bossCenterY = this.y + 40;
+    const bossCenterY = this.y + 35;
     const distX = Math.abs(playerCenterX - bossCenterX);
     const distY = Math.abs(playerCenterY - bossCenterY);
 
-    if (distX < 65 && distY < 65) {
+    if (distX < 65 && distY < 55) {
       if (Player.isDashing || Player.isRaging || Player.inCart || (Player.jumpState && Player.vy > 0)) {
         this.takeDamage(25);
-        Player.vy = -8.0;
+        Player.vy = -8.5;
       } else if (!Player.invincibleTimer) {
         Player.takeDamage(20, 'NORMAL');
+        Player.x = Math.max(30, Player.x - 30); // 击退玩家
       }
     }
   },
@@ -3021,18 +3272,28 @@ const BossManager = {
     SoundEngine.playHitEnemy();
     Game.triggerHitstop(4);
     Game.triggerShake(8, 10);
-    Game.spawnShockwave(this.x + 40, this.y + 40, '#ffd700', 36, 3.0, 'STAR_CROSS');
-    Game.spawnFloatingText(`💥 撞击庄家 -${dmg}HP`, this.x - 10, this.y - 15, '#ff9100', 18);
+    Game.spawnShockwave(this.x + 40, this.y + 35, '#ffd700', 36, 3.0, 'STAR_CROSS');
+    Game.spawnFloatingText(`💥 击中Boss -${dmg}HP`, this.x - 10, this.y - 15, '#ffd700', 18);
 
     if (this.hp <= 0) {
       this.active = false;
       this.defeated = true;
-      Game.enemiesDefeated += 5;
-      Game.triggerShake(15, 25);
-      Game.triggerScreenFlash('rgba(255, 215, 0, 0.5)', 30);
-      SoundEngine.playLevelUp();
-      Game.spawnFlyingCoin(this.x + 40, this.y + 40, 50000, '#ffd700', '🏆');
-      Game.spawnFloatingText('🏆 通关 Chapter 01：第一桶金！(击败鳄鱼庄家)', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 30, '#ffd700', 24);
+      this.bearPhaseSpawned = true;
+      Game.enemiesDefeated += 10;
+      Game.triggerShake(16, 28);
+      Game.triggerScreenFlash('rgba(255, 215, 0, 0.55)', 30);
+      SoundEngine.playGodAwaken();
+
+      const rewardGold = this.currentBoss ? this.currentBoss.rewardGold : 60000;
+      // 连续喷发大量金币飞入 HUD
+      for (let k = 0; k < 12; k++) {
+        Game.spawnFlyingCoin(this.x + (Math.random() - 0.5) * 60, this.y + (Math.random() - 0.5) * 40, Math.floor(rewardGold / 12), '#ffd700', '🏆');
+      }
+      Game.spawnFloatingText(`🎉 成功击溃【${this.currentBoss ? this.currentBoss.name : '庄家'}】！斩获 ¥${rewardGold.toLocaleString()} 终极分红！`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 35, '#ffd700', 24);
+      // 奖励 1 次里程碑秘籍抽卡
+      setTimeout(() => {
+        if (Game.state === 'PLAYING') Game.checkRoguelikeMilestone();
+      }, 800);
     }
   },
 
@@ -3041,41 +3302,93 @@ const BossManager = {
     ctx.save();
     ctx.translate(this.x, this.y);
 
-    ctx.fillStyle = '#1b5e20';
-    ctx.fillRect(0, 10, 80, 55);
-    ctx.fillStyle = '#2e7d32';
-    ctx.fillRect(5, 15, 70, 45);
-    ctx.fillStyle = '#ff1744';
-    ctx.fillRect(-20, 30, 30, 20);
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(-18, 30, 5, 6);
-    ctx.fillRect(-8, 30, 5, 6);
-    ctx.fillRect(2, 30, 5, 6);
-    ctx.fillStyle = '#ffd700';
-    ctx.fillRect(45, 20, 10, 30);
-    ctx.fillStyle = '#ff1744';
-    ctx.fillRect(15, 20, 8, 8);
+    const b = this.currentBoss || BOSS_TYPES[0];
+
+    // 突进警报红光残影
+    if (this.state === 'LUNGE') {
+      ctx.fillStyle = 'rgba(255, 23, 68, 0.3)';
+      ctx.fillRect(-15, 0, 100, 70);
+    }
+
+    if (b.id === 'CROCODILE') {
+      // 鳄鱼立绘
+      ctx.fillStyle = '#1b5e20';
+      ctx.fillRect(0, 10, 80, 55);
+      ctx.fillStyle = '#2e7d32';
+      ctx.fillRect(5, 15, 70, 45);
+      // 巨口 & 尖牙
+      ctx.fillStyle = '#ff1744';
+      ctx.fillRect(-22, 28, 32, 22);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(-20, 28, 6, 6);
+      ctx.fillRect(-10, 28, 6, 6);
+      ctx.fillRect(0, 28, 6, 6);
+      ctx.fillRect(-20, 44, 6, 6);
+      ctx.fillRect(-10, 44, 6, 6);
+      // 黄金领带
+      ctx.fillStyle = '#ffd700';
+      ctx.fillRect(45, 20, 10, 30);
+      // 凶光赤眼
+      ctx.fillStyle = '#ff1744';
+      ctx.fillRect(15, 18, 8, 8);
+    } else if (b.id === 'BEAR') {
+      // 空头巨熊立绘
+      ctx.fillStyle = '#3e2723';
+      ctx.fillRect(0, 5, 85, 60);
+      ctx.fillStyle = '#d32f2f';
+      ctx.fillRect(6, 10, 73, 50);
+      // 熊耳
+      ctx.fillStyle = '#3e2723';
+      ctx.fillRect(8, -6, 18, 14);
+      ctx.fillRect(58, -6, 18, 14);
+      // 做空利爪
+      ctx.fillStyle = '#ff1744';
+      ctx.fillRect(-16, 25, 24, 25);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(-16, 45, 6, 8);
+      ctx.fillRect(-8, 45, 6, 8);
+      // 发光红眼
+      ctx.fillStyle = '#ffd700';
+      ctx.fillRect(18, 18, 10, 8);
+    } else if (b.id === 'WHALE') {
+      // 巨鲸立绘
+      ctx.fillStyle = '#01579b';
+      ctx.fillRect(0, 10, 90, 50);
+      ctx.fillStyle = '#0288d1';
+      ctx.fillRect(6, 14, 78, 42);
+      // 鲸尾
+      ctx.fillStyle = '#01579b';
+      ctx.fillRect(80, -4, 20, 35);
+      // 喷气水花
+      ctx.fillStyle = '#00e5ff';
+      ctx.fillRect(30, -10, 12, 14);
+      // 巨眼
+      ctx.fillStyle = '#ffd700';
+      ctx.fillRect(12, 22, 10, 10);
+    }
 
     ctx.restore();
-    ctx.save();
-    const barW = 220, barH = 16;
-    const barX = (CANVAS_WIDTH - barW) / 2;
-    const barY = 48;
 
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+    // 顶部专属 Boss 血条与称号
+    ctx.save();
+    const barW = 260, barH = 18;
+    const barX = (CANVAS_WIDTH - barW) / 2;
+    const barY = 50;
+
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
     ctx.fillRect(barX - 4, barY - 4, barW + 8, barH + 8);
-    ctx.strokeStyle = '#ff1744';
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = b.color;
+    ctx.lineWidth = 1.8;
     ctx.strokeRect(barX - 4, barY - 4, barW + 8, barH + 8);
 
-    const ratio = this.hp / this.maxHp;
+    const ratio = Math.max(0, this.hp / this.maxHp);
     ctx.fillStyle = ratio > 0.5 ? '#00e676' : (ratio > 0.25 ? '#ff9100' : '#ff1744');
     ctx.fillRect(barX, barY, barW * ratio, barH);
 
     ctx.font = '900 11px monospace';
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'center';
-    ctx.fillText(`🐊 鳄鱼庄家 (Crocodile Broker) [ ${this.hp} / ${this.maxHp} ]`, CANVAS_WIDTH / 2, barY + 12);
+    ctx.fillText(`${b.name} [ ${this.hp} / ${this.maxHp} HP ]`, CANVAS_WIDTH / 2, barY + 13);
     ctx.restore();
   }
 };
@@ -3169,6 +3482,19 @@ const Game = {
     this.klineIndex = Math.floor(Math.random() * CLASSIC_KLINE_PATTERNS.length);
     this.currentPattern = CLASSIC_KLINE_PATTERNS[this.klineIndex];
     this.klineTimer = 0;
+
+    // 熊市单Boss激活与防重机制 (Strict Single Boss per Bear Phase)
+    if (this.currentPattern && this.currentPattern.type === 'DOWN') {
+      if (!BossManager.active && !BossManager.bearPhaseSpawned) {
+        BossManager.spawnRandomBearBoss();
+        BossManager.bearPhaseSpawned = true;
+      }
+    } else {
+      BossManager.bearPhaseSpawned = false;
+      if (BossManager.active) {
+        BossManager.retreat();
+      }
+    }
   },
 
   selectPersona(personaType) {
@@ -3204,6 +3530,10 @@ const Game = {
     PlatformManager.reset();
     VehicleManager.reset();
     BossManager.reset();
+    CoinBulletManager.reset();
+
+    const shootLabel = document.getElementById('shootAmmoLabel');
+    if (shootLabel) shootLabel.textContent = `金币(${Player.coinAmmo || 30})`;
 
     const startM = document.getElementById('startModal');
     if (startM) startM.classList.add('hidden');
@@ -3712,11 +4042,18 @@ const Game = {
     window.addEventListener('keydown', (e) => {
       if (e.code === 'KeyW' || e.code === 'ArrowUp' || e.code === 'Space') Player.jump();
       else if (e.code === 'KeyS' || e.code === 'ArrowDown') Player.slide(true);
-      else if (e.code === 'KeyJ') Player.dash();
-      else if (e.code === 'KeyK') Player.activateRage();
+      else if (e.code === 'KeyA' || e.code === 'ArrowLeft') Player.moveBackward(true);
+      else if (e.code === 'KeyD' || e.code === 'ArrowRight') Player.moveForward(true);
+      else if (e.code === 'KeyJ' || e.code === 'KeyX') Player.shootCoin();
+      else if (e.code === 'KeyK' || e.code === 'KeyC') Player.dash();
+      else if (e.code === 'KeyL') Player.activateRage();
       else if (e.code === 'KeyP' || e.code === 'Escape') this.togglePause();
     });
-    window.addEventListener('keyup', (e) => { if (e.code === 'KeyS' || e.code === 'ArrowDown') Player.slide(false); });
+    window.addEventListener('keyup', (e) => {
+      if (e.code === 'KeyS' || e.code === 'ArrowDown') Player.slide(false);
+      else if (e.code === 'KeyA' || e.code === 'ArrowLeft') Player.moveBackward(false);
+      else if (e.code === 'KeyD' || e.code === 'ArrowRight') Player.moveForward(false);
+    });
     
     const btnStart = document.getElementById('btnStartGame');
     if (btnStart) {
@@ -3800,6 +4137,27 @@ const Game = {
     }
 
     const btnJ = document.getElementById('btnJump'), btnS = document.getElementById('btnSlide'), btnD = document.getElementById('btnDash'), btnR = document.getElementById('btnRage');
+    const btnLeft = document.getElementById('btnLeft'), btnRight = document.getElementById('btnRight'), btnShoot = document.getElementById('btnShoot');
+
+    if (btnLeft) {
+      btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); Player.moveBackward(true); });
+      btnLeft.addEventListener('touchend', (e) => { e.preventDefault(); Player.moveBackward(false); });
+      btnLeft.addEventListener('mousedown', () => Player.moveBackward(true));
+      btnLeft.addEventListener('mouseup', () => Player.moveBackward(false));
+      btnLeft.addEventListener('mouseleave', () => Player.moveBackward(false));
+    }
+    if (btnRight) {
+      btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); Player.moveForward(true); });
+      btnRight.addEventListener('touchend', (e) => { e.preventDefault(); Player.moveForward(false); });
+      btnRight.addEventListener('mousedown', () => Player.moveForward(true));
+      btnRight.addEventListener('mouseup', () => Player.moveForward(false));
+      btnRight.addEventListener('mouseleave', () => Player.moveForward(false));
+    }
+    if (btnShoot) {
+      btnShoot.addEventListener('touchstart', (e) => { e.preventDefault(); Player.shootCoin(); });
+      btnShoot.addEventListener('mousedown', () => Player.shootCoin());
+    }
+
     if (btnJ) {
       btnJ.addEventListener('touchstart', (e) => { e.preventDefault(); Player.jump(); });
       btnJ.addEventListener('mousedown', () => Player.jump());
@@ -3878,10 +4236,7 @@ const Game = {
       }
     }
 
-    // 🐊 1500米 鳄鱼庄家 Boss 战
-    if (this.distance >= 1500 && !BossManager.active && !BossManager.defeated) {
-      BossManager.spawn();
-    }
+    // 🐊 熊市单Boss更新
     BossManager.update(totalSpd);
 
     this.klineTimer++;
@@ -3890,6 +4245,7 @@ const Game = {
     }
 
     Player.update();
+    CoinBulletManager.update();
     PlatformManager.update(totalSpd);
     VehicleManager.update(totalSpd);
     ObstacleManager.update(totalSpd);
@@ -4183,6 +4539,7 @@ const Game = {
     ObstacleManager.draw(this.ctx);
     ItemManager.draw(this.ctx);
     Player.draw(this.ctx);
+    CoinBulletManager.draw(this.ctx);
     BossManager.draw(this.ctx);
     this.drawFlyingCoins(this.ctx);
 
