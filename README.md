@@ -42,14 +42,20 @@
 
 ---
 
-## 🚀 目录结构
+## 🚀 目录结构与历史版本归档 (Project Structure & Archive)
 
 ```
 bull_run_game/
-├── index.html                  # 默认入口（100% 独立单文件，含海报与音效）
+├── index.html                  # 默认入口（100% 独立单文件，最新发布版）
 ├── bull_run_standalone.html    # 独立单文件分发版
 ├── game.html                   # 镜像单文件
-├── README.md                   # 项目说明与部署指南
+├── README.md                   # 项目说明与快速开始
+├── CHANGELOG.md                # 📜 全版本迭代更新日志与修改记录
+├── 旧版本/                     # 📁 历史版本归档文件夹 (单文件即开即玩)
+│   ├── bull_run_v4.0.0_黄金觉醒版.html
+│   ├── bull_run_v4.1.0_牛市渐变大屏版.html
+│   ├── bull_run_v4.2.0_熊市Boss与金币走位版.html
+│   └── bull_run_v4.3.0_爽快音效与史诗打击特效版.html
 └── assets/
     ├── poster.jpg              # 制作人-蒋尊森 开场海报原图
     └── skins_data.js           # 5款战牛像素立绘 base64 数据
@@ -57,6 +63,12 @@ bull_run_game/
 
 ---
 
+## 📜 详细更新日志 (Changelog)
+
+每次版本迭代的详细修改内容、设计考量与功能特性，请查阅 👉 **[CHANGELOG.md](CHANGELOG.md)**。
+
+---
+
 ## 🛠️ 本地运行
 
-无需安装任何繁琐依赖，直接双击 `index.html` 即可在 Chrome / Edge / Safari / 手机微信 中直接运行！
+无需安装任何繁琐依赖，直接双击 `index.html` 或 `旧版本/` 下的任意历史版本，即可在 Chrome / Edge / Safari / 手机微信 中直接运行！
