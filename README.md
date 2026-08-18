@@ -1,9 +1,9 @@
-# 🐂 《牛牛勇敢向前冲 4.1 · 暖阳花海版》 (Bull Run 4.1: Spring Blossom & Golden Sky)
+# 🐂 《牛牛勇敢向前冲 4.2 · 熊市Boss与金币弹幕走位版》 (Bull Run 4.2: Bear Boss AI & Coin Cannon)
 
 > **华尔街金融大逃杀 · 掌机级横屏跑酷 · 原生 HTML5 Canvas + Web Audio API 工业级独立单文件神作**  
 > 制作人：**蒋尊森** | 核心架构：**独立小游戏工坊 & 全栈架构专家团**
 
-[![Game Version](https://img.shields.io/badge/version-4.1.0--Blossom-gold.svg)](https://github.com/MUMUMU23333/game)
+[![Game Version](https://img.shields.io/badge/version-4.2.0--BearBoss-gold.svg)](https://github.com/MUMUMU23333/game)
 [![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live%20Demo-brightgreen.svg)](https://mumumu23333.github.io/game/)
 [![FPS](https://img.shields.io/badge/Target%20FPS-60%20Lock-blue.svg)](https://github.com/MUMUMU23333/game)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -18,18 +18,23 @@
 
 ---
 
-## ✨ 4.1 暖阳花海版重磅全新升级
+## ✨ 4.2 熊市Boss与金币弹幕走位版重磅全新升级
 
-1. 🌸 **牛市自然平滑渐变·蓝天白云鸟语花香**：告别低沉压抑！进入多头主升浪与暴走时，背景通过毫秒级有机色彩插值算法，在 0.8 秒内自然平滑渐变为**蔚蓝晴空（Azure Sky）、悠然浮云（Fluffy Clouds）、高空多头吉祥飞鸟（Soaring Birds）、漫天飞舞的春樱/金色花瓣（Blossom Petals）与地平线绽放的野花草地**；熊市与危机时自然退回赛博深邃夜空，丝滑不突兀！
-2. 📱 **手机端 HUD 黄金比例自适应与防截断**：彻底重构顶部 HUD 弹性栅格，对最右侧盈利金额 (`¥`) 和操作按钮实施防挤压与安全边距锁定，手机横屏下任何金额均 100% 完整清晰呈现！
-3. 👑 **黄金牛皇变身觉醒 (Golden God Awakening)**：当局内盈利突破 **¥10,000** 自动爆气变身！头顶悬浮黄金皇冠、周身环绕金光残影电弧，全屏量化磁吸狂澜金币！
-4. 🏆 **操盘名人堂与终身勋章殿堂 (Trophy & Hall of Fame)**：永久记录历史最高盈利、最远奔跑里程、击溃空头怪数，收集 6 大黄金成就徽章并赢取丰厚奖金！
-5. 🐮 **牛牛 7 维灵动微状态动画 (Dynamic Micro-States)**：暴赚墨镜笑脸、危机流汗警报、冲刺烈焰火花、凌空二段翻腾，赋予战牛生动的灵魂！
-6. 🎵 **自适应金融情绪音效引擎 (Adaptive Sound Engine)**：升调多头进军号角、低沉压迫熊市警报、纯代码实时合成无外部依赖！
-7. 🌍 **五大世界地标关卡跃迁**：巴黎埃菲尔铁塔、伦敦大本钟、富士山雪顶、呼伦贝尔大草原、科罗拉多大峡谷，750米动态跃迁，0.08超暗半透明防遮挡！
-8. 📈 **80 种专业经典 K 线形态**：红三兵主升浪、早晨之星、仙人指路、穿头破脚大阳线，融合 5 周期 MA 均线与量价突破算法！
-9. 🥊 **5 款高能战牛专属立绘与技能**：铁血拳王、多头圣骑士、股神连板冠军牛、赛博重装机甲狂牛、华尔街大亨！
-10. 🛡️ **跌落熔断保护车 (Cart)**：掉下深渊自动召唤防爆避险战车，百毒不侵狂飙百米！
+1. 🐊 **熊市三大 Boss 左右突进攻击 AI (Bear Boss Intelligent AI)**：
+   - 包含 **🐊 鳄鱼庄家 (Crocodile Market Maker)**、**🐻 空头巨熊 (Wall Street Giant Bear)**、**🐋 控盘巨鲸 (Wall Street Whale)** 3 大独立 Boss！
+   - 具备 **悬停巡逻（HOVER）**、**狂暴突进（LUNGE，前冲至玩家身前张嘴撕咬攻击）** 与 **后撤重整（RETREAT）** 左右智能走位 AI，顶部实时呈现独立 Boss 动态血条！
+2. 🕹️ **主角前进与后退灵活走位 (Forward / Backward Navigation)**：
+   - 触控操作条与键盘全面支持 **◀️ 后退 (A / ←)** 与 **▶️ 前进 (D / →)**，支持在屏幕 35px ~ 650px 宽广区间内自由微操躲避 Boss 突刺与障碍！
+3. 🪙 **金币射击系统与量化金币炮道具 (Coin Bullet Attack & Ammo Cannon)**：
+   - 全新 **🪙 金币射击 (J / X 键 或 屏幕金色圆钮)**：高速向右射出旋转金色硬币子弹，带有发光残影与 ¥ 字样！
+   - 子弹击中 Boss 造成 20~35 点伤害与爆裂金花；击中做空黑天鹅/阴跌怪直接粉碎并赚取资金！
+   - 场景新增 **量化金币炮 (COIN_CANNON)** 拾取道具，直接补满 +30 发金币弹药！
+4. 🔒 **单熊市严格单 Boss 锁定机制 (Strict Single Boss per Bear Market)**：
+   - 每个大熊市阶段严格仅唤醒 1 个 Boss，离开熊市时 Boss 自动撤退逃窜，彻底杜绝重复刷怪与同屏冲突 BUG！
+5. 🎁 **Boss 击溃巨额分红奖励 (Massive Defeat Payout)**：
+   - 击败 Boss 喷发 12 连发飞行金币飞入右上角 HUD，狂揽 **¥60,000 ~ ¥100,000** 巨额分红并赠送 1 次免费 Roguelike 秘籍抽卡！
+6. 🌸 **牛市自然平滑渐变·蓝天白云鸟语花香**：进入牛市多头主升浪，背景 0.8s 平滑渐变为蔚蓝晴空、悠然浮云、多头吉祥飞鸟、漫天飞舞的樱花金瓣与地平线绽放的野花草地！
+7. 📱 **手机端 HUD 黄金比例自适应与防截断**：彻底重构顶部 HUD 弹性栅格与 44px 掌机触控布局，手机横屏下任何金额均 100% 完整清晰呈现！
 
 ---
 
