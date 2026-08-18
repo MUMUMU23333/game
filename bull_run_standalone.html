@@ -2315,24 +2315,26 @@ const ObstacleManager = {
       if (chosenType === 'PIPE') {
         const ph = Math.floor(Math.random() * 45) + 38;
         this.obstacles.push({
-          type: 'PIPE', x: CANVAS_WIDTH + 40, y: GROUND_Y - ph, w: 42, h: ph, damage: 20
+          type: 'PIPE', name: '绿K线柱', x: CANVAS_WIDTH + 40, y: GROUND_Y - ph, w: 42, h: ph,
+          damage: 20, hp: 20, maxHp: 20, bounty: 350, flashWhiteTimer: 0, hitRecoilX: 0
         });
       } else if (chosenType === 'SWAN') {
         const flyY = Math.random() < 0.4 ? GROUND_Y - 145 : GROUND_Y - 85;
         this.obstacles.push({
-          type: 'SWAN', x: CANVAS_WIDTH + 60, y: flyY, baseY: flyY, w: 46, h: 36,
-          damage: 40, t: Math.random() * Math.PI * 2,
+          type: 'SWAN', name: '暴跌黑天鹅', x: CANVAS_WIDTH + 60, y: flyY, baseY: flyY, w: 46, h: 36,
+          damage: 35, hp: 40, maxHp: 40, bounty: 800, t: Math.random() * Math.PI * 2,
+          flashWhiteTimer: 0, hitRecoilX: 0,
           update() { this.t += 0.08; this.y = this.baseY + Math.sin(this.t) * 14; }
         });
       } else if (chosenType === 'BEAR') {
         this.obstacles.push({
-          type: 'BEAR', x: CANVAS_WIDTH + 40, y: GROUND_Y - 42, w: 46, h: 42,
-          damage: 28, extraSpeed: 0.3
+          type: 'BEAR', name: '做空巨熊', x: CANVAS_WIDTH + 40, y: GROUND_Y - 42, w: 46, h: 42,
+          damage: 28, extraSpeed: 0.3, hp: 60, maxHp: 60, bounty: 1200, flashWhiteTimer: 0, hitRecoilX: 0
         });
       } else {
         this.obstacles.push({
-          type: 'RHINO', x: CANVAS_WIDTH + 50, y: GROUND_Y - 44, w: 52, h: 44,
-          damage: 30, extraSpeed: 0.9
+          type: 'RHINO', name: '重型灰犀牛', x: CANVAS_WIDTH + 50, y: GROUND_Y - 44, w: 52, h: 44,
+          damage: 30, extraSpeed: 0.9, hp: 90, maxHp: 90, bounty: 1800, flashWhiteTimer: 0, hitRecoilX: 0
         });
       }
     }
@@ -2343,6 +2345,8 @@ const ObstacleManager = {
       const o = this.obstacles[i];
       o.x -= spd + (o.extraSpeed || 0);
       if (o.update) o.update();
+      if (o.flashWhiteTimer > 0) o.flashWhiteTimer--;
+      if (o.hitRecoilX > 0) o.hitRecoilX *= 0.72;
 
       const ph = Player.isSliding ? 24 : Player.h;
       if (Player.x - hitReach < o.x + o.w && Player.x + Player.w + hitReach > o.x && Player.y < o.y + o.h && Player.y + ph > o.y) {
@@ -2357,13 +2361,12 @@ const ObstacleManager = {
           const diffCfg = DIFFICULTY_CONFIG[Account.difficulty] || DIFFICULTY_CONFIG.NORMAL;
           const cartBonus = Player.inCart ? 1.2 : 1.0;
           const reboundBonus = Player.reboundTimer > 0 ? 1.25 : 1.0;
-          const isSwan = o.type === 'SWAN';
-          const baseBounty = isSwan ? 650 : 380;
+          const baseBounty = o.bounty || (o.type === 'SWAN' ? 800 : 450);
           const skinBuffs = Account.getSkinBuffs();
           const skinProfit = skinBuffs.profitMult || 1.0;
           const rew = Math.floor(baseBounty * diffCfg.coinMult * (Game.currentPattern ? Game.currentPattern.mult : 1.0) * (Account.equipment.bullHorn.owned ? 1.3 : 1.0) * cartBonus * reboundBonus * skinProfit);
           Game.profits += rew;
-          Player.gainRage(isSwan ? 20 : 10);
+          Player.gainRage(o.type === 'SWAN' ? 20 : 10);
 
           if (skinBuffs.breakHealPercent) {
             const healVal = Math.floor(Player.maxHp * (skinBuffs.breakHealPercent / 100));
@@ -2371,8 +2374,8 @@ const ObstacleManager = {
             Game.spawnFloatingText(`+${healVal}% ❤️`, Player.x, Player.y - 25, '#00e676', 14);
           }
 
-          Game.spawnFloatingText(`+¥${rew}`, o.x, o.y - 12, '#ffd700', 16); Game.punchProfitHUD();
-          Game.spawnParticles(o.x + o.w / 2, o.y + o.h / 2, '#ffd700', 5, 2.2, 1.8);
+          Game.spawnFloatingText(`+¥${rew.toLocaleString()}`, o.x, o.y - 12, '#ffd700', 16); Game.punchProfitHUD();
+          Game.spawnParticles(o.x + o.w / 2, o.y + o.h / 2, '#ffd700', 6, 2.4, 2.0);
           this.obstacles.splice(i, 1);
           continue;
         }
@@ -2397,7 +2400,7 @@ const ObstacleManager = {
           Game.profits += rew;
           Player.gainRage(hasCrossBoots ? 30 : 20);
 
-          Game.spawnFloatingText(`+¥${rew} 🦶`, o.x, o.y - 12, '#ffd700', 16); Game.punchProfitHUD();
+          Game.spawnFloatingText(`+¥${rew.toLocaleString()} 🦶`, o.x, o.y - 12, '#ffd700', 16); Game.punchProfitHUD();
           Game.spawnParticles(o.x + o.w / 2, o.y + o.h / 2, '#00e676', 4, 2.0, 1.8);
           this.obstacles.splice(i, 1);
           continue;
@@ -2452,7 +2455,13 @@ const ObstacleManager = {
         ctx.restore();
       }
 
-      ctx.save(); ctx.translate(o.x, o.y);
+      ctx.save();
+      ctx.translate(o.x + (o.hitRecoilX || 0), o.y);
+      if (o.flashWhiteTimer > 0) {
+        ctx.shadowColor = '#ffffff';
+        ctx.shadowBlur = 16;
+      }
+
       if (o.type === 'PIPE') {
         const isUp = Game.currentPattern && Game.currentPattern.type === 'UP';
         ctx.fillStyle = isUp ? '#2e7d32' : '#37474f';
@@ -2626,6 +2635,23 @@ const ObstacleManager = {
         ctx.fillText('🦏灰犀牛', 24, -4);
         ctx.restore();
       }
+
+      // Mini Health Bar (Render when damaged)
+      if (o.hp !== undefined && o.maxHp !== undefined && o.hp < o.maxHp && o.hp > 0) {
+        const barW = Math.max(30, o.w * 0.85);
+        const barH = 4.5;
+        const barX = (o.w - barW) / 2;
+        const barY = -12;
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+        ctx.fillRect(barX, barY, barW, barH);
+        const hpPct = Math.max(0, o.hp / o.maxHp);
+        ctx.fillStyle = hpPct > 0.5 ? '#00e676' : (hpPct > 0.25 ? '#ffd700' : '#ff1744');
+        ctx.fillRect(barX, barY, barW * hpPct, barH);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 0.8;
+        ctx.strokeRect(barX, barY, barW, barH);
+      }
+
       ctx.restore();
     });
   }
@@ -2686,7 +2712,7 @@ const ItemManager = {
       
       if (isBox) {
         const by = Math.random() < 0.4 ? GROUND_Y - 140 : GROUND_Y - 45;
-        this.items.push({ type: 'BOX', x: CANVAS_WIDTH + 50, y: by, size: 26 });
+        this.items.push({ type: 'BOX', x: CANVAS_WIDTH + 50, y: by, size: 28 });
       } else {
         const formations = ['ARC', 'WAVE', 'HIGH', 'SLIDE'];
         const formation = formations[Math.floor(Math.random() * formations.length)];
@@ -2703,7 +2729,7 @@ const ItemManager = {
           } else if (formation === 'SLIDE') {
             cy = GROUND_Y - 24;
           }
-          this.items.push({ type: 'COIN', x: CANVAS_WIDTH + 40 + i * 36, y: cy, size: 16 });
+          this.items.push({ type: 'COIN', x: CANVAS_WIDTH + 40 + i * 40, y: cy, size: 22, t: Math.random() * Math.PI * 2 });
         }
       }
     }
@@ -2730,7 +2756,7 @@ const ItemManager = {
       const dx = (Player.x + Player.w / 2) - (it.x + it.size / 2), dy = (Player.y + Player.h / 2) - (it.y + it.size / 2);
       const dist = Math.hypot(dx, dy);
 
-      if (dist < 34) {
+      if (dist < 38) {
         if (it.type === 'BUFF') {
           SoundEngine.playBuffPickup(it.buffType);
           Game.triggerHitstop(3);
@@ -2819,49 +2845,49 @@ const ItemManager = {
             SoundEngine.playChest();
             Game.triggerShake(4, 7);
             Game.triggerScreenFlash('rgba(255, 215, 0, 0.28)', 14);
-            Game.spawnShockwave(it.x + 13, it.y + 13, '#ffd700', 44, 3.0, 'BURST_RAYS');
-            Game.spawnShockwave(it.x + 13, it.y + 13, '#ff1744', 28, 2.0, 'RING');
-            Game.spawnParticles(it.x + 13, it.y + 13, '#ffd700', 6, 2.8, 2.4);
+            Game.spawnShockwave(it.x + 14, it.y + 14, '#ffd700', 44, 3.0, 'BURST_RAYS');
+            Game.spawnShockwave(it.x + 14, it.y + 14, '#ff1744', 28, 2.0, 'RING');
+            Game.spawnParticles(it.x + 14, it.y + 14, '#ffd700', 6, 2.8, 2.4);
             Player.goldFlash = 14; Player.goldFlashColor = '#ff1744';
-            Game.spawnFlyingCoin(it.x + 13, it.y + 13, profit, '#ff1744', '🎁');
-            Game.spawnFloatingText(`+¥${profit} 🎁 宝箱大爆!`, it.x - 10, it.y - 18, '#ff1744', 19);
+            Game.spawnFlyingCoin(it.x + 14, it.y + 14, profit, '#ff1744', '🎁');
+            Game.spawnFloatingText(`+¥${profit.toLocaleString()} 🎁 宝箱大爆!`, it.x - 10, it.y - 18, '#ff1744', 19);
           } else {
             SoundEngine.playCoin(Player.coinStreak);
             const isStreakBonus = Player.coinStreak >= 5;
-            Game.spawnShockwave(it.x + 8, it.y + 8, isStreakBonus ? '#ff9100' : '#ffd700', isStreakBonus ? 30 : 22, 2.2, 'STAR_CROSS');
-            Game.spawnParticles(it.x + 8, it.y + 8, isStreakBonus ? '#ff9100' : '#ffd700', isStreakBonus ? 6 : 4, 2.4, 2.0);
+            Game.spawnShockwave(it.x + 11, it.y + 11, isStreakBonus ? '#ff9100' : '#ffd700', isStreakBonus ? 30 : 22, 2.2, 'STAR_CROSS');
+            Game.spawnParticles(it.x + 11, it.y + 11, isStreakBonus ? '#ff9100' : '#ffd700', isStreakBonus ? 6 : 4, 2.4, 2.0);
             Player.goldFlash = isStreakBonus ? 8 : 4; Player.goldFlashColor = isStreakBonus ? '#ff9100' : '#ffd700';
-            Game.spawnFlyingCoin(it.x + 8, it.y + 8, profit, '#ffd700', '💰');
+            Game.spawnFlyingCoin(it.x + 11, it.y + 11, profit, '#ffd700', '💰');
             
             if (Player.coinStreak >= 5 && Player.coinStreak % 5 === 0) {
-              Game.spawnFloatingText(`🔥x${Player.coinStreak} 连板大暴赚 +¥${profit}`, it.x - 20, it.y - 20, '#ff9100', 18);
+              Game.spawnFloatingText(`🔥x${Player.coinStreak} 连板大暴赚 +¥${profit.toLocaleString()}`, it.x - 20, it.y - 20, '#ff9100', 18);
               Game.triggerShake(3, 5);
             } else {
-              Game.spawnFloatingText(`+¥${profit}`, it.x, it.y - 14, '#ffd700', 14);
+              Game.spawnFloatingText(`+¥${profit.toLocaleString()}`, it.x, it.y - 14, '#ffd700', 14);
             }
           }
         } else {
           if (Player.bottomBuyTimer > 0) {
             SoundEngine.playCoin(Player.coinStreak);
             const bottomProfit = Math.floor(240 * diffCfg.coinMult * Player.coinValueMult);
-            Game.spawnFlyingCoin(it.x + 8, it.y + 8, bottomProfit, '#00e676', '💰');
+            Game.spawnFlyingCoin(it.x + 11, it.y + 11, bottomProfit, '#00e676', '💰');
             Player.gainRage(3);
-            Game.spawnShockwave(it.x + 8, it.y + 8, '#00e676', 22, 1.8, 'STAR_CROSS');
-            Game.spawnParticles(it.x + 8, it.y + 8, '#00e676', 4, 2.0, 1.8);
-            Game.spawnFloatingText(`+¥${bottomProfit}`, it.x, it.y - 14, '#00e676', 15);
+            Game.spawnShockwave(it.x + 11, it.y + 11, '#00e676', 22, 1.8, 'STAR_CROSS');
+            Game.spawnParticles(it.x + 11, it.y + 11, '#00e676', 4, 2.0, 1.8);
+            Game.spawnFloatingText(`+¥${bottomProfit.toLocaleString()}`, it.x, it.y - 14, '#00e676', 15);
           } else if (Player.isDashing) {
             SoundEngine.playHitEnemy();
-            Game.spawnShockwave(it.x + 8, it.y + 8, '#00e676', 22, 2.0);
-            Game.spawnParticles(it.x + 8, it.y + 8, '#00e676', 3, 2.0, 1.6);
+            Game.spawnShockwave(it.x + 11, it.y + 11, '#00e676', 22, 2.0);
+            Game.spawnParticles(it.x + 11, it.y + 11, '#00e676', 3, 2.0, 1.6);
             Game.spawnFloatingText("💥 撞碎", it.x, it.y - 15, '#00e676', 14);
           } else {
             SoundEngine.playTrap();
             const penalty = Math.floor(400 * Player.trapDmgMult);
             Game.profits -= penalty;
             Player.takeDamage(6 * Player.trapDmgMult);
-            Game.spawnShockwave(it.x + 8, it.y + 8, '#ff334b', 20, 2.0);
-            Game.spawnParticles(it.x + 8, it.y + 8, '#64748b', 3, 1.5, 1.6);
-            Game.spawnFloatingText(`-¥${penalty}`, it.x, it.y - 15, '#94a3b8', 15);
+            Game.spawnShockwave(it.x + 11, it.y + 11, '#ff334b', 20, 2.0);
+            Game.spawnParticles(it.x + 11, it.y + 11, '#64748b', 3, 1.5, 1.6);
+            Game.spawnFloatingText(`-¥${penalty.toLocaleString()}`, it.x, it.y - 15, '#94a3b8', 15);
           }
         }
         this.items.splice(i, 1); continue;
@@ -2945,20 +2971,92 @@ const ItemManager = {
         if (Player.inCart || isUp || isStimulated) {
           ctx.fillStyle = '#ff1744'; ctx.fillRect(0, 0, it.size, it.size * 1.1);
           ctx.fillStyle = '#ffd700'; ctx.fillRect(it.size * 0.3, it.size * 0.35, it.size * 0.4, it.size * 0.4);
-          ctx.strokeStyle = '#ffd700'; ctx.strokeRect(0, 0, it.size, it.size * 1.1);
+          ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 1.5; ctx.strokeRect(0, 0, it.size, it.size * 1.1);
         } else {
           ctx.fillStyle = '#475569'; ctx.fillRect(0, 0, it.size, it.size * 1.1);
           ctx.fillStyle = '#94a3b8'; ctx.fillRect(it.size * 0.35, it.size * 0.4, it.size * 0.3, it.size * 0.3);
+          ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1.2; ctx.strokeRect(0, 0, it.size, it.size * 1.1);
         }
       } else {
         if (Player.inCart || isUp || isStimulated) {
-          ctx.fillStyle = '#ffd700'; ctx.beginPath(); ctx.arc(it.size / 2, it.size / 2, it.size / 2, 0, Math.PI * 2); ctx.fill();
-          ctx.fillStyle = '#ff3d00'; ctx.fillRect(it.size * 0.3, it.size * 0.3, it.size * 0.4, it.size * 0.4);
+          // 🪙 经典马里奥风格黄金旋转大金币 (Mario-style Golden 3D Coin)
+          const spinPhase = it.t || (Date.now() * 0.006 + it.x * 0.05);
+          const spinScale = Math.abs(Math.cos(spinPhase)) * 0.68 + 0.32; // 0.32 ~ 1.0 旋转透视
+          
+          ctx.save();
+          ctx.translate(it.size / 2, it.size / 2);
+          ctx.scale(spinScale, 1.0);
+          ctx.shadowColor = '#ffd700';
+          ctx.shadowBlur = 10;
+
+          // 1. 3D 外沿金边
+          ctx.fillStyle = '#b45309';
+          ctx.beginPath();
+          ctx.arc(0, 0, it.size / 2, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 2. 亮金金币面
+          const coinGrad = ctx.createLinearGradient(-it.size / 2, -it.size / 2, it.size / 2, it.size / 2);
+          coinGrad.addColorStop(0, '#fff9c4');
+          coinGrad.addColorStop(0.35, '#ffd700');
+          coinGrad.addColorStop(1, '#f59e0b');
+          ctx.fillStyle = coinGrad;
+          ctx.beginPath();
+          ctx.arc(0, 0, it.size / 2 - 1.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 1.4;
+          ctx.stroke();
+
+          // 3. 马里奥经典长条竖纹/凹槽
+          ctx.fillStyle = '#b45309';
+          ctx.fillRect(-2, -it.size / 2 + 5, 4, it.size - 10);
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(-1, -it.size / 2 + 6, 2, (it.size - 12) * 0.4);
+
+          // 4. 纯白斜切高光折射
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+          ctx.beginPath();
+          ctx.arc(-it.size * 0.18, -it.size * 0.18, 3.2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+
         } else {
-          ctx.fillStyle = '#64748b'; ctx.beginPath(); ctx.arc(it.size / 2, it.size / 2, it.size / 2, 0, Math.PI * 2); ctx.fill();
-          ctx.strokeStyle = '#334155'; ctx.lineWidth = 2; ctx.stroke();
-          ctx.fillStyle = '#1e293b'; ctx.fillRect(it.size * 0.3, it.size * 0.3, it.size * 0.4, it.size * 0.4);
-          ctx.fillStyle = '#ff4444'; ctx.fillRect(it.size * 0.4, it.size * 0.4, 3, 3);
+          // 🪙 马里奥风格冷银/灰暗做空币 (Mario-style Silver / Gray Depreciated Coin)
+          const spinPhase = it.t || (Date.now() * 0.005 + it.x * 0.05);
+          const spinScale = Math.abs(Math.cos(spinPhase)) * 0.68 + 0.32;
+
+          ctx.save();
+          ctx.translate(it.size / 2, it.size / 2);
+          ctx.scale(spinScale, 1.0);
+          ctx.shadowColor = '#64748b';
+          ctx.shadowBlur = 6;
+
+          // 1. 冷铁外沿
+          ctx.fillStyle = '#1e293b';
+          ctx.beginPath();
+          ctx.arc(0, 0, it.size / 2, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 2. 金属银灰币面
+          const grayGrad = ctx.createLinearGradient(-it.size / 2, -it.size / 2, it.size / 2, it.size / 2);
+          grayGrad.addColorStop(0, '#e2e8f0');
+          grayGrad.addColorStop(0.4, '#94a3b8');
+          grayGrad.addColorStop(1, '#475569');
+          ctx.fillStyle = grayGrad;
+          ctx.beginPath();
+          ctx.arc(0, 0, it.size / 2 - 1.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#cbd5e1';
+          ctx.lineWidth = 1.4;
+          ctx.stroke();
+
+          // 3. 做空破裂竖槽 & 猩红警示芯
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(-2, -it.size / 2 + 5, 4, it.size - 10);
+          ctx.fillStyle = '#ff1744';
+          ctx.fillRect(-1.5, -2, 3, 4);
+          ctx.restore();
         }
       }
       ctx.restore();
@@ -3121,50 +3219,101 @@ const CoinBulletManager = {
   spawn(x, y, isBig = false) {
     this.bullets.push({
       x, y,
-      vx: 13.5,
-      damage: isBig ? 35 : 20,
-      size: isBig ? 11 : 7.5,
+      vx: isBig ? 15.5 : 13.8,
+      vy: isBig ? -1.8 : -1.4, // 微上扬出膛初速
+      damage: isBig ? 45 : 25,
+      size: isBig ? 13 : 9,
       isBig,
-      rot: 0
+      rot: 0,
+      trailTimer: 0
     });
     SoundEngine.playCoinShoot();
   },
   update() {
     for (let i = this.bullets.length - 1; i >= 0; i--) {
       const b = this.bullets[i];
-      b.x += b.vx;
-      b.rot += 0.28;
       
-      // Check hit Boss
+      // 1. 物理抛物线重力与微自导微操 (Parabolic Arc & Gentle Target Homing)
+      b.vy += 0.045; // 微重力平滑下坠
+      
+      // 扇区微导引寻的最近的目标（Boss 或前方怪物）
+      let targetY = null;
+      if (BossManager.active && BossManager.x > b.x - 50) {
+        targetY = BossManager.y + 35;
+      } else {
+        for (let k = 0; k < ObstacleManager.obstacles.length; k++) {
+          const obs = ObstacleManager.obstacles[k];
+          if (obs.x > b.x && obs.x < b.x + 280) {
+            targetY = obs.y + obs.h / 2;
+            break;
+          }
+        }
+      }
+      if (targetY !== null) {
+        const dy = targetY - b.y;
+        b.vy += Math.sign(dy) * Math.min(0.28, Math.abs(dy) * 0.04);
+      }
+
+      b.x += b.vx;
+      b.y += b.vy;
+      b.rot += 0.35;
+
+      // 金色旋转火花尾焰
+      if (++b.trailTimer >= 2) {
+        b.trailTimer = 0;
+        Game.spawnParticles(b.x - 6, b.y, b.isBig ? '#ff1744' : '#ffd700', 1, 0.9, 1.2);
+      }
+      
+      // 2. Check hit Boss
       if (BossManager.active) {
         const bx = BossManager.x + 35;
         const by = BossManager.y + 30;
         const dx = Math.abs(b.x - bx);
         const dy = Math.abs(b.y - by);
         if (dx < 55 && dy < 48) {
-          const isCrit = b.isBig || Math.random() < 0.25;
-          const finalDmg = isCrit ? Math.floor(b.damage * 1.6) : b.damage;
+          const isCrit = b.isBig || Math.random() < 0.28;
+          const finalDmg = isCrit ? Math.floor(b.damage * 1.65) : b.damage;
           BossManager.takeDamage(finalDmg, isCrit);
-          Game.spawnParticles(b.x, b.y, isCrit ? '#ff1744' : '#ffd700', isCrit ? 8 : 5, 3.2, 2.2);
+          Game.spawnParticles(b.x, b.y, isCrit ? '#ff1744' : '#ffd700', isCrit ? 9 : 5, 3.2, 2.2);
           Game.spawnShockwave(b.x, b.y, isCrit ? '#ff1744' : '#ffd700', isCrit ? 36 : 24, 2.8, 'STAR_CROSS');
           this.bullets.splice(i, 1);
           continue;
         }
       }
       
-      // Check hit Obstacles / Monsters
+      // 3. Check hit Obstacles / Monsters
       let hitObs = false;
       for (let j = ObstacleManager.obstacles.length - 1; j >= 0; j--) {
         const o = ObstacleManager.obstacles[j];
-        if (b.x > o.x && b.x < o.x + o.w && b.y > o.y && b.y < o.y + o.h) {
+        if (b.x > o.x - 5 && b.x < o.x + o.w + 5 && b.y > o.y - 5 && b.y < o.y + o.h + 5) {
+          const isCrit = b.isBig || Math.random() < 0.25;
+          const dmg = isCrit ? Math.floor(b.damage * 1.5) : b.damage;
+          
+          if (o.hp === undefined) o.hp = 20;
+          o.hp -= dmg;
+          o.flashWhiteTimer = 4;
+          o.hitRecoilX = 10;
+          
           SoundEngine.playHitEnemy();
           Game.triggerHitstop(2);
-          Game.spawnParticles(o.x + o.w / 2, o.y + o.h / 2, '#ffd700', 8, 3.0, 2.2);
-          Game.spawnShockwave(o.x + o.w / 2, o.y + o.h / 2, '#00e676', 28, 2.4, 'STAR_CROSS');
-          Game.spawnFloatingText(`💥 击溃做空怪 +¥500`, o.x, o.y - 12, '#ffd700', 16);
-          Game.profits += 500;
-          Game.punchProfitHUD();
-          ObstacleManager.obstacles.splice(j, 1);
+          Game.spawnParticles(b.x, b.y, isCrit ? '#ff1744' : '#ffd700', isCrit ? 8 : 5, 2.8, 2.0);
+          Game.spawnFloatingText(isCrit ? `🔥暴击 -${dmg}` : `💥 -${dmg}`, o.x + o.w / 2, o.y - 12, isCrit ? '#ff1744' : '#ffd700', 16);
+          
+          if (o.hp <= 0) {
+            Game.triggerHitstop(3);
+            Game.triggerShake(6, 10);
+            Game.enemiesDefeated++;
+            Game.spawnParticles(o.x + o.w / 2, o.y + o.h / 2, '#ffd700', 10, 3.5, 2.4);
+            Game.spawnShockwave(o.x + o.w / 2, o.y + o.h / 2, '#00e676', 32, 2.6, 'STAR_CROSS');
+            
+            const diffCfg = DIFFICULTY_CONFIG[Account.difficulty] || DIFFICULTY_CONFIG.NORMAL;
+            const bounty = Math.floor((o.bounty || 500) * diffCfg.coinMult * (Game.currentPattern ? Game.currentPattern.mult : 1.0));
+            Game.profits += bounty;
+            Game.spawnFloatingText(`🏆 击溃${o.name || '做空怪'} +¥${bounty.toLocaleString()}`, o.x, o.y - 20, '#00e676', 18);
+            Game.punchProfitHUD();
+            ObstacleManager.obstacles.splice(j, 1);
+          }
+          
           hitObs = true;
           break;
         }
@@ -3174,7 +3323,7 @@ const CoinBulletManager = {
         continue;
       }
       
-      if (b.x > CANVAS_WIDTH + 60) {
+      if (b.x > CANVAS_WIDTH + 60 || b.y > GROUND_Y + 15 || b.y < -30) {
         this.bullets.splice(i, 1);
       }
     }
@@ -3184,18 +3333,33 @@ const CoinBulletManager = {
       ctx.save();
       ctx.translate(b.x, b.y);
       ctx.rotate(b.rot);
-      ctx.shadowColor = '#ffd700';
-      ctx.shadowBlur = 8;
-      ctx.fillStyle = '#ffd700';
+      ctx.shadowColor = b.isBig ? '#ff1744' : '#ffd700';
+      ctx.shadowBlur = b.isBig ? 12 : 8;
+
+      // Outer Glow Halo
+      ctx.fillStyle = b.isBig ? 'rgba(255, 23, 68, 0.3)' : 'rgba(255, 215, 0, 0.3)';
+      ctx.beginPath();
+      ctx.arc(0, 0, b.size * 1.35, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Main Coin Rim
+      ctx.fillStyle = b.isBig ? '#ff1744' : '#ffd700';
       ctx.beginPath();
       ctx.arc(0, 0, b.size, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 1.8;
       ctx.stroke();
+
+      // Inner Coin Core
+      ctx.fillStyle = b.isBig ? '#ff8a80' : '#fff9c4';
+      ctx.beginPath();
+      ctx.arc(0, 0, b.size * 0.72, 0, Math.PI * 2);
+      ctx.fill();
       
-      ctx.fillStyle = '#b45309';
-      ctx.font = `900 ${Math.max(7, b.size * 1.1)}px monospace`;
+      // Center Engraved ¥
+      ctx.fillStyle = b.isBig ? '#b71c1c' : '#b45309';
+      ctx.font = `900 ${Math.max(8, b.size * 1.15)}px monospace`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('¥', 0, 0.5);
