@@ -60,34 +60,54 @@
     #hud {
       position: absolute;
       top: 0; left: 0; right: 0;
-      padding: 6px 10px;
+      padding: 4px 6px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       pointer-events: none;
       z-index: 10;
       background: linear-gradient(180deg, rgba(9,13,22,0.92) 0%, rgba(9,13,22,0) 100%);
+      box-sizing: border-box;
     }
-    .hud-left, .hud-center, .hud-right {
+    .hud-left {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .hud-center {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      min-width: 0;
+      max-width: 290px;
+      margin: 0 3px;
+    }
+    .hud-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+      min-width: max-content;
+      padding-right: 4px;
     }
     .stat-badge {
-      background: rgba(15,23,42,0.85);
+      background: rgba(15,23,42,0.88);
       border: 1px solid rgba(255,255,255,0.18);
       border-radius: 6px;
-      padding: 3px 6px;
+      padding: 2.5px 5.5px;
       display: flex;
       align-items: center;
-      gap: 5px;
-      font-size: 11px;
+      gap: 4px;
+      font-size: 10.5px;
       font-weight: 700;
       backdrop-filter: blur(6px);
+      white-space: nowrap;
     }
     .bar-wrap {
-      width: 55px;
-      height: 7px;
+      width: 48px;
+      height: 6.5px;
       background: rgba(0,0,0,0.6);
       border-radius: 4px;
       overflow: hidden;
@@ -99,61 +119,71 @@
     /* Kline Card HUD */
     .kline-card {
       background: linear-gradient(135deg, rgba(15,23,42,0.95), rgba(30,41,59,0.9));
-      border: 1.5px solid rgba(255,215,0,0.5);
-      border-radius: 8px;
-      padding: 3px 8px;
+      border: 1.2px solid rgba(255,215,0,0.5);
+      border-radius: 7px;
+      padding: 2px 6px;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       backdrop-filter: blur(8px);
-      box-shadow: 0 4px 16px rgba(0,0,0,0.7), 0 0 12px rgba(255,215,0,0.25);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.7), 0 0 10px rgba(255,215,0,0.2);
+      min-width: 0;
+      overflow: hidden;
     }
     #klineMiniCanvas {
-      width: 120px;
-      height: 32px;
+      width: 82px;
+      height: 26px;
       background: rgba(6,10,18,0.9);
       border-radius: 4px;
       border: 1px solid rgba(255,215,0,0.3);
       box-shadow: inset 0 0 6px rgba(0,0,0,0.7);
       display: block;
+      flex-shrink: 0;
     }
     .kline-info-wrap {
       display: flex;
       flex-direction: column;
       justify-content: center;
       text-align: left;
+      min-width: 0;
+      overflow: hidden;
     }
     .kline-title-row {
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 4px;
+      overflow: hidden;
     }
     #patternName {
       font-weight: 900;
-      font-size: 11.5px;
+      font-size: 10px;
       color: #ffd700;
-      letter-spacing: 0.2px;
+      letter-spacing: 0.1px;
       text-shadow: 0 1px 6px rgba(255,215,0,0.4);
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 140px;
     }
     .kline-meta-row {
       display: flex;
-      gap: 4px;
+      gap: 3px;
       align-items: center;
-      margin-top: 2px;
+      margin-top: 1px;
+      white-space: nowrap;
     }
     .kline-trend-tag {
       font-weight: 800;
-      padding: 1px 5px;
-      border-radius: 4px;
-      font-size: 9.5px;
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-size: 8.5px;
       white-space: nowrap;
     }
     .trend-up { background: rgba(255,23,68,0.35); color: #ff334b; border: 1px solid rgba(255,23,68,0.65); box-shadow: 0 0 6px rgba(255,23,68,0.3); }
     .trend-down { background: rgba(0,230,118,0.25); color: #00e676; border: 1px solid rgba(0,230,118,0.65); box-shadow: 0 0 6px rgba(0,230,118,0.25); }
     .trend-cart { background: rgba(0,229,255,0.32); color: #00e5ff; border: 1px solid rgba(0,229,255,0.65); box-shadow: 0 0 6px rgba(0,229,255,0.3); }
-    #trendPercent { font-weight: 900; font-size: 10.5px; }
-    #candleStepTag { color: #cbd5e1; font-size: 9px; font-weight: 700; }
+    #trendPercent { font-weight: 900; font-size: 9.5px; }
+    #candleStepTag { color: #cbd5e1; font-size: 8.5px; font-weight: 700; }
 
     /* Touch Controls */
     #touchControls {
@@ -3895,7 +3925,53 @@ const Game = {
     this.updateHUD();
   },
 
+  lerpColor(c1, c2, t) {
+    function parseHex(h) {
+      h = (h || '#000000').replace('#', '');
+      if (h.length === 3) h = h.split('').map(c => c+c).join('');
+      const num = parseInt(h, 16) || 0;
+      return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
+    }
+    const rgb1 = parseHex(c1), rgb2 = parseHex(c2);
+    const clampedT = Math.max(0, Math.min(1, t));
+    const r = Math.round(rgb1[0] + (rgb2[0] - rgb1[0]) * clampedT);
+    const g = Math.round(rgb1[1] + (rgb2[1] - rgb1[1]) * clampedT);
+    const b = Math.round(rgb1[2] + (rgb2[2] - rgb1[2]) * clampedT);
+    return `rgb(${r},${g},${b})`;
+  },
+
   initBackground() {
+    this.bullMarketBlend = 0.0;
+    this.flowerPetals = [];
+    for (let i = 0; i < 20; i++) {
+      this.flowerPetals.push({
+        x: Math.random() * CANVAS_WIDTH,
+        y: Math.random() * (GROUND_Y - 40),
+        size: Math.random() * 3.5 + 2.5,
+        speedX: Math.random() * 1.8 + 1.2,
+        speedY: Math.random() * 0.6 + 0.4,
+        swayPhase: Math.random() * Math.PI * 2,
+        swaySpeed: Math.random() * 0.04 + 0.03,
+        rot: Math.random() * Math.PI,
+        rotSpeed: (Math.random() - 0.5) * 0.06,
+        isCherry: Math.random() < 0.65
+      });
+    }
+
+    this.skyBirds = [
+      { x: 180, y: 75, speed: 0.8, size: 6, wingPhase: 0 },
+      { x: 220, y: 60, speed: 0.82, size: 4.8, wingPhase: 0.8 },
+      { x: 520, y: 90, speed: 0.95, size: 5.5, wingPhase: 1.4 },
+      { x: 555, y: 78, speed: 0.92, size: 4.2, wingPhase: 2.2 }
+    ];
+
+    this.fluffyClouds = [
+      { x: 80, y: 55, scale: 1.1, speed: 0.18 },
+      { x: 280, y: 80, scale: 0.75, speed: 0.12 },
+      { x: 480, y: 45, scale: 1.3, speed: 0.22 },
+      { x: 680, y: 70, scale: 0.9, speed: 0.15 }
+    ];
+
     this.bgLayers = [
       { speed: 0.12, x: 0, draw: (ctx, offset) => {
         const stage = StageManager.getCurrentStage();
@@ -3911,47 +3987,163 @@ const Game = {
   },
 
   drawBackground(ctx) {
-    const isUp = this.currentPattern && this.currentPattern.type === 'UP';
+    const isUp = (this.currentPattern && this.currentPattern.type === 'UP') || (this.frenzyTimer > 0) || Player.isGodMode || Player.isRaging || (Player.stimulusTimer > 0);
+    const targetBlend = isUp ? 1.0 : 0.0;
+    if (this.bullMarketBlend === undefined) this.bullMarketBlend = 0.0;
+    // 0.8s ~ 1.0s 超平滑有机渐变
+    this.bullMarketBlend += (targetBlend - this.bullMarketBlend) * 0.032;
+    const blend = this.bullMarketBlend;
+
     const stage = StageManager.getCurrentStage();
     
-    const bgGrad = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
-    bgGrad.addColorStop(0, stage.skyTop || '#0c0714');
-    bgGrad.addColorStop(0.65, stage.skyBottom || '#180a22');
-    bgGrad.addColorStop(1, '#05070e');
+    // 1. 🌈 渐变天空穹顶 (夜空星光 <--> 蔚蓝晴空与温暖金晨光)
+    const topColor = this.lerpColor(stage.skyTop || '#0a1118', '#1976d2', blend);
+    const midColor = this.lerpColor(stage.skyBottom || '#141e2e', '#64b5f6', blend);
+    const botColor = this.lerpColor('#05070e', '#fff9c4', blend);
+
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
+    bgGrad.addColorStop(0, topColor);
+    bgGrad.addColorStop(0.65, midColor);
+    bgGrad.addColorStop(1, botColor);
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-    // Parallax Landmark & Scenery Layers
+    // 2. ☀️ 牛市温暖晨光与太阳 (Sunny Sunbeam Glow)
+    if (blend > 0.01) {
+      ctx.save();
+      const sunX = CANVAS_WIDTH * 0.82;
+      const sunY = 55;
+      const sunGrad = ctx.createRadialGradient(sunX, sunY, 10, sunX, sunY, 260);
+      sunGrad.addColorStop(0, `rgba(255, 253, 231, ${0.85 * blend})`);
+      sunGrad.addColorStop(0.25, `rgba(255, 236, 179, ${0.45 * blend})`);
+      sunGrad.addColorStop(0.6, `rgba(255, 224, 130, ${0.18 * blend})`);
+      sunGrad.addColorStop(1, 'rgba(255, 224, 130, 0)');
+      ctx.fillStyle = sunGrad;
+      ctx.beginPath();
+      ctx.arc(sunX, sunY, 260, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 太阳光球
+      ctx.fillStyle = `rgba(255, 255, 255, ${0.9 * blend})`;
+      ctx.beginPath();
+      ctx.arc(sunX, sunY, 18, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // 3. ☁️ 悠然漫游的蓝天白云 (Fluffy Cumulus Clouds)
+    if (blend > 0.01 && this.fluffyClouds) {
+      ctx.save();
+      this.fluffyClouds.forEach(c => {
+        const cx = ((c.x - this.distance * c.speed) % (CANVAS_WIDTH + 240) + (CANVAS_WIDTH + 240)) % (CANVAS_WIDTH + 240) - 100;
+        const cy = c.y;
+        ctx.fillStyle = `rgba(255, 255, 255, ${0.82 * blend})`;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 18 * c.scale, 0, Math.PI * 2);
+        ctx.arc(cx + 18 * c.scale, cy - 10 * c.scale, 22 * c.scale, 0, Math.PI * 2);
+        ctx.arc(cx + 40 * c.scale, cy - 6 * c.scale, 19 * c.scale, 0, Math.PI * 2);
+        ctx.arc(cx + 56 * c.scale, cy, 16 * c.scale, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.fill();
+      });
+      ctx.restore();
+    }
+
+    // 4. 🐦 远空翱翔的吉祥多头飞鸟 (Soaring Birds)
+    if (blend > 0.05 && this.skyBirds) {
+      ctx.save();
+      ctx.strokeStyle = `rgba(30, 41, 59, ${0.65 * blend})`;
+      ctx.lineWidth = 1.6;
+      ctx.lineCap = 'round';
+      this.skyBirds.forEach(b => {
+        const bx = ((b.x - this.distance * b.speed) % (CANVAS_WIDTH + 180) + (CANVAS_WIDTH + 180)) % (CANVAS_WIDTH + 180) - 60;
+        const by = b.y + Math.sin(this.klineTimer * 0.04 + b.x) * 4;
+        const wingLift = Math.sin(this.klineTimer * 0.22 + b.wingPhase) * b.size;
+        ctx.beginPath();
+        ctx.moveTo(bx - b.size * 1.5, by - wingLift);
+        ctx.quadraticCurveTo(bx - b.size * 0.6, by + 1, bx, by);
+        ctx.quadraticCurveTo(bx + b.size * 0.6, by + 1, bx + b.size * 1.5, by - wingLift);
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+
+    // 5. 🌍 关卡地标剪影 (Parallax Landmark Layers)
     this.bgLayers.forEach(layer => {
       ctx.save();
       layer.draw(ctx, this.distance * layer.speed);
       ctx.restore();
     });
 
-    // Ambient Low-Opacity K-Line Shadow (0.08 Opacity - Never clashes with monsters!)
+    // 6. 🌸 鸟语花香：随风飘舞的春樱与金色花瓣 (Floating Blossom Petals)
+    if (blend > 0.05 && this.flowerPetals) {
+      ctx.save();
+      this.flowerPetals.forEach(p => {
+        p.swayPhase += p.swaySpeed;
+        p.rot += p.rotSpeed;
+        const px = ((p.x - this.distance * p.speedX) % (CANVAS_WIDTH + 60) + (CANVAS_WIDTH + 60)) % (CANVAS_WIDTH + 60) - 20;
+        const py = p.y + Math.sin(p.swayPhase) * 16;
+
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.rotate(p.rot);
+        ctx.fillStyle = p.isCherry
+          ? `rgba(255, 182, 193, ${0.85 * blend})`
+          : `rgba(255, 224, 130, ${0.85 * blend})`;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, p.size * 1.5, p.size * 0.8, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+      ctx.restore();
+    }
+
+    // 7. Ambient Low-Opacity K-Line Shadow (0.07 Opacity)
     if (this.currentPattern && this.currentPattern.candles) {
       ctx.save();
-      ctx.globalAlpha = 0.08;
+      ctx.globalAlpha = 0.07;
       const candles = this.currentPattern.candles;
       const barW = CANVAS_WIDTH / candles.length;
       for (let i = 0; i < candles.length; i++) {
         const val = candles[i];
-        const h = Math.min(180, val * 2.2);
+        const h = Math.min(170, val * 2.1);
         ctx.fillStyle = isUp ? '#ff1744' : '#00e676';
         ctx.fillRect(i * barW + 4, GROUND_Y - h, barW - 8, h);
       }
       ctx.restore();
     }
 
-    // Ground Strip with Stage Accent
+    // 8. 🌿 跑道与青翠草地平线 (Spring Meadow Ground & Blooming Wildflowers)
     ctx.save();
-    ctx.fillStyle = '#0f172a';
+    const gBase = this.lerpColor('#0f172a', '#2e7d32', blend);
+    const gTopLine = this.lerpColor(stage.groundColor || '#ff1744', '#76ff03', blend);
+    const gAccent = this.lerpColor(stage.groundAccent || '#ffd700', '#ffd700', blend);
+
+    ctx.fillStyle = gBase;
     ctx.fillRect(0, GROUND_Y, CANVAS_WIDTH, CANVAS_HEIGHT - GROUND_Y);
-    ctx.fillStyle = stage.groundColor || '#ff1744';
-    ctx.fillRect(0, GROUND_Y, CANVAS_WIDTH, 4);
-    ctx.strokeStyle = stage.groundAccent || '#ffd700';
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(0, GROUND_Y, CANVAS_WIDTH, 4);
+    ctx.fillStyle = gTopLine;
+    ctx.fillRect(0, GROUND_Y, CANVAS_WIDTH, 4.5);
+    ctx.strokeStyle = gAccent;
+    ctx.lineWidth = 1.2;
+    ctx.strokeRect(0, GROUND_Y, CANVAS_WIDTH, 4.5);
+
+    // 🌼 牛市微风中绽放的小野花 (Blooming Meadow Wildflowers)
+    if (blend > 0.15) {
+      const flowerSpacing = 36;
+      const flowerOffset = (this.distance * 1.5) % flowerSpacing;
+      for (let fx = -flowerOffset; fx < CANVAS_WIDTH; fx += flowerSpacing) {
+        const flowerType = Math.floor(Math.abs(Math.sin(fx * 99)) * 3);
+        const flowerY = GROUND_Y - 2;
+        ctx.fillStyle = flowerType === 0 ? `rgba(255, 255, 255, ${blend})` : `rgba(255, 215, 0, ${blend})`;
+        ctx.beginPath();
+        ctx.arc(fx + 10, flowerY, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = `rgba(255, 138, 101, ${blend})`;
+        ctx.beginPath();
+        ctx.arc(fx + 10, flowerY, 1.0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
     ctx.restore();
 
     // Stage Announcement Banner
@@ -4080,94 +4272,6 @@ const Game = {
     }
 
     this.ctx.restore();
-  },
-
-  drawBackground(ctx) {
-    const isUp = this.currentPattern && this.currentPattern.type === 'UP';
-    const skyGrad = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
-    if (isUp) {
-      skyGrad.addColorStop(0, '#1a0b12');
-      skyGrad.addColorStop(0.65, '#2e101a');
-      skyGrad.addColorStop(1, '#4a1525');
-    } else {
-      skyGrad.addColorStop(0, '#0a1118');
-      skyGrad.addColorStop(0.65, '#0f172a');
-      skyGrad.addColorStop(1, '#1e293b');
-    }
-    ctx.fillStyle = skyGrad;
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-    ctx.save();
-    const candles = (this.currentPattern && this.currentPattern.candles) ? this.currentPattern.candles : [30, 45, 38, 55, 60, 52, 68, 75, 80, 95];
-    const offset = (this.distance * 0.4) % 240;
-    
-    for (let col = 0; col < 18; col++) {
-      const bx = col * 60 - offset;
-      if (bx < -60 || bx > CANVAS_WIDTH + 60) continue;
-      const cIdx = (col + Math.floor(this.distance / 120)) % candles.length;
-      const cVal = candles[cIdx];
-      const prevC = candles[(cIdx + candles.length - 1) % candles.length];
-      const isCandleBull = cVal >= prevC;
-      
-      const chartBaseY = 160;
-      const candleHeight = (cVal / 100) * 80;
-      const barY = isUp ? chartBaseY - candleHeight : chartBaseY + (80 - candleHeight);
-
-      ctx.strokeStyle = isCandleBull ? 'rgba(255, 51, 75, 0.22)' : 'rgba(0, 230, 118, 0.22)';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(bx + 16, barY - 14);
-      ctx.lineTo(bx + 16, barY + candleHeight + 14);
-      ctx.stroke();
-
-      ctx.fillStyle = isCandleBull ? 'rgba(255, 51, 75, 0.18)' : 'rgba(0, 230, 118, 0.18)';
-      ctx.fillRect(bx + 6, barY, 20, Math.max(6, candleHeight));
-      
-      const volH = (cVal % 25) + 12;
-      ctx.fillStyle = isCandleBull ? 'rgba(255, 51, 75, 0.12)' : 'rgba(0, 230, 118, 0.12)';
-      ctx.fillRect(bx + 8, GROUND_Y - volH, 16, volH);
-    }
-    ctx.restore();
-
-    ctx.strokeStyle = isUp ? 'rgba(255, 51, 75, 0.08)' : 'rgba(0, 229, 255, 0.08)';
-    ctx.lineWidth = 1;
-    for (let x = (CANVAS_WIDTH - (this.distance * 0.8) % 40); x < CANVAS_WIDTH; x += 40) {
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, GROUND_Y); ctx.stroke();
-    }
-    for (let y = 40; y < GROUND_Y; y += 40) {
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(CANVAS_WIDTH, y); ctx.stroke();
-    }
-
-    // 高空极速掠过流光速度线 (Sky Speed Streaks)
-    ctx.save();
-    ctx.strokeStyle = isUp ? 'rgba(255, 82, 82, 0.2)' : 'rgba(0, 229, 255, 0.2)';
-    ctx.lineWidth = 1.2;
-    for (let i = 0; i < 5; i++) {
-      const lx = ((i * 200 - this.distance * (2.0 + i * 0.4)) % (CANVAS_WIDTH + 240) + (CANVAS_WIDTH + 240)) % (CANVAS_WIDTH + 240) - 120;
-      const ly = 55 + i * 42;
-      ctx.beginPath();
-      ctx.moveTo(lx, ly);
-      ctx.lineTo(lx + 60 + i * 16, ly);
-      ctx.stroke();
-    }
-    ctx.restore();
-
-    ctx.fillStyle = '#0f172a';
-    ctx.fillRect(0, GROUND_Y, CANVAS_WIDTH, CANVAS_HEIGHT - GROUND_Y);
-    ctx.fillStyle = isUp ? '#ff334b' : '#00e5ff';
-    ctx.fillRect(0, GROUND_Y, CANVAS_WIDTH, 4);
-
-    // 地面极速跑道霓虹跑马虚线 (Racing Track Neon Dashed Line)
-    ctx.save();
-    ctx.strokeStyle = '#ffd700';
-    ctx.lineWidth = 2.5;
-    if (ctx.setLineDash) ctx.setLineDash([18, 14]);
-    ctx.lineDashOffset = (this.distance * 2.2) % 32;
-    ctx.beginPath();
-    ctx.moveTo(0, GROUND_Y + 5.5);
-    ctx.lineTo(CANVAS_WIDTH, GROUND_Y + 5.5);
-    ctx.stroke();
-    ctx.restore();
   },
 
   loop() {
