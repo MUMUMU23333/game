@@ -1026,65 +1026,134 @@ const SoundEngine = {
       osc.start(t); osc.stop(t + 0.08);
     } catch(e) {}
   },
-  playCoin() {
+  playCoin(combo = 0) {
     if (this.isMuted || !this.ctx) return;
     try {
       const t = this.ctx.currentTime;
-      const note1Freq = 987.77;
-      const note2Freq = 1318.51;
+      // 连续拾取五声音阶动态攀升 (Pentatonic major scale dynamic climb)
+      const scale = [987.77, 1174.66, 1318.51, 1567.98, 1760.00, 1975.53, 2349.32, 2637.02];
+      const noteIdx = Math.min(scale.length - 1, (combo || 0) % scale.length);
+      const note1Freq = scale[noteIdx];
+      const note2Freq = note1Freq * 1.3348; // 上纯四度清脆余音
 
       let filter = null;
       if (this.ctx.createBiquadFilter) {
         filter = this.ctx.createBiquadFilter();
         filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(2600, t);
-        filter.frequency.exponentialRampToValueAtTime(1400, t + 0.22);
+        filter.frequency.setValueAtTime(3200, t);
+        filter.frequency.exponentialRampToValueAtTime(1600, t + 0.22);
         filter.connect(this.ctx.destination);
       }
       const targetNode = filter || this.ctx.destination;
 
-      // 音符1: B5 (持续 0.045s，温润三角波起拍)
+      // 音符1: 温润三角波起拍清脆击发
       const osc1 = this.ctx.createOscillator(), gain1 = this.ctx.createGain();
       osc1.type = 'triangle';
       osc1.frequency.setValueAtTime(note1Freq, t);
-      gain1.gain.setValueAtTime(0.14, t);
-      gain1.gain.setValueAtTime(0.14, t + 0.04);
+      gain1.gain.setValueAtTime(0.18, t);
+      gain1.gain.setValueAtTime(0.18, t + 0.04);
       gain1.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
       osc1.connect(gain1); gain1.connect(targetNode);
       osc1.start(t); osc1.stop(t + 0.05);
 
-      // 音符2: E6 (接力鸣响至 0.22s，纯净柔和马里奥“叮～”余音，无高频刺耳噪音)
+      // 音符2: 纯净晶莹马里奥金币“叮～”泛音
       const osc2 = this.ctx.createOscillator(), gain2 = this.ctx.createGain();
       osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(note2Freq, t + 0.045);
-      gain2.gain.setValueAtTime(0.16, t + 0.045);
-      gain2.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+      osc2.frequency.setValueAtTime(note2Freq, t + 0.038);
+      gain2.gain.setValueAtTime(0.20, t + 0.038);
+      gain2.gain.exponentialRampToValueAtTime(0.0001, t + 0.25);
       osc2.connect(gain2); gain2.connect(targetNode);
-      osc2.start(t + 0.045); osc2.stop(t + 0.22);
+      osc2.start(t + 0.038); osc2.stop(t + 0.25);
 
-      // 微量次谐波增加圆润厚度 (E5: 659.25Hz)
-      const osc3 = this.ctx.createOscillator(), gain3 = this.ctx.createGain();
-      osc3.type = 'sine';
-      osc3.frequency.setValueAtTime(659.25, t + 0.045);
-      gain3.gain.setValueAtTime(0.06, t + 0.045);
-      gain3.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
-      osc3.connect(gain3); gain3.connect(targetNode);
-      osc3.start(t + 0.045); osc3.stop(t + 0.18);
+      // 连击闪耀高次谐波 (Streak Shimmering Harmonic)
+      if (combo >= 5) {
+        const oscSparkle = this.ctx.createOscillator(), gainSparkle = this.ctx.createGain();
+        oscSparkle.type = 'sine';
+        oscSparkle.frequency.setValueAtTime(note2Freq * 1.5, t + 0.02);
+        gainSparkle.gain.setValueAtTime(0.08, t + 0.02);
+        gainSparkle.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+        oscSparkle.connect(gainSparkle); gainSparkle.connect(targetNode);
+        oscSparkle.start(t + 0.02); oscSparkle.stop(t + 0.16);
+      }
     } catch(e) {}
   },
   playChest() {
     if (this.isMuted || !this.ctx) return;
     try {
       const t = this.ctx.currentTime;
-      const notes = [523.25, 659.25, 783.99, 1046.50];
+      const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
       notes.forEach((freq, idx) => {
         const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
         osc.type = 'triangle';
-        osc.frequency.setValueAtTime(freq, t + idx * 0.055);
-        gain.gain.setValueAtTime(0.24, t + idx * 0.055);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + idx * 0.055 + 0.24);
+        osc.frequency.setValueAtTime(freq, t + idx * 0.045);
+        gain.gain.setValueAtTime(0.26, t + idx * 0.045);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + idx * 0.045 + 0.3);
         osc.connect(gain); gain.connect(this.ctx.destination);
-        osc.start(t + idx * 0.055); osc.stop(t + idx * 0.055 + 0.24);
+        osc.start(t + idx * 0.045); osc.stop(t + idx * 0.045 + 0.3);
+      });
+    } catch(e) {}
+  },
+  playBossHit(isCrit = false) {
+    if (this.isMuted || !this.ctx) return;
+    try {
+      const t = this.ctx.currentTime;
+      // 1. 肉体沉重击中超低音 (Sub-bass Punch 130Hz -> 38Hz)
+      const subOsc = this.ctx.createOscillator(), subGain = this.ctx.createGain();
+      subOsc.type = 'sine';
+      subOsc.frequency.setValueAtTime(isCrit ? 160 : 130, t);
+      subOsc.frequency.exponentialRampToValueAtTime(38, t + 0.12);
+      subGain.gain.setValueAtTime(isCrit ? 0.35 : 0.24, t);
+      subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+      subOsc.connect(subGain); subGain.connect(this.ctx.destination);
+      subOsc.start(t); subOsc.stop(t + 0.12);
+
+      // 2. 清脆金属破甲撞击 (Metallic Coin Impact 880Hz -> 320Hz)
+      const metalOsc = this.ctx.createOscillator(), metalGain = this.ctx.createGain();
+      metalOsc.type = isCrit ? 'sawtooth' : 'triangle';
+      metalOsc.frequency.setValueAtTime(isCrit ? 1200 : 880, t);
+      metalOsc.frequency.exponentialRampToValueAtTime(320, t + 0.08);
+      metalGain.gain.setValueAtTime(isCrit ? 0.30 : 0.20, t);
+      metalGain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+      metalOsc.connect(metalGain); metalGain.connect(this.ctx.destination);
+      metalOsc.start(t); metalOsc.stop(t + 0.08);
+    } catch(e) {}
+  },
+  playBossDefeat() {
+    if (this.isMuted || !this.ctx) return;
+    try {
+      const t = this.ctx.currentTime;
+      // 阶段 1: 史诗超重低频大爆鸣震荡 (Epic Sub-bass Shockwave Drop 130Hz -> 25Hz)
+      const subOsc = this.ctx.createOscillator(), subGain = this.ctx.createGain();
+      subOsc.type = 'sine';
+      subOsc.frequency.setValueAtTime(130, t);
+      subOsc.frequency.exponentialRampToValueAtTime(25, t + 0.7);
+      subGain.gain.setValueAtTime(0.5, t);
+      subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
+      subOsc.connect(subGain); subGain.connect(this.ctx.destination);
+      subOsc.start(t); subOsc.stop(t + 0.7);
+
+      // 阶段 2: 3 段连锁爆炸声效 (Tri-Explosion Bursts)
+      [0, 0.12, 0.26].forEach((delay, idx) => {
+        const noiseOsc = this.ctx.createOscillator(), noiseGain = this.ctx.createGain();
+        noiseOsc.type = 'sawtooth';
+        noiseOsc.frequency.setValueAtTime(360 - idx * 60, t + delay);
+        noiseOsc.frequency.exponentialRampToValueAtTime(60, t + delay + 0.22);
+        noiseGain.gain.setValueAtTime(0.35 - idx * 0.05, t + delay);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.22);
+        noiseOsc.connect(noiseGain); noiseGain.connect(this.ctx.destination);
+        noiseOsc.start(t + delay); noiseOsc.stop(t + delay + 0.22);
+      });
+
+      // 阶段 3: 凯旋宏伟和弦交响 (Triumphant Major Chords Fanfare)
+      const fanfareChords = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
+      fanfareChords.forEach((freq, idx) => {
+        const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, t + 0.35 + idx * 0.06);
+        gain.gain.setValueAtTime(0.28, t + 0.35 + idx * 0.06);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35 + idx * 0.06 + 0.55);
+        osc.connect(gain); gain.connect(this.ctx.destination);
+        osc.start(t + 0.35 + idx * 0.06); osc.stop(t + 0.35 + idx * 0.06 + 0.55);
       });
     } catch(e) {}
   },
@@ -2735,27 +2804,29 @@ const ItemManager = {
             Game.spawnFlyingCoin(it.x + 13, it.y + 13, profit, '#ff1744', '🎁');
             Game.spawnFloatingText(`+¥${profit} 🎁 宝箱大爆!`, it.x - 10, it.y - 18, '#ff1744', 19);
           } else {
-            SoundEngine.playCoin();
-            Game.spawnShockwave(it.x + 8, it.y + 8, '#ffd700', 24, 2.0, 'STAR_CROSS');
-            Game.spawnParticles(it.x + 8, it.y + 8, '#ffd700', 4, 2.0, 1.8);
-            Player.goldFlash = 5; Player.goldFlashColor = '#ffd700';
+            SoundEngine.playCoin(Player.coinStreak);
+            const isStreakBonus = Player.coinStreak >= 5;
+            Game.spawnShockwave(it.x + 8, it.y + 8, isStreakBonus ? '#ff9100' : '#ffd700', isStreakBonus ? 30 : 22, 2.2, 'STAR_CROSS');
+            Game.spawnParticles(it.x + 8, it.y + 8, isStreakBonus ? '#ff9100' : '#ffd700', isStreakBonus ? 6 : 4, 2.4, 2.0);
+            Player.goldFlash = isStreakBonus ? 8 : 4; Player.goldFlashColor = isStreakBonus ? '#ff9100' : '#ffd700';
             Game.spawnFlyingCoin(it.x + 8, it.y + 8, profit, '#ffd700', '💰');
             
             if (Player.coinStreak >= 5 && Player.coinStreak % 5 === 0) {
-              Game.spawnFloatingText(`🔥x${Player.coinStreak} 连板 +¥${profit}`, it.x - 15, it.y - 18, '#ff9100', 16);
+              Game.spawnFloatingText(`🔥x${Player.coinStreak} 连板大暴赚 +¥${profit}`, it.x - 20, it.y - 20, '#ff9100', 18);
+              Game.triggerShake(3, 5);
             } else {
               Game.spawnFloatingText(`+¥${profit}`, it.x, it.y - 14, '#ffd700', 14);
             }
           }
         } else {
           if (Player.bottomBuyTimer > 0) {
-            SoundEngine.playCoin();
+            SoundEngine.playCoin(Player.coinStreak);
             const bottomProfit = Math.floor(240 * diffCfg.coinMult * Player.coinValueMult);
             Game.spawnFlyingCoin(it.x + 8, it.y + 8, bottomProfit, '#00e676', '💰');
             Player.gainRage(3);
-            Game.spawnShockwave(it.x + 8, it.y + 8, '#00e676', 18, 1.5);
-            Game.spawnParticles(it.x + 8, it.y + 8, '#00e676', 3, 1.6, 1.6);
-            Game.spawnFloatingText(`+¥${bottomProfit}`, it.x, it.y - 14, '#00e676', 14);
+            Game.spawnShockwave(it.x + 8, it.y + 8, '#00e676', 22, 1.8, 'STAR_CROSS');
+            Game.spawnParticles(it.x + 8, it.y + 8, '#00e676', 4, 2.0, 1.8);
+            Game.spawnFloatingText(`+¥${bottomProfit}`, it.x, it.y - 14, '#00e676', 15);
           } else if (Player.isDashing) {
             SoundEngine.playHitEnemy();
             Game.spawnShockwave(it.x + 8, it.y + 8, '#00e676', 22, 2.0);
@@ -3048,10 +3119,12 @@ const CoinBulletManager = {
         const by = BossManager.y + 30;
         const dx = Math.abs(b.x - bx);
         const dy = Math.abs(b.y - by);
-        if (dx < 50 && dy < 42) {
-          BossManager.takeDamage(b.damage);
-          Game.spawnParticles(b.x, b.y, '#ffd700', 4, 2.5, 2.0);
-          Game.spawnShockwave(b.x, b.y, '#ffd700', 18, 2.0, 'RING');
+        if (dx < 55 && dy < 48) {
+          const isCrit = b.isBig || Math.random() < 0.25;
+          const finalDmg = isCrit ? Math.floor(b.damage * 1.6) : b.damage;
+          BossManager.takeDamage(finalDmg, isCrit);
+          Game.spawnParticles(b.x, b.y, isCrit ? '#ff1744' : '#ffd700', isCrit ? 8 : 5, 3.2, 2.2);
+          Game.spawnShockwave(b.x, b.y, isCrit ? '#ff1744' : '#ffd700', isCrit ? 36 : 24, 2.8, 'STAR_CROSS');
           this.bullets.splice(i, 1);
           continue;
         }
@@ -3062,9 +3135,11 @@ const CoinBulletManager = {
       for (let j = ObstacleManager.obstacles.length - 1; j >= 0; j--) {
         const o = ObstacleManager.obstacles[j];
         if (b.x > o.x && b.x < o.x + o.w && b.y > o.y && b.y < o.y + o.h) {
-          Game.spawnParticles(o.x + o.w / 2, o.y + o.h / 2, '#ffd700', 5, 2.5, 2.0);
-          Game.spawnShockwave(o.x + o.w / 2, o.y + o.h / 2, '#00e676', 22, 2.0, 'STAR_CROSS');
-          Game.spawnFloatingText(`💥 击溃做空怪 +¥500`, o.x, o.y - 10, '#ffd700', 14);
+          SoundEngine.playHitEnemy();
+          Game.triggerHitstop(2);
+          Game.spawnParticles(o.x + o.w / 2, o.y + o.h / 2, '#ffd700', 8, 3.0, 2.2);
+          Game.spawnShockwave(o.x + o.w / 2, o.y + o.h / 2, '#00e676', 28, 2.4, 'STAR_CROSS');
+          Game.spawnFloatingText(`💥 击溃做空怪 +¥500`, o.x, o.y - 12, '#ffd700', 16);
           Game.profits += 500;
           Game.punchProfitHUD();
           ObstacleManager.obstacles.splice(j, 1);
@@ -3152,6 +3227,8 @@ const BossManager = {
   state: 'HOVER', // 'HOVER' | 'LUNGE' | 'RETREAT'
   lungeTimer: 0,
   warningFlash: 0,
+  flashWhiteTimer: 0,
+  hitRecoilX: 0,
 
   reset() {
     this.active = false;
@@ -3168,6 +3245,8 @@ const BossManager = {
     this.state = 'HOVER';
     this.lungeTimer = 0;
     this.warningFlash = 0;
+    this.flashWhiteTimer = 0;
+    this.hitRecoilX = 0;
   },
 
   spawnRandomBearBoss() {
@@ -3184,6 +3263,8 @@ const BossManager = {
     this.state = 'HOVER';
     this.lungeTimer = 0;
     this.attackTimer = 0;
+    this.flashWhiteTimer = 0;
+    this.hitRecoilX = 0;
 
     SoundEngine.playLevelUp();
     Game.triggerShake(12, 22);
@@ -3199,6 +3280,9 @@ const BossManager = {
 
   update(speed) {
     if (!this.active) return;
+
+    if (this.flashWhiteTimer > 0) this.flashWhiteTimer--;
+    if (this.hitRecoilX > 0.1) this.hitRecoilX *= 0.72; else this.hitRecoilX = 0;
 
     // 1. 上下平滑游弋
     this.y += this.vy;
@@ -3258,7 +3342,7 @@ const BossManager = {
 
     if (distX < 65 && distY < 55) {
       if (Player.isDashing || Player.isRaging || Player.inCart || (Player.jumpState && Player.vy > 0)) {
-        this.takeDamage(25);
+        this.takeDamage(30, true);
         Player.vy = -8.5;
       } else if (!Player.invincibleTimer) {
         Player.takeDamage(20, 'NORMAL');
@@ -3267,40 +3351,55 @@ const BossManager = {
     }
   },
 
-  takeDamage(dmg) {
+  takeDamage(dmg, isCrit = false) {
     this.hp = Math.max(0, this.hp - dmg);
-    SoundEngine.playHitEnemy();
-    Game.triggerHitstop(4);
-    Game.triggerShake(8, 10);
-    Game.spawnShockwave(this.x + 40, this.y + 35, '#ffd700', 36, 3.0, 'STAR_CROSS');
-    Game.spawnFloatingText(`💥 击中Boss -${dmg}HP`, this.x - 10, this.y - 15, '#ffd700', 18);
+    this.flashWhiteTimer = isCrit ? 5 : 3;
+    this.hitRecoilX = isCrit ? 14 : 8;
+    SoundEngine.playBossHit(isCrit);
+    Game.triggerHitstop(isCrit ? 4 : 2);
+    Game.triggerShake(isCrit ? 9 : 6, isCrit ? 12 : 8);
+    Game.spawnShockwave(this.x + 40, this.y + 35, isCrit ? '#ff1744' : '#ffd700', isCrit ? 44 : 32, 3.2, 'STAR_CROSS');
+    Game.spawnParticles(this.x + 20, this.y + 30, isCrit ? '#ff1744' : '#ffd700', isCrit ? 10 : 6, 3.2, 2.2);
+    Game.spawnFloatingText(isCrit ? `🔥 暴击 -${dmg} HP` : `💥 -${dmg} HP`, this.x - 15, this.y - 18, isCrit ? '#ff1744' : '#ffd700', isCrit ? 22 : 17);
 
     if (this.hp <= 0) {
       this.active = false;
       this.defeated = true;
       this.bearPhaseSpawned = true;
       Game.enemiesDefeated += 10;
-      Game.triggerShake(16, 28);
-      Game.triggerScreenFlash('rgba(255, 215, 0, 0.55)', 30);
-      SoundEngine.playGodAwaken();
+      Game.triggerHitstop(14); // 史诗长定格
+      Game.triggerShake(20, 36); // 震撼震屏
+      Game.triggerScreenFlash('rgba(255, 215, 0, 0.75)', 35);
+      SoundEngine.playBossDefeat();
+
+      // 3 重全屏光环震波
+      Game.spawnShockwave(this.x + 40, this.y + 35, '#ffd700', 95, 5.0, 'BURST_RAYS');
+      Game.spawnShockwave(this.x + 40, this.y + 35, '#ff1744', 75, 4.0, 'RING');
+      Game.spawnShockwave(this.x + 40, this.y + 35, '#00e5ff', 60, 3.2, 'STAR_CROSS');
+
+      // 多彩多段爆炸火花
+      Game.spawnParticles(this.x + 40, this.y + 35, '#ffd700', 16, 4.5, 3.0);
+      Game.spawnParticles(this.x + 20, this.y + 20, '#ff1744', 12, 3.8, 2.5);
+      Game.spawnParticles(this.x + 60, this.y + 40, '#00e5ff', 12, 3.8, 2.5);
 
       const rewardGold = this.currentBoss ? this.currentBoss.rewardGold : 60000;
-      // 连续喷发大量金币飞入 HUD
-      for (let k = 0; k < 12; k++) {
-        Game.spawnFlyingCoin(this.x + (Math.random() - 0.5) * 60, this.y + (Math.random() - 0.5) * 40, Math.floor(rewardGold / 12), '#ffd700', '🏆');
+      // 24 连发火山大金币喷发飞入 HUD
+      for (let k = 0; k < 24; k++) {
+        Game.spawnFlyingCoin(this.x + (Math.random() - 0.5) * 80, this.y + (Math.random() - 0.5) * 50, Math.floor(rewardGold / 24), '#ffd700', k % 2 === 0 ? '🏆' : '💰');
       }
-      Game.spawnFloatingText(`🎉 成功击溃【${this.currentBoss ? this.currentBoss.name : '庄家'}】！斩获 ¥${rewardGold.toLocaleString()} 终极分红！`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 35, '#ffd700', 24);
+      Game.spawnFloatingText(`👑 庄家爆仓！做空瓦解！斩获 ¥${rewardGold.toLocaleString()} 终极分红！`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 35, '#ffd700', 26);
+      
       // 奖励 1 次里程碑秘籍抽卡
       setTimeout(() => {
         if (Game.state === 'PLAYING') Game.checkRoguelikeMilestone();
-      }, 800);
+      }, 900);
     }
   },
 
   draw(ctx) {
     if (!this.active) return;
     ctx.save();
-    ctx.translate(this.x, this.y);
+    ctx.translate(this.x + this.hitRecoilX, this.y);
 
     const b = this.currentBoss || BOSS_TYPES[0];
 
@@ -3365,6 +3464,12 @@ const BossManager = {
       // 巨眼
       ctx.fillStyle = '#ffd700';
       ctx.fillRect(12, 22, 10, 10);
+    }
+
+    // ⚡ 受击白闪高亮剪影 (Flash White on Hit)
+    if (this.flashWhiteTimer > 0) {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.82)';
+      ctx.fillRect(-12, -2, 105, 70);
     }
 
     ctx.restore();
