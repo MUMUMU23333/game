@@ -1,9 +1,9 @@
-# 🐂 《牛牛勇敢向前冲 4.4 · 高亮黑天鹅与牛熊双境氛围版》 (Bull Run 4.4: Luminous Black Swan & Dynamic Dual-Market Atmospheres)
+# 🐂 《牛牛勇敢向前冲 4.5 · 马里奥大金币与多血条抛物线弹道版》 (Bull Run 4.5: Mario Big Coins, Monster HP & Parabolic Homing Trajectory)
 
 > **华尔街金融大逃杀 · 掌机级横屏跑酷 · 原生 HTML5 Canvas + Web Audio API 工业级独立单文件神作**  
 > 制作人：**蒋尊森** | 核心架构：**独立小游戏工坊 & 全栈架构专家团**
 
-[![Game Version](https://img.shields.io/badge/version-4.4.0--DualMood-gold.svg)](https://github.com/MUMUMU23333/game)
+[![Game Version](https://img.shields.io/badge/version-4.5.0--MarioCoin-gold.svg)](https://github.com/MUMUMU23333/game)
 [![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live%20Demo-brightgreen.svg)](https://mumumu23333.github.io/game/)
 [![FPS](https://img.shields.io/badge/Target%20FPS-60%20Lock-blue.svg)](https://github.com/MUMUMU23333/game)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -18,7 +18,23 @@
 
 ---
 
-## ✨ 4.4 高亮黑天鹅与牛熊双境氛围版重磅升级
+## ✨ 4.5 马里奥大金币与多血条抛物线弹道版重磅升级
+
+1. 🪙 **马里奥风格立体大金币与冷银灰币 (Mario-style Eye-catching 3D Coins)**：
+   - 金币尺寸由 16px 放大至 **`22px`**（醒目度大幅跃升），宝箱由 26px 放大至 **`28px`**，判定磁吸距离扩大至 38px，拾取更过瘾；
+   - **3D 动态旋转透视**：采用余弦周期动态透视（`0.32 ~ 1.0` 自旋），模拟经典街机金币翻转；
+   - **亮金渐变与经典马里奥竖条暗槽**：亮金多层渐变（`#fff9c4 -> #ffd700 -> #f59e0b`）+ 纯白斜切高光 + 凹槽竖纹；
+   - **冷银灰暗做空币**：冷铁深灰银质感 + 猩红警示芯 + 鲜明金属白描边，牛熊金币状态一目了然！
+2. 🦏 **不同障碍物/动物差异化生命值与受击反馈 (Differentiated Monster HP & Hits)**：
+   - **绿K线柱 (PIPE)**：生命值 20 HP（普通金币 1 击即碎，奖励 ¥350）；
+   - **暴跌黑天鹅 (SWAN)**：生命值 40 HP（普通金币需 2 击，狂暴强化金币 1 击，奖励 ¥800）；
+   - **做空巨熊 (BEAR)**：生命值 60 HP（普通金币需 3 击，狂暴强化金币 2 击，奖励 ¥1,200）；
+   - **重型灰犀牛 (RHINO)**：生命值 90 HP（普通金币需 4~5 击，狂暴强化金币 2~3 击，奖励 ¥1,800）；
+   - **受击后退与动态 Mini 血条**：怪物受击产生 **`10px` 物理后挫（Hit Recoil）**、4 帧受击白闪、实时跳出 `💥 -XX` 扣血跳字（暴击 `🔥 暴击 -XX`），受伤后头顶呈现迷你动态三色血条。
+3. 🏹 **金币攻击抛物线弹道与微导引吸附 (Parabolic Arc & Homing Coin Trajectory)**：
+   - 金币射击带有向上起跳初速（`vy = -1.8`）与真实微重力抛物线（`vy += 0.045`）；
+   - **扇区微导引**：金币对前方 280px 范围内的怪物或 Boss 进行柔和平滑追踪微调，弹道打击感爆棚；
+   - 伴随金色火花光尾（Spark Trail）与高速旋转。
 
 1. 🦢 **全新黑炭灰高辨识度黑天鹅与高光描边 (Crisp Outline Black Swan)**：
    - 保留冷峻优雅的黑炭与黑曜石羽翼基底（`#18181b` / `#27272a` / `#3f3f46`）；
