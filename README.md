@@ -1,48 +1,33 @@
-# 🐂 股市大逃杀：牛市狂飙 3.0 (Bull Run: Market Master)
+# 🐂 《牛牛勇敢向前冲 4.0 · 黄金觉醒版》 (Bull Run 4.0: Golden God Awakening)
 
-> **商业级 HTML5 单文件全功能金融跑酷与肉鸽小游戏**  
-> 制作人：**蒋尊森** | 核心架构：**独立小游戏工坊**
+> **华尔街金融大逃杀 · 掌机级横屏跑酷 · 原生 HTML5 Canvas + Web Audio API 工业级独立单文件神作**  
+> 制作人：**蒋尊森** | 核心架构：**独立小游戏工坊 & 全栈架构专家团**
 
-[![HTML5](https://img.shields.io/badge/HTML5-Single--File-E34F26?style=for-the-badge&logo=html5&logoColor=white)](index.html)
-[![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](index.html)
-[![Web Audio](https://img.shields.io/badge/Audio-Web%20Audio%20API-00e5ff?style=for-the-badge)](index.html)
-[![Mobile Ready](https://img.shields.io/badge/Mobile-Auto--Rotate%20Landscape-00e676?style=for-the-badge)](index.html)
-
----
-
-## 🎮 游戏在线试玩 (Live Demo)
-
-- 📱 **单文件即开即玩**：直接在浏览器中打开 `index.html` 或 `bull_run_standalone.html`。
-- 🌐 **GitHub Pages 部署**：开启仓库 Settings -> Pages 后，手机/电脑直接访问 `https://<your-username>.github.io/<repo-name>/`。
+[![Game Version](https://img.shields.io/badge/version-4.0.0--Golden-gold.svg)](https://github.com/MUMUMU23333/game)
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live%20Demo-brightgreen.svg)](https://mumumu23333.github.io/game/)
+[![FPS](https://img.shields.io/badge/Target%20FPS-60%20Lock-blue.svg)](https://github.com/MUMUMU23333/game)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ---
 
-## 🌟 核心特色与系统玩法
+## 🎮 全球在线试玩直达链接 (Instant Play)
 
-1. 🏦 **三大操盘流派 (Persona Select)**：
-   - 🛡️ **价值投资者**：生命上限 +30，初始拥有 1 层熔断圣盾，避险防御极强；
-   - 📈 **趋势投资者**：基础速度 +15%，吃金币面额 +20%，连板主升浪 Multipliers；
-   - 🎰 **风险投资者**：怒气积累 +50%，暴跌浪收益 3 倍，极限擦边赏金 2 倍。
+* 📱 **手机 / 电脑浏览器直接打开**：  
+  👉 **[https://mumumu23333.github.io/game/](https://mumumu23333.github.io/game/)**  
+  *(手机竖屏点开自动旋转为大视野全屏横屏，左右大拇指触控即玩！)*
 
-2. 🌍 **五大世界地标随机关卡 (5 Dynamic World Stages)**：
-   - 🇫🇷 **巴黎浪漫牛市** *(Paris Eiffel)*：埃菲尔铁塔远景剪影 + 极光洋红光晕；
-   - 🇬🇧 **伦敦雾都主升浪** *(London Big Ben)*：大本钟塔楼 + 赛博电光蓝地平线；
-   - 🇯🇵 **富士山樱花牛** *(Mount Fuji & Sakura)*：火山雪顶白樱 + 极光暮紫氛围；
-   - 🌿 **呼伦贝尔大草原** *(Green Grassland)*：连绵青翠丘陵 + 生机盎然翡翠绿；
-   - 🏜️ **科罗拉多大峡谷** *(Grand Canyon Sunset)*：层叠险峻红岩断崖 + 壮阔晚霞熔岩橙。
+---
 
-3. 🐊 **1500米 鳄鱼庄家 Boss 战 (Crocodile Broker Boss Fight)**：
-   - 鳄鱼庄家专属血条与上下游走激光冲撞攻击；
-   - 顶撞破防与击溃大爆 ¥50,000 大奖！
+## ✨ 4.0 黄金觉醒版重磅全新特色
 
-4. 📊 **80 种经典股市 K 线形态实战引擎 (80 Classic K-Line Patterns)**：
-   - 早晨之星、红三兵、仙人指路、多方炮、断头铡刀、三只黑乌鸦等；
-   - 包含实时 5 周期 MA 均线图表与动量加速机制。
-
-5. 📱 **手机端极致体验 (Mobile-First Optimization)**：
-   - 🔄 **自动旋转满幅横屏**：手机一打开自动以 100vh × 100vw 全屏呈现，左右大拇指舒适触控；
-   - ✨ **Retina HiDPI 高清渲染**：2K 原生物理像素缩放，文字与粒子细腻锐利；
-   - 🦢 **高反差发光怪兽**：黑天鹅（极光紫发光翅膀+红眼）、做空熊（翡翠绿战甲）、灰犀牛（钛金斑马条纹），百米外一目了然！
+1. 👑 **黄金牛皇变身觉醒 (Golden God Awakening)**：当局内盈利突破 **¥10,000** 自动爆气变身！头顶悬浮黄金皇冠、周身环绕金光残影电弧，全屏量化磁吸狂澜金币！
+2. 🏆 **操盘名人堂与终身勋章殿堂 (Trophy & Hall of Fame)**：永久记录历史最高盈利、最远奔跑里程、击溃空头怪数，收集 6 大黄金成就徽章并赢取丰厚奖金！
+3. 🐮 **牛牛 7 维灵动微状态动画 (Dynamic Micro-States)**：暴赚墨镜笑脸、危机流汗警报、冲刺烈焰火花、凌空二段翻腾，赋予战牛生动的灵魂！
+4. 🎵 **自适应金融情绪音效引擎 (Adaptive Sound Engine)**：升调多头进军号角、低沉压迫熊市警报、纯代码实时合成无外部依赖！
+5. 🌍 **五大世界地标关卡跃迁**：巴黎埃菲尔铁塔、伦敦大本钟、富士山雪顶、呼伦贝尔大草原、科罗拉多大峡谷，750米动态跃迁，0.08超暗半透明防遮挡！
+6. 📈 **80 种专业经典 K 线形态**：红三兵主升浪、早晨之星、仙人指路、穿头破脚大阳线，融合 5 周期 MA 均线与量价突破算法！
+7. 🥊 **5 款高能战牛专属立绘与技能**：铁血拳王、多头圣骑士、股神连板冠军牛、赛博重装机甲狂牛、华尔街大亨！
+8. 🛡️ **跌落熔断保护车 (Cart)**：掉下深渊自动召唤防爆避险战车，百毒不侵狂飙百米！
 
 ---
 
