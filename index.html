@@ -650,13 +650,14 @@
   <div id="startModal" class="modal-overlay">
     <div class="modal-card">
       <div class="modal-header">
-        <div class="modal-title">🐂 股市大逃杀：牛市狂飙 3.0</div>
-        <div class="modal-subtitle">突破阻力位 · 踩碎空头怪 · 绝地反弹爆赚千万！</div>
+        <div class="modal-title">🐂 股市大逃杀：牛市狂飙 4.0</div>
+        <div class="modal-subtitle">黄金觉醒 · 突破阻力位 · 踩碎空头怪 · 绝地爆赚千万！</div>
       </div>
       
       <div class="modal-body">
         <div style="background: rgba(15,23,42,0.6); border-radius: 8px; padding: 6px; margin-bottom: 8px; display:flex; justify-content:space-around; font-size:12px;">
           <div>操盘总资产: <span id="startTotalFunds" style="color:#ffd700; font-weight:900;">¥ 0</span></div>
+          <div>最高单局纪录: <span id="startHighScore" style="color:#00e676; font-weight:900;">¥ 0</span></div>
         </div>
 
         <div class="diff-selector">
@@ -666,9 +667,10 @@
           <button class="diff-btn" data-diff="HELL">🔴 妖股地狱</button>
         </div>
 
-        <div style="margin-bottom: 8px;">
-          <button id="btnOpenSkin" class="btn-secondary">🎨 战牛衣橱</button>
-          <button id="btnOpenShop" class="btn-secondary">🏛️ 交易所神装</button>
+        <div style="margin-bottom: 8px; display:flex; justify-content:center; gap:6px; flex-wrap:wrap;">
+          <button id="btnOpenSkin" class="btn-secondary" style="padding:6px 12px; font-size:11.5px;">🎨 战牛衣橱</button>
+          <button id="btnOpenShop" class="btn-secondary" style="padding:6px 12px; font-size:11.5px;">🏛️ 交易所神装</button>
+          <button id="btnOpenHall" class="btn-secondary" style="padding:6px 12px; font-size:11.5px; color:#ffd700; border-color:rgba(255,215,0,0.5);">🏆 操盘名人堂</button>
         </div>
       </div>
 
@@ -710,8 +712,44 @@
       </div>
 
       <div class="modal-footer" style="display:flex; gap:8px;">
-        <button id="btnShopFromOver" class="btn-secondary" style="flex:1; padding:8px;">🏛️ 交易所神装</button>
-        <button id="btnRestart" class="btn-primary" style="flex:2; padding:8px;">🔄 重新开盘建仓</button>
+        <button id="btnShopFromOver" class="btn-secondary" style="flex:1; padding:8px;">🏛️ 交易所</button>
+        <button id="btnHallFromOver" class="btn-secondary" style="flex:1; padding:8px; color:#ffd700;">🏆 名人堂</button>
+        <button id="btnRestart" class="btn-primary" style="flex:2; padding:8px;">🔄 重新开盘</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hall of Fame & Achievements Modal -->
+  <div id="hallModal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 520px;">
+      <div class="modal-header">
+        <div class="modal-close-x" onclick="closeHallModal()">✕</div>
+        <div class="modal-title">🏆 操盘名人堂 · 终身成就殿堂</div>
+        <div class="modal-subtitle">记录你的传奇战绩与顶级多头荣誉</div>
+      </div>
+
+      <div class="modal-body">
+        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 10px;">
+          <div style="background:rgba(15,23,42,0.8); border:1px solid #ffd700; border-radius:6px; padding:6px; text-align:center;">
+            <div style="font-size:10px; color:#94a3b8;">历史最高盈利</div>
+            <div id="hallHighScore" style="font-size:12px; font-weight:900; color:#ffd700; margin-top:2px;">¥ 0</div>
+          </div>
+          <div style="background:rgba(15,23,42,0.8); border:1px solid #00e5ff; border-radius:6px; padding:6px; text-align:center;">
+            <div style="font-size:10px; color:#94a3b8;">最远奔跑里程</div>
+            <div id="hallMaxDistance" style="font-size:12px; font-weight:900; color:#00e5ff; margin-top:2px;">0 米</div>
+          </div>
+          <div style="background:rgba(15,23,42,0.8); border:1px solid #00e676; border-radius:6px; padding:6px; text-align:center;">
+            <div style="font-size:10px; color:#94a3b8;">击溃空头总数</div>
+            <div id="hallTotalDefeated" style="font-size:12px; font-weight:900; color:#00e676; margin-top:2px;">0 只</div>
+          </div>
+        </div>
+
+        <div style="font-size:11.5px; font-weight:900; color:#ffd700; text-align:left; margin-bottom:6px;">🎖️ 多头荣誉勋章墙</div>
+        <div id="achievementsGrid" style="display:grid; grid-template-columns: 1fr 1fr; gap: 6px; max-height: 180px; overflow-y:auto; text-align:left;"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="btnCloseHall" class="btn-secondary" style="width:100%; padding:9px;" onclick="closeHallModal()">🔙 返回主菜单</button>
       </div>
     </div>
   </div>
@@ -992,6 +1030,38 @@ const SoundEngine = {
       });
     } catch(e) {}
   },
+  playGodAwaken() {
+    if (this.isMuted || !this.ctx) return;
+    try {
+      const t = this.ctx.currentTime;
+      const chords = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+      chords.forEach((f, i) => {
+        const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(f, t + i * 0.045);
+        gain.gain.setValueAtTime(0.3, t + i * 0.045);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.045 + 0.45);
+        osc.connect(gain); gain.connect(this.ctx.destination);
+        osc.start(t + i * 0.045); osc.stop(t + i * 0.045 + 0.45);
+      });
+    } catch(e) {}
+  },
+  playAchievementUnlock() {
+    if (this.isMuted || !this.ctx) return;
+    try {
+      const t = this.ctx.currentTime;
+      const notes = [880.00, 1174.66, 1760.00];
+      notes.forEach((f, i) => {
+        const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(f, t + i * 0.06);
+        gain.gain.setValueAtTime(0.25, t + i * 0.06);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.06 + 0.35);
+        osc.connect(gain); gain.connect(this.ctx.destination);
+        osc.start(t + i * 0.06); osc.stop(t + i * 0.06 + 0.35);
+      });
+    } catch(e) {}
+  },
   playBuffPickup(buffType) {
     if (this.isMuted || !this.ctx) return;
     try {
@@ -1112,8 +1182,21 @@ const BULL_SKINS = {
   }
 };
 
+const ACHIEVEMENTS = [
+  { id: 'FIRST_BLOOD', icon: '💰', name: '第一桶金', desc: '单局盈利突破 ¥2,000', reward: 5000, check: (a, g) => (g.profits || 0) >= 2000 },
+  { id: 'TEN_K_CLUB', icon: '👑', name: '万金牛皇', desc: '单局盈利突破 ¥10,000 并觉醒黄金形态', reward: 20000, check: (a, g) => (g.profits || 0) >= 10000 },
+  { id: 'MILE_MASTER', icon: '🏃', name: '千里狂飙', desc: '单局奔跑里程突破 1,000 米', reward: 15000, check: (a, g) => (g.distance || 0) >= 1000 },
+  { id: 'BOSS_SLAYER', icon: '🐊', name: '屠鳄勇士', desc: '击溃 1500米 鳄鱼庄家 Boss', reward: 50000, check: (a, g) => (typeof BossManager !== 'undefined' && BossManager.defeated) },
+  { id: 'DODGE_MASTER', icon: '⚡', name: '极限擦边王', desc: '单局完成 5 次极限擦边惊险闪避', reward: 12000, check: (a, g) => (Player.nearMissCount || 0) >= 5 },
+  { id: 'SWAN_SURVIVOR', icon: '🦢', name: '绝地反击', desc: '在遭遇暴跌形态下成功狂飙超 600 米', reward: 18000, check: (a, g) => (g.distance || 0) >= 600 }
+];
+
 const Account = {
   funds: 0,
+  highScore: 0,
+  maxDistance: 0,
+  totalEnemiesDefeated: 0,
+  unlockedAchievements: [],
   difficulty: 'NORMAL',
   selectedSkin: 'MASTER',
   ownedSkins: ['MASTER'],
@@ -1142,6 +1225,10 @@ const Account = {
       if (saved) {
         const data = JSON.parse(saved);
         this.funds = data.funds || 0;
+        this.highScore = data.highScore || 0;
+        this.maxDistance = data.maxDistance || 0;
+        this.totalEnemiesDefeated = data.totalEnemiesDefeated || 0;
+        this.unlockedAchievements = data.unlockedAchievements || [];
         this.difficulty = data.difficulty || 'NORMAL';
         this.selectedSkin = data.selectedSkin || 'MASTER';
         this.ownedSkins = data.ownedSkins || ['MASTER'];
@@ -1163,6 +1250,10 @@ const Account = {
     try {
       localStorage.setItem('bull_run_account_v2', JSON.stringify({
         funds: this.funds,
+        highScore: this.highScore,
+        maxDistance: this.maxDistance,
+        totalEnemiesDefeated: this.totalEnemiesDefeated,
+        unlockedAchievements: this.unlockedAchievements,
         difficulty: this.difficulty,
         selectedSkin: this.selectedSkin,
         ownedSkins: this.ownedSkins,
@@ -1170,6 +1261,25 @@ const Account = {
         equipment: this.equipment
       }));
     } catch(e) {}
+  },
+
+  checkAchievements(game) {
+    let unlockedAny = false;
+    ACHIEVEMENTS.forEach(ach => {
+      if (!this.unlockedAchievements.includes(ach.id)) {
+        if (ach.check(this, game)) {
+          this.unlockedAchievements.push(ach.id);
+          this.funds += ach.reward;
+          unlockedAny = true;
+          SoundEngine.playAchievementUnlock();
+          if (typeof Game !== 'undefined') {
+            Game.spawnFloatingText(`🎖️ 解锁成就: ${ach.name} (+¥${ach.reward.toLocaleString()})`, CANVAS_WIDTH / 2, 130, '#ffd700', 22);
+            Game.shake(4, 10);
+          }
+        }
+      }
+    });
+    if (unlockedAny) this.save();
   },
 
   getSkinBuffs() {
@@ -1855,8 +1965,54 @@ const Player = {
       ctx.fillStyle = 'rgba(0, 229, 255, 0.12)'; ctx.fill();
     }
 
+    // 👑 黄金牛皇漂浮皇冠 (收益破万或黄金觉醒形态)
+    if (this.isGodMode || (typeof Game !== 'undefined' && Game.profits >= 10000)) {
+      ctx.save();
+      const crownY = oy - 14 - bodyBob + Math.sin(this.animFrame * 0.18) * 3;
+      ctx.fillStyle = '#ffd700';
+      ctx.strokeStyle = '#fff59d';
+      ctx.lineWidth = 1.5;
+      ctx.shadowColor = '#ffd700';
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.moveTo(ox + 16, crownY + 8);
+      ctx.lineTo(ox + 12, crownY);
+      ctx.lineTo(ox + 20, crownY + 4);
+      ctx.lineTo(ox + 26, crownY - 3);
+      ctx.lineTo(ox + 32, crownY + 4);
+      ctx.lineTo(ox + 40, crownY);
+      ctx.lineTo(ox + 36, crownY + 8);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#ff1744'; ctx.beginPath(); ctx.arc(ox + 26, crownY + 4, 2.2, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+
+    // 🕶️ 暴赚大亨墨镜 (收益破5000)
+    if (typeof Game !== 'undefined' && Game.profits >= 5000 && !this.isSliding) {
+      ctx.save();
+      ctx.fillStyle = '#0f172a';
+      ctx.strokeStyle = '#ffd700';
+      ctx.lineWidth = 1.2;
+      ctx.fillRect(ox + 25, oy + 6 - bodyBob, 15, 6.5);
+      ctx.strokeRect(ox + 25, oy + 6 - bodyBob, 15, 6.5);
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.fillRect(ox + 27, oy + 7.5 - bodyBob, 3, 2);
+      ctx.restore();
+    }
+
+    // 💧 危机流汗特效 (生命值 <= 35%)
+    if (this.hp <= 35 && Game.state === 'PLAYING') {
+      ctx.save();
+      const dropY = oy - 4 - bodyBob + ((this.animFrame * 1.5) % 16);
+      ctx.fillStyle = '#00e5ff';
+      ctx.beginPath(); ctx.arc(ox + 10, dropY, 2.2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(ox + 38, dropY + 2, 1.8, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+
     // 战牛金光/极光护体高光流光
-    if (this.goldFlash > 0) {
+    if (this.goldFlash > 0 || this.isGodMode) {
       ctx.save();
       ctx.strokeStyle = this.goldFlashColor || '#ffd700';
       ctx.lineWidth = 3;
@@ -2965,10 +3121,18 @@ const Game = {
     const formatted = `¥ ${Math.floor(Account.funds).toLocaleString()}`;
     const sEl = document.getElementById('startTotalFunds');
     if (sEl) sEl.textContent = formatted;
+    const sHigh = document.getElementById('startHighScore');
+    if (sHigh) sHigh.textContent = `¥ ${Math.floor(Account.highScore || 0).toLocaleString()}`;
     const shEl = document.getElementById('shopTotalFunds');
     if (shEl) shEl.textContent = formatted;
     const gEl = document.getElementById('gameOverTotalFunds');
     if (gEl) gEl.textContent = formatted;
+    const hHigh = document.getElementById('hallHighScore');
+    if (hHigh) hHigh.textContent = `¥ ${Math.floor(Account.highScore || 0).toLocaleString()}`;
+    const hDist = document.getElementById('hallMaxDistance');
+    if (hDist) hDist.textContent = `${Math.floor(Account.maxDistance || 0).toLocaleString()} 米`;
+    const hDef = document.getElementById('hallTotalDefeated');
+    if (hDef) hDef.textContent = `${(Account.totalEnemiesDefeated || 0).toLocaleString()} 只`;
   },
 
   pickRandomKline() {
@@ -3332,6 +3496,10 @@ const Game = {
     }
 
     Account.funds = Math.max(0, Account.funds + earned);
+    if (this.profits > (Account.highScore || 0)) Account.highScore = Math.floor(this.profits);
+    if (this.distance > (Account.maxDistance || 0)) Account.maxDistance = Math.floor(this.distance);
+    Account.totalEnemiesDefeated = (Account.totalEnemiesDefeated || 0) + (this.enemiesDefeated || 0);
+    Account.checkAchievements(this);
     Account.save();
     this.updateFundsDisplay();
 
@@ -3582,6 +3750,13 @@ const Game = {
     const btnCloseSkin = document.getElementById('btnCloseSkin');
     if (btnCloseSkin) btnCloseSkin.onclick = () => closeSkinModal();
 
+    const btnOpenHall = document.getElementById('btnOpenHall');
+    if (btnOpenHall) btnOpenHall.onclick = () => openHallModal('startModal');
+    const btnHallFromOver = document.getElementById('btnHallFromOver');
+    if (btnHallFromOver) btnHallFromOver.onclick = () => openHallModal('gameOverModal');
+    const btnCloseHall = document.getElementById('btnCloseHall');
+    if (btnCloseHall) btnCloseHall.onclick = () => closeHallModal();
+
     const tabA = document.getElementById('tabAttr'), tabE = document.getElementById('tabEquip');
     if (tabA && tabE) {
       tabA.onclick = () => {
@@ -3638,6 +3813,19 @@ const Game = {
       SoundEngine.playLevelUp();
       this.triggerScreenFlash('rgba(255, 215, 0, 0.35)', 18);
       this.spawnFloatingText(`🌍 切换场景: ${StageManager.stageBannerText}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 35, '#ffd700', 20);
+    }
+
+    // 👑 盈利破万触发黄金牛皇形态与全屏吸金
+    if (this.profits >= 10000 && !Player.godAwakenTriggered) {
+      Player.godAwakenTriggered = true;
+      Player.isGodMode = true;
+      Player.magnetRange = Math.max(Player.magnetRange, 320);
+      Player.coinValueMult = (Player.coinValueMult || 1) * 1.5;
+      SoundEngine.playGodAwaken();
+      this.triggerScreenFlash('rgba(255, 215, 0, 0.45)', 25);
+      this.spawnFloatingText("👑 盈利破万！黄金牛皇觉醒！全屏量化磁吸！", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 30, '#ffd700', 22);
+      this.triggerShake(10, 22);
+      Account.checkAchievements(this);
     }
 
     // 📈 1000米狂欢牛市主升浪机制
@@ -4066,6 +4254,47 @@ function renderShop(tabType = 'ATTR') {
       grid.appendChild(item);
     }
   }
+}
+
+let hallParentModal = 'startModal';
+function openHallModal(fromModalId = 'startModal') {
+  hallParentModal = fromModalId;
+  const pM = document.getElementById(fromModalId);
+  if (pM) pM.classList.add('hidden');
+  const hM = document.getElementById('hallModal');
+  if (hM) hM.classList.remove('hidden');
+  renderAchievements();
+  Game.updateFundsDisplay();
+}
+
+function closeHallModal() {
+  const hM = document.getElementById('hallModal');
+  if (hM) hM.classList.add('hidden');
+  const pM = document.getElementById(hallParentModal);
+  if (pM) pM.classList.remove('hidden');
+  Game.updateFundsDisplay();
+}
+
+function renderAchievements() {
+  const grid = document.getElementById('achievementsGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  ACHIEVEMENTS.forEach(ach => {
+    const isUnlocked = (Account.unlockedAchievements || []).includes(ach.id);
+    const card = document.createElement('div');
+    card.style.cssText = `background: ${isUnlocked ? 'rgba(255, 215, 0, 0.12)' : 'rgba(15, 23, 42, 0.6)'}; border: 1px solid ${isUnlocked ? '#ffd700' : 'rgba(255,255,255,0.1)'}; border-radius: 6px; padding: 6px; display: flex; align-items: center; gap: 6px;`;
+    card.innerHTML = `
+      <div style="font-size: 20px; filter: ${isUnlocked ? 'none' : 'grayscale(100%) opacity(0.4)'};">${ach.icon}</div>
+      <div style="flex: 1; min-width: 0;">
+        <div style="font-size: 11px; font-weight: 800; color: ${isUnlocked ? '#ffd700' : '#94a3b8'}; display: flex; justify-content: space-between;">
+          <span>${ach.name}</span>
+          <span style="font-size: 9.5px; color: ${isUnlocked ? '#00e676' : '#64748b'};">${isUnlocked ? '已达成 ✅' : '+¥' + ach.reward.toLocaleString()}</span>
+        </div>
+        <div style="font-size: 9.5px; color: #94a3b8; line-height: 1.2; margin-top: 2px;">${ach.desc}</div>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
 }
 
 function openSkinModal() {
