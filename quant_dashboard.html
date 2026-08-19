@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>双量化策略·收盘全景对比大屏</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #0a0f1d;
+            --card-bg: rgba(20, 29, 51, 0.75);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --accent-glow: rgba(59, 130, 246, 0.15);
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --profit-red: #ef4444;
+            --profit-bg: rgba(239, 68, 68, 0.12);
+            --safe-green: #10b981;
+            --safe-bg: rgba(16, 185, 129, 0.12);
+            --gold: #f59e0b;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        body {
+            background-color: var(--bg-base);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(245, 158, 11, 0.1) 0px, transparent 50%);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 24px 16px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            max-width: 900px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .header {
+            text-align: center;
+            padding: 20px 0 10px;
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #60a5fa;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        .header h1 {
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+        .header p {
+            color: var(--text-sub);
+            font-size: 14px;
+        }
+        /* Summary Hero Card */
+        .summary-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 24px;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        .summary-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .summary-label {
+            font-size: 13px;
+            color: var(--text-sub);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .summary-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 24px;
+            font-weight: 700;
+        }
+        .profit { color: var(--profit-red); }
+        .loss { color: var(--safe-green); }
+
+        /* Strategies Grid */
+        .strategies-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 768px) {
+            .strategies-grid { grid-template-columns: 1fr; }
+        }
+        .strategy-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 24px;
+            backdrop-filter: blur(16px);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+        .strategy-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 3px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+        }
+        .strategy-card.wufu::before {
+            background: linear-gradient(90deg, #f59e0b, #ef4444);
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card-title {
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .time-tag {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-sub);
+        }
+        .holding-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 14px;
+            padding: 16px;
+        }
+        .holding-name {
+            font-size: 16px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 4px;
+        }
+        .holding-code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            color: var(--gold);
+        }
+        .metrics-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+        .metric-label {
+            color: var(--text-sub);
+        }
+        .metric-val {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+        }
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            background: var(--safe-bg);
+            color: var(--safe-green);
+        }
+        /* Table Section */
+        .table-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 24px;
+            backdrop-filter: blur(16px);
+        }
+        .table-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        th, td {
+            padding: 12px 14px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        th {
+            color: var(--text-sub);
+            font-weight: 600;
+            font-size: 13px;
+        }
+        td {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .footer {
+            text-align: center;
+            padding: 16px 0;
+            font-size: 12px;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="badge">🤖 GitHub Actions 24/7 免开机云端驱动</div>
+            <h1>双量化策略·收盘全景横向对比大屏</h1>
+            <p>数据更新时间：2026-08-19 14:46:04 | 基准初始本金：¥100,000.00 元</p>
+        </div>
+
+        <!-- Summary Hero -->
+        <div class="summary-card">
+            <div class="summary-item">
+                <span class="summary-label">组合当前总资产</span>
+                <span class="summary-value">¥100,017.80</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">双策略合计浮动盈亏</span>
+                <span class="summary-value profit">+¥17.80 (+0.02%)</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">当前运作状态</span>
+                <span class="summary-value" style="font-size: 18px; color: var(--safe-green); display: flex; align-items: center; gap: 6px;">
+                    🟢 运行健康 (无需调仓)
+                </span>
+            </div>
+        </div>
+
+        <!-- Strategy Grid -->
+        <div class="strategies-grid">
+            <!-- Seven Stars -->
+            <div class="strategy-card">
+                <div class="card-header">
+                    <div class="card-title">⭐ 七星量化策略</div>
+                    <div class="time-tag">每日 14:47 执行</div>
+                </div>
+                <div class="holding-box">
+                    <div class="holding-name">华安黄金ETF</div>
+                    <div class="holding-code">518880.XSHG (仓位: 98.5%)</div>
+                </div>
+                <div class="metrics-list">
+                    <div class="metric-row">
+                        <span class="metric-label">持仓股数 / 市值</span>
+                        <span class="metric-val">5,500 股 / ¥49,274.50</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">买入成本 ➔ 最新价</span>
+                        <span class="metric-val">¥8.950 ➔ ¥8.959</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">单策略收益 (本金5万)</span>
+                        <span class="metric-val profit">+0.10% (+¥49.50)</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">账户总资产 (含现金)</span>
+                        <span class="metric-val">¥50,049.50</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">风控止损安全垫</span>
+                        <span class="status-pill">🛡️ 距止损 +5.10%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Wufu 5.2 -->
+            <div class="strategy-card wufu">
+                <div class="card-header">
+                    <div class="card-title">🧧 五福策略 5.2</div>
+                    <div class="time-tag">每日 13:10 执行</div>
+                </div>
+                <div class="holding-box">
+                    <div class="holding-name">华夏纳指生物</div>
+                    <div class="holding-code">513290.XSHG (仓位: 98.5%)</div>
+                </div>
+                <div class="metrics-list">
+                    <div class="metric-row">
+                        <span class="metric-label">宏观周期研判</span>
+                        <span class="metric-val" style="color: var(--profit-red); font-size: 12px;">大A走弱期 (全球商品池)</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">持仓股数 / 市值</span>
+                        <span class="metric-val">28,900 股 / ¥49,158.90</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">买入成本 ➔ 最新价</span>
+                        <span class="metric-val">¥1.704 ➔ ¥1.701</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">单策略收益 (本金5万)</span>
+                        <span class="metric-val profit">+-0.06% (+¥-31.70)</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">账户总资产 (含现金)</span>
+                        <span class="metric-val">¥49,968.30</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">风控止损安全垫</span>
+                        <span class="status-pill">🛡️ 距止损 +4.83%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparative Table -->
+        <div class="table-card">
+            <div class="table-title">📋 核心指标横向深度对照表</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>对比维度</th>
+                        <th>⭐ 七星量化策略</th>
+                        <th>🧧 五福策略 5.2</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>当前持仓标的</td>
+                        <td style="color: #60a5fa;">518880 华安黄金ETF</td>
+                        <td style="color: #f59e0b;">513290 华夏纳指生物</td>
+                    </tr>
+                    <tr>
+                        <td>单策略本金 / 市值</td>
+                        <td>¥50,000 / ¥49,274.50</td>
+                        <td>¥50,000 / ¥49,158.90</td>
+                    </tr>
+                    <tr>
+                        <td>单策略盈亏 (金额/比例)</td>
+                        <td class="profit">+¥49.50 (+0.10%)</td>
+                        <td class="profit">+¥-31.70 (+-0.06%)</td>
+                    </tr>
+                    <tr>
+                        <td>今日收盘操作指示</td>
+                        <td><span class="status-pill">🛡️ 维持持仓</span></td>
+                        <td><span class="status-pill">🛡️ 维持持仓</span></td>
+                    </tr>
+                    <tr>
+                        <td>风控防线阈值</td>
+                        <td>5% 绝对止损 (回撤预警)</td>
+                        <td>5% 绝对止损 (回撤预警)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>星辰投研量化实验室 &copy; 2026 · GitHub Pages 实时大屏托管</p>
+        </div>
+    </div>
+</body>
+</html>
