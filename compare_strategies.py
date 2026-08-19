@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-双量化策略 (五福 5.2 vs 七星量化) —— 专为企业微信优化的全景对比大屏
-【包含：各自5万元初始本金、单策略盈亏、双策略合计总资产与总盈亏透视，并自动生成 HTML 大屏与直达链接】
+双量化策略 (五福 5.2 vs 七星量化) —— 专为企业微信优化的收盘横向对比全景大屏
+【升级版：多源故障转移、各自5万本金、总盈亏透视、TOP3梯队看板、4K HTML大屏直达】
 """
 
 import os
@@ -41,24 +41,40 @@ def get_name(code: str) -> str:
             return v
     return clean_code
 
-def get_realtime_price(symbol_code: str):
+def get_realtime_price_multi(symbol_code: str):
+    """多源故障转移实时行情引擎"""
     if not symbol_code:
         return None
+    code_num = symbol_code.replace(".XSHG", "").replace(".XSHE", "").replace("sh", "").replace("sz", "")
+    prefix = "sh" if symbol_code.endswith(".XSHG") or symbol_code.startswith("sh") else "sz"
+    
+    # 1. 腾讯财经云
     try:
-        prefix = "sh" if symbol_code.endswith(".XSHG") or symbol_code.startswith("sh") else "sz"
-        code_num = symbol_code.replace(".XSHG", "").replace(".XSHE", "").replace("sh", "").replace("sz", "")
-        symbol = prefix + code_num
-        url = f"http://hq.sinajs.cn/list={symbol}"
-        headers = {"Referer": "https://finance.sina.com.cn"}
-        resp = requests.get(url, headers=headers, timeout=5)
-        text = resp.text
-        if "=" in text:
-            parts = text.split("=")[1].replace('"', '').replace(';\n', '').split(',')
+        t_url = f"https://qt.gtimg.cn/q={prefix}{code_num}"
+        t_resp = requests.get(t_url, timeout=3)
+        if t_resp.status_code == 200 and '="' in t_resp.text:
+            parts = t_resp.text.split('="')[1].split('~')
             if len(parts) > 3:
-                p = float(parts[3]) if float(parts[3]) > 0 else float(parts[2])
-                return p
+                price = float(parts[3])
+                if price > 0:
+                    return price
     except Exception:
         pass
+
+    # 2. 新浪财经源
+    try:
+        s_url = f"http://hq.sinajs.cn/list={prefix}{code_num}"
+        s_headers = {"Referer": "https://finance.sina.com.cn"}
+        s_resp = requests.get(s_url, headers=s_headers, timeout=3)
+        if s_resp.status_code == 200 and "=" in s_resp.text:
+            parts = s_resp.text.split("=")[1].replace('"', '').replace(';\n', '').split(',')
+            if len(parts) > 3:
+                price = float(parts[3]) if float(parts[3]) > 0 else float(parts[2])
+                if price > 0:
+                    return price
+    except Exception:
+        pass
+
     return None
 
 def load_json(file_path):
@@ -86,13 +102,13 @@ def generate_comparison():
     wufu_state = load_json(wufu_path)
     base_cap = CONFIG["initial_capital_per_strategy"]
 
-    # 1. 解析七星策略
+    # 1. 七星策略
     s_hold = seven_state.get("current_holding", "518880.XSHG")
     s_name = get_name(s_hold)
     s_cost = float(seven_state.get("entry_price", 8.95))
     s_shares = int(seven_state.get("holding_shares", 5500))
     s_cash = float(seven_state.get("cash", 775.0))
-    s_latest = get_realtime_price(s_hold) or s_cost
+    s_latest = get_realtime_price_multi(s_hold) or s_cost
     s_val = s_shares * s_latest
     s_total = s_val + s_cash
     s_pnl = s_total - base_cap
@@ -101,14 +117,14 @@ def generate_comparison():
     s_pnl_str = f"+¥{s_pnl:,.2f} (+{s_pnl_pct:.2f}%)" if s_pnl >= 0 else f"-¥{abs(s_pnl):,.2f} ({s_pnl_pct:.2f}%)"
     s_pnl_color = "warning" if s_pnl >= 0 else "info"
 
-    # 2. 解析五福策略 5.2
-    w_hold = wufu_state.get("current_holding", "518880.XSHG")
+    # 2. 五福策略 5.2
+    w_hold = wufu_state.get("current_holding", "513290.XSHG")
     w_name = get_name(w_hold)
-    w_cost = float(wufu_state.get("entry_price", 8.95))
-    w_shares = int(wufu_state.get("holding_shares", 5500))
-    w_cash = float(wufu_state.get("cash", 775.0))
+    w_cost = float(wufu_state.get("entry_price", 1.704))
+    w_shares = int(wufu_state.get("holding_shares", 28900))
+    w_cash = float(wufu_state.get("cash", 809.4))
     w_is_weak = wufu_state.get("is_a_share_weak", True)
-    w_latest = get_realtime_price(w_hold) or w_cost
+    w_latest = get_realtime_price_multi(w_hold) or w_cost
     w_val = w_shares * w_latest
     w_total = w_val + w_cash
     w_pnl = w_total - base_cap
@@ -126,17 +142,10 @@ def generate_comparison():
     comb_pnl_color = "warning" if total_pnl_combined >= 0 else "info"
     comb_emoji = "🔴" if total_pnl_combined >= 0 else "🟢"
 
-    # 4. 生成 HTML 大屏文件
+    # 4. 生成 4K HTML 大屏文件
     try:
         from generate_html_dashboard import render_html_dashboard
         render_html_dashboard()
-        # 复制到 quant_dashboard.html
-        dash_file = os.path.join(base_dir, "quant_dashboard.html")
-        idx_file = os.path.join(base_dir, "index.html")
-        if os.path.exists(idx_file):
-            with open(idx_file, "r", encoding="utf-8") as rf:
-                with open(dash_file, "w", encoding="utf-8") as wf:
-                    wf.write(rf.read())
     except Exception as e:
         print(f"Warning: HTML dashboard render failed: {e}")
 
@@ -168,7 +177,7 @@ def generate_comparison():
 • **成本/现价**：`¥{s_cost:.3f}` 元 ➔ `¥{s_latest:.3f}` 元
 • **单策略盈亏**：<font color="{s_pnl_color}">**{s_pnl_str}**</font>
 • **策略总资产**：`¥{s_total:,.2f}` 元 (现金 `¥{s_cash:,.2f}`)
-• **风控安全**：距 5% 止损尚有 <font color="info">**+{s_stop_dist:.2f}%**</font> 缓冲
+• **风控防线**：距 5% 止损尚有 <font color="info">**+{s_stop_dist:.2f}%**</font> 安全垫
 
 ---
 ### 🧧 策略二：五福策略 5.2 (日内趋势)
@@ -179,7 +188,7 @@ def generate_comparison():
 • **成本/现价**：`¥{w_cost:.3f}` 元 ➔ `¥{w_latest:.3f}` 元
 • **单策略盈亏**：<font color="{w_pnl_color}">**{w_pnl_str}**</font>
 • **策略总资产**：`¥{w_total:,.2f}` 元 (现金 `¥{w_cash:,.2f}`)
-• **风控安全**：距 5% 止损尚有 <font color="info">**+{w_stop_dist:.2f}%**</font> 缓冲
+• **风控防线**：距 5% 止损尚有 <font color="info">**+{w_stop_dist:.2f}%**</font> 安全垫
 
 ---
 ### 📊 【多维核心指标横向对齐】
@@ -190,7 +199,7 @@ def generate_comparison():
 • 🛡️ **【止损垫度】** ⭐ `+{s_stop_dist:.1f}%` 🆚 🧧 `+{w_stop_dist:.1f}%`
 
 ---
-📱 **[👉 点击查看【双策略收盘全景 HTML 交互大屏】]({CONFIG["html_dashboard_url"]})**
+📱 **[👉 点击查看【双策略收盘全景 4K 交互大屏】]({CONFIG["html_dashboard_url"]})**
 """
 
     print(markdown_card)
@@ -200,7 +209,7 @@ def generate_comparison():
         payload = {"msgtype": "markdown", "markdown": {"content": markdown_card}}
         r = requests.post(CONFIG["wecom_webhook_url"], json=payload, headers={"Content-Type": "application/json"}, timeout=10)
         if r.json().get("errcode") == 0:
-            print("✅ 包含 HTML 直达链接的全景对比大屏已成功推送到企业微信！")
+            print("✅ 包含 4K 大屏直达链接的全景对比卡片已成功推送到企业微信！")
         else:
             print(f"❌ 企微返回错误: {r.text}")
     except Exception as e:
