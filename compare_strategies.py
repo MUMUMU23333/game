@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 双量化策略 (五福 5.2 vs 七星量化) —— 专为企业微信优化的全景对比大屏
-【包含：各自5万元初始本金、单策略盈亏、双策略合计总资产与总盈亏透视】
+【包含：各自5万元初始本金、单策略盈亏、双策略合计总资产与总盈亏透视，并自动生成 HTML 大屏与直达链接】
 """
 
 import os
@@ -20,6 +20,7 @@ CONFIG = {
     "wecom_webhook_url": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=46012c55-7fd0-4060-baa8-fc110bb3ca5d",
     "initial_capital_per_strategy": 50000.0,  # 两个策略基础本金各 5 万元
     "total_initial_capital": 100000.0,        # 组合总初始本金 10 万元
+    "html_dashboard_url": "https://mumumu23333.github.io/game/quant_dashboard.html",
     "etf_names": {
         '518880.XSHG': '华安黄金ETF', '501018.XSHG': '南方原油LOF', '161226.XSHE': '国投白银LOF',
         '159985.XSHE': '华夏豆粕ETF', '159980.XSHE': '大成有色ETF', '513310.XSHG': '中韩芯片ETF',
@@ -41,7 +42,6 @@ def get_name(code: str) -> str:
     return clean_code
 
 def get_realtime_price(symbol_code: str):
-    """获取最新现价"""
     if not symbol_code:
         return None
     try:
@@ -84,7 +84,6 @@ def generate_comparison():
 
     seven_state = load_json(seven_path)
     wufu_state = load_json(wufu_path)
-
     base_cap = CONFIG["initial_capital_per_strategy"]
 
     # 1. 解析七星策略
@@ -126,6 +125,20 @@ def generate_comparison():
     comb_pnl_str = f"+¥{total_pnl_combined:,.2f} (+{total_pnl_pct_combined:.2f}%)" if total_pnl_combined >= 0 else f"-¥{abs(total_pnl_combined):,.2f} ({total_pnl_pct_combined:.2f}%)"
     comb_pnl_color = "warning" if total_pnl_combined >= 0 else "info"
     comb_emoji = "🔴" if total_pnl_combined >= 0 else "🟢"
+
+    # 4. 生成 HTML 大屏文件
+    try:
+        from generate_html_dashboard import render_html_dashboard
+        render_html_dashboard()
+        # 复制到 quant_dashboard.html
+        dash_file = os.path.join(base_dir, "quant_dashboard.html")
+        idx_file = os.path.join(base_dir, "index.html")
+        if os.path.exists(idx_file):
+            with open(idx_file, "r", encoding="utf-8") as rf:
+                with open(dash_file, "w", encoding="utf-8") as wf:
+                    wf.write(rf.read())
+    except Exception as e:
+        print(f"Warning: HTML dashboard render failed: {e}")
 
     # 共振判断
     same_asset = (s_hold[:6] == w_hold[:6])
@@ -175,6 +188,9 @@ def generate_comparison():
 • 💰 **【策略资产】** ⭐ `¥{s_total:,.0f}` 🆚 🧧 `¥{w_total:,.0f}`
 • 🚦 **【今日操作】** ⭐ <font color="info">🛡️ 维持持仓</font> 🆚 🧧 <font color="info">🛡️ 维持持仓</font>
 • 🛡️ **【止损垫度】** ⭐ `+{s_stop_dist:.1f}%` 🆚 🧧 `+{w_stop_dist:.1f}%`
+
+---
+📱 **[👉 点击查看【双策略收盘全景 HTML 交互大屏】]({CONFIG["html_dashboard_url"]})**
 """
 
     print(markdown_card)
@@ -184,7 +200,7 @@ def generate_comparison():
         payload = {"msgtype": "markdown", "markdown": {"content": markdown_card}}
         r = requests.post(CONFIG["wecom_webhook_url"], json=payload, headers={"Content-Type": "application/json"}, timeout=10)
         if r.json().get("errcode") == 0:
-            print("✅ 包含总盈亏的全景对比大屏已成功推送到企业微信！")
+            print("✅ 包含 HTML 直达链接的全景对比大屏已成功推送到企业微信！")
         else:
             print(f"❌ 企微返回错误: {r.text}")
     except Exception as e:
