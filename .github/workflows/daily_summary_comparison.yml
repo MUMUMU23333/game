@@ -1,4 +1,4 @@
-name: 双策略每日 14:48 收盘对比大屏自动推送
+name: 双策略每日 14:48 收盘对比大屏与 HTML 生成自动推送
 
 on:
   # 每个交易日北京时间 14:48 (UTC 06:48) 准时自动触发
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   run-comparison:
@@ -26,6 +26,14 @@ jobs:
         run: |
           pip install requests numpy pandas
 
-      - name: 生成双策略横向对比大屏并推送企业微信
+      - name: 生成双策略横向对比大屏、HTML 页面并推送企业微信
         run: |
           python compare_strategies.py
+
+      - name: 自动同步最新 HTML 大屏到 GitHub Pages
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add quant_dashboard.html dashboard.html index.html || true
+          git commit -m "chore: auto update quant HTML dashboard [skip ci]" || true
+          git push || true
