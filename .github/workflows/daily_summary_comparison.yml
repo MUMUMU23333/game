@@ -1,0 +1,31 @@
+name: 双策略每日 15:05 收盘对比大屏推送
+
+on:
+  # 每个交易日北京时间 15:05 (UTC 07:05) 自动触发
+  schedule:
+    - cron: '5 7 * * 1-5'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  run-comparison:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出仓库代码
+        uses: actions/checkout@v4
+
+      - name: 配置 Python 3.11 运行环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 安装计算依赖
+        run: |
+          pip install requests numpy pandas
+
+      - name: 生成双策略横向对比表格并推送企微
+        run: |
+          python compare_strategies.py
