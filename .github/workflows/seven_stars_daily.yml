@@ -1,4 +1,4 @@
-name: 七星量化策略每日 14:47 自动推送
+name: 七星量化策略每日 14:47 自动推送与双策略收盘汇总
 
 on:
   # 每个交易日北京时间 14:47 (UTC 06:47) 自动触发
@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 jobs:
-  run-seven-stars:
+  run-seven-stars-and-summary:
     runs-on: ubuntu-latest
 
     steps:
@@ -38,3 +38,7 @@ jobs:
           git add quant_strategies/seven_stars/portfolio_state.json || true
           git commit -m "chore: auto update seven stars state [skip ci]" || true
           git push || true
+
+      - name: 运行双策略收盘全景对比大屏并发送企微
+        run: |
+          python compare_strategies.py
