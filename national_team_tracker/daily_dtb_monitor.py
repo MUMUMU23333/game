@@ -83,15 +83,22 @@ class DualBankGlobalDTBApexMonitor:
             print(f"[-] 获取行情失败 {code}: {e}")
         return {'code': code, 'name': code, 'price': 1.0, 'prev_close': 1.0, 'change_pct': 0.0}
 
-    def get_recent_hfq_kline(self, code: str, days: int = 120) -> pd.DataFrame:
+    def get_recent_hfq_kline(self, code: str, days: int = 80) -> pd.DataFrame:
         market = 'sh' if code.startswith('51') or code.startswith('58') or code.startswith('60') or code.startswith('000') else 'sz'
-        end_date = datetime.now().strftime("%Y-%m-%d")
-        start_date = (datetime.now() - pd.Timedelta(days=days*2)).strftime("%Y-%m-%d")
-        url = f"http://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param={market}{code},day,{start_date},{end_date},{days},hfq"
+        url = f"http://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param={market}{code},day,,,{days},hfq"
         try:
-            r = requests.get(url, timeout=5).json()
-            raw = r.get('data', {}).get(f"{market}{code}", {})
-            k = raw.get('hfqday') or raw.get('day', [])
+            s = requests.Session()
+            s.trust_env = False
+            resp = s.get(url, timeout=5)
+            r = resp.json() if resp.status_code == 200 else {}
+            data_dict = r.get('data', {}) if isinstance(r, dict) else {}
+            raw = data_dict.get(f"{market}{code}", {}) if isinstance(data_dict, dict) else {}
+            if isinstance(raw, dict):
+                k = raw.get('hfqday') or raw.get('day', [])
+            elif isinstance(raw, list):
+                k = raw
+            else:
+                k = []
             recs = []
             for item in k:
                 recs.append({
@@ -223,7 +230,7 @@ class DualBankGlobalDTBApexMonitor:
 > {action_badge} {state_desc}
 
 **📌 【稳健财富大舰队全景操作指南】**:
-• **50% 纳指-双核银行**: 科技市值偏离 $\ge 56\%$ 且溢价 $>8\%$ 触发反向收割多卖 4% 锁入农行与黄金；44%~56% 维持持仓享受复利；
+• **50% 纳指-双核银行**: 科技市值偏离 $\\ge 56\\%$ 且溢价 $>8\\%$ 触发反向收割多卖 4% 锁入农行与黄金；44%~56% 维持持仓享受复利；
 • **20% 五福公募基金 V4.0**: 锁定 006503 财通集成电路等高景气赛道，每晚 21:00 净值复盘，周四 14:48 黄金调仓；
 • **15% 五福 5.2/7.3 ETF**: 紧跟 159967 日内动量突破，走弱期持币；
 • **15% 七星 ETF 轮动**: 跟踪 7 大主题星级动量榜，反向波动率平价轮动。
