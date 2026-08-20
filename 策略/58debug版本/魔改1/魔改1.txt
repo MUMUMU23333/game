@@ -1,0 +1,242 @@
+# ETF动量轮动策略 - 最终优化版 v2.1
+# 基准：中证全指 (000985.XSHG)
+# 特性：趋势强度过滤、协同止损、严谨放宽条件、黄金/电力单独阈值选项
+
+import pandas as pd
+import numpy as np
+
+def initialize(context):
+    # 基础设置
+    set_benchmark('000985.XSHG')          # 中证全指
+    set_option('use_real_price', True)
+    set_option("avoid_future_data", True)
+    set_slippage(FixedSlippage(0.002))
+    set_order_cost(OrderCost(open_tax=0, close_tax=0.001, open_commission=0.0003,
+                             close_commission=0.0003, close_today_commission=0, min_commission=5), type='stock')
+    log.set_level('order', 'error')
+
+    # ========== 策略参数 ==========
+    g.etf_num = 3                # 目标持仓ETF数量
+    g.change_day = 5             # 调仓周期（交易日）
+    g.rank_num = 5               # 排名靠前的标的数
+    g.inc_period = 20            # 涨幅计算周期（20日）
+    g.min_inc = 0.05             # 最小涨幅阈值（5%）
+    g.max_inc = 0.15             # 最大涨幅阈值（15%）
+    g.volume_ma = 20             # 成交量均线周期
+    g.volume_ratio = 1.0         # 严格条件成交量倍数
+    g.volume_ratio_relax = 0.5   # 放宽条件成交量倍数
+    g.min_amount = 50000000      # 绝对成交额门槛（5000万）
+    g.price_ma_short = 5         # 短期价格均线
+    g.price_ma_long = 20         # 长期价格均线
+    g.trend_strength_min = 0.01  # 趋势强度阈值（短均比长均高1%以上）
+    g.stop_loss = 0.05           # 止损线（5%）
+    g.cooldown_days = 3          # 卖出冷却期（天数）
+
+    # ========== ETF池（回测起始日建议 >= 2022-01-01） ==========
+    g.etf_pool = [
+        '510300.XSHG',  # 沪深300
+        '512100.XSHG',  # 中证1000
+        '512480.XSHG',  # 半导体ETF
+        '515880.XSHG',  # 通信ETF
+        '159995.XSHE',  # 芯片ETF
+        '512660.XSHG',  # 军工ETF
+        '515030.XSHG',  # 新能源车ETF
+        '516780.XSHG',  # 油气ETF
+        '518880.XSHG',  # 黄金ETF
+        '159611.XSHE',  # 电力ETF
+        '512690.XSHG',  # 酒ETF
+        '512170.XSHG',  # 医疗ETF
+        '512880.XSHG',  # 证券ETF
+    ]
+
+    # 状态变量
+    g.day = 0
+    g.sold_recently = {}         # 冷却期记录
+    g.buy_etf = []
+    g.sell_etf = []
+
+    log.info("策略初始化完成（基准：中证全指）。建议回测起始日 >= 2022-01-01")
+
+    # 定时任务
+    run_daily(trade, '09:30')
+    run_daily(check_stop_loss, '14:30')
+
+def check_stop_loss(context):
+    """每日14:30检查个股止损"""
+    for etf in list(context.portfolio.positions.keys()):
+        pos = context.portfolio.positions[etf]
+        if pos.total_amount == 0:
+            continue
+        if pos.avg_cost > 0:
+            ret = (pos.price - pos.avg_cost) / pos.avg_cost
+            if ret < -g.stop_loss:
+                order_target_value(etf, 0)
+                g.sold_recently[etf] = context.current_dt.date()
+                log.info(f"【盘中止损】{get_security_info(etf).display_name}({etf}) 亏损{ret:.1%}")
+
+def trade(context):
+    """主交易逻辑（09:30执行）"""
+    if g.day % g.change_day != 0:
+        g.day += 1
+        return
+
+    log.info(f"========== 调仓日[{g.day}] ==========")
+
+    # 1. 开盘先检查止损（协同止损）
+    morning_stop_loss = []
+    for etf in list(context.portfolio.positions.keys()):
+        pos = context.portfolio.positions[etf]
+        if pos.total_amount == 0:
+            continue
+        if pos.avg_cost > 0:
+            ret = (pos.price - pos.avg_cost) / pos.avg_cost
+            if ret < -g.stop_loss:
+                order_target_value(etf, 0)
+                g.sold_recently[etf] = context.current_dt.date()
+                morning_stop_loss.append(etf)
+                log.info(f"【开盘止损】{get_security_info(etf).display_name}({etf}) 亏损{ret:.1%}")
+
+    # 2. 计算信号（传入已止损列表）
+    calculate_and_check(context, morning_stop_loss)
+
+    # 3. 执行调仓卖出（排除早盘已止损的）
+    for etf in g.sell_etf:
+        if etf not in morning_stop_loss:
+            pos = context.portfolio.positions.get(etf)
+            if pos and pos.total_amount > 0:
+                order_target_value(etf, 0)
+                g.sold_recently[etf] = context.current_dt.date()
+                log.info(f"【调仓卖出】{get_security_info(etf).display_name}({etf})")
+
+    # 4. 计算买入
+    current_hold = [s for s in context.portfolio.positions if context.portfolio.positions[s].total_amount > 0]
+    pos_cnt = len(current_hold)
+    need_buy = g.etf_num - pos_cnt
+
+    log.info(f"当前持仓[{pos_cnt}只]: {current_hold} 目标:{g.etf_num} 需买:{need_buy}")
+
+    if need_buy > 0 and g.buy_etf:
+        to_buy = g.buy_etf[:need_buy]
+        cash_per = context.portfolio.available_cash / len(to_buy)
+        if cash_per > 1000:
+            for etf in to_buy:
+                order_target_value(etf, cash_per)
+                log.info(f"【买入】{get_security_info(etf).display_name}({etf}) 金额:{cash_per:.0f}")
+
+    g.day += 1
+
+def calculate_and_check(context, morning_stop_loss=[]):
+    """计算信号（使用历史数据，避免未来数据）"""
+    count = max(g.inc_period, g.volume_ma, g.price_ma_long) + 5
+
+    # 关键修复：使用前一个交易日作为end_date，避免盘中获取当日数据
+    df = get_price(g.etf_pool, end_date=context.previous_date, frequency='1d',
+                   fields=['close', 'volume'], count=count,
+                   skip_paused=False, panel=False)
+
+    if df.empty:
+        g.buy_etf, g.sell_etf = [], []
+        return
+
+    data_list = []
+    for etf in g.etf_pool:
+        etf_data = df[df['code'] == etf].sort_values('time')
+        if len(etf_data) < g.price_ma_long:
+            continue
+
+        close = etf_data['close'].values
+        volume = etf_data['volume'].values
+        current_price = close[-1]
+        current_vol = volume[-1]
+
+        # 均线
+        ma_short = close[-g.price_ma_short:].mean()
+        ma_long = close[-g.price_ma_long:].mean()
+        vol_ma = volume[-g.volume_ma:].mean()
+
+        # 趋势强度
+        trend_strength = (ma_short - ma_long) / ma_long if ma_long > 0 else 0
+
+        # 涨幅
+        if len(close) >= g.inc_period + 1:
+            inc = (current_price - close[-(g.inc_period+1)]) / close[-(g.inc_period+1)]
+        else:
+            inc = 0
+
+        # 成交额
+        current_amount = current_price * current_vol
+
+        # 冷却期
+        in_cooldown = (etf in g.sold_recently and
+                       (context.current_dt.date() - g.sold_recently[etf]).days < g.cooldown_days)
+
+        data_list.append({
+            'code': etf,
+            'inc': inc,
+            'trend_strength': trend_strength,
+            'volume': current_vol,
+            'volume_ma': vol_ma,
+            'volume_ok': current_vol > vol_ma * g.volume_ratio,
+            'amount_ok': current_amount > g.min_amount,
+            'in_cooldown': in_cooldown,
+            'current_amount': current_amount
+        })
+
+    if not data_list:
+        g.buy_etf, g.sell_etf = [], []
+        return
+
+    df_signal = pd.DataFrame(data_list).set_index('code')
+
+    # 筛选条件（统一阈值）
+    mask = (df_signal['volume_ok']) & (df_signal['amount_ok']) & \
+           (df_signal['trend_strength'] > g.trend_strength_min) & \
+           (df_signal['inc'] > g.min_inc) & (df_signal['inc'] < g.max_inc) & \
+           (~df_signal['in_cooldown'])
+
+    # 黄金/电力单独阈值（取消注释启用）
+    # """
+    # df_signal['inc_ok'] = False
+    # df_signal.loc[df_signal.index.isin(['518880.XSHG', '159611.XSHE']), 'inc_ok'] = df_signal['inc'] > 0.03
+    # df_signal.loc[~df_signal.index.isin(['518880.XSHG', '159611.XSHE']), 'inc_ok'] = df_signal['inc'] > g.min_inc
+    # mask = (df_signal['volume_ok']) & (df_signal['amount_ok']) & \
+    #        (df_signal['trend_strength'] > g.trend_strength_min) & \
+    #        (df_signal['inc_ok']) & (df_signal['inc'] < g.max_inc) & \
+    #        (~df_signal['in_cooldown'])
+    # """
+
+    df_filtered = df_signal[mask].copy()
+
+    # 放宽条件
+    if len(df_filtered) < g.etf_num:
+        log.info(f"严格条件候选不足[{len(df_filtered)}只]，启动放宽条件")
+        mask_relax = (df_signal['trend_strength'] > 0.005) & \
+                     (df_signal['inc'] > g.min_inc) & (df_signal['inc'] < g.max_inc) & \
+                     (~df_signal['in_cooldown']) & \
+                     (df_signal['current_amount'] > g.min_amount) & \
+                     (df_signal['volume'] > df_signal['volume_ma'] * g.volume_ratio_relax)
+        df_filtered = df_signal[mask_relax].copy()
+        log.info(f"放宽条件后，候选标的数：{len(df_filtered)}只")
+
+    # 排序选前 rank_num
+    if len(df_filtered) > 0:
+        df_sorted = df_filtered.sort_values('inc', ascending=False)
+        rank_etf = list(df_sorted.index)[:g.rank_num]
+
+        log.info("=== 信号详情 ===")
+        for etf in rank_etf:
+            row = df_sorted.loc[etf]
+            log.info(f"{etf}: 涨幅{row['inc']:.1%} 趋势强度{row['trend_strength']:.2%} 成交{row['current_amount']/1e8:.1f}亿")
+    else:
+        rank_etf = []
+
+    # 当前持仓（排除早盘已止损的）
+    current_hold = [s for s in context.portfolio.positions if context.portfolio.positions[s].total_amount > 0]
+    current_hold = [s for s in current_hold if s not in morning_stop_loss]
+
+    g.buy_etf = [e for e in rank_etf if e not in current_hold]
+    g.sell_etf = [e for e in current_hold if e not in rank_etf]
+    # 合并早盘止损
+    g.sell_etf = list(set(g.sell_etf + morning_stop_loss))
+
+    log.info(f"排名:{rank_etf} 买入:{g.buy_etf} 卖出:{g.sell_etf}")

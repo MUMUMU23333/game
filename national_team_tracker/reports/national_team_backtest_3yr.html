@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>国家队资金跟踪 3 年历史回测与参数优化报告</title>
+    <style>
+        :root {
+            --bg: #0b0f19;
+            --card-bg: rgba(23, 32, 54, 0.7);
+            --border: rgba(255, 255, 255, 0.08);
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --up-color: #10b981;
+            --down-color: #ef4444;
+            --accent-blue: #3b82f6;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: radial-gradient(circle at top, #1e293b 0%, #0b0f19 100%);
+            color: var(--text-main);
+            font-family: var(--font-family);
+            padding: 30px 20px;
+            min-height: 100vh;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 28px;
+        }
+        .header h1 {
+            font-size: 26px;
+            background: linear-gradient(135deg, #60a5fa, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+        }
+        .header .meta { color: var(--text-muted); font-size: 14px; }
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .card-title { font-size: 13px; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; }
+        .card-value { font-size: 28px; font-weight: 700; }
+        .card-desc { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin: 28px 0 14px 0;
+            color: #93c5fd;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .table-wrapper {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            margin-bottom: 24px;
+        }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+        th { background: rgba(15, 23, 42, 0.85); padding: 14px 16px; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--border); }
+        td { padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; }
+        tr:hover { background: rgba(255,255,255,0.03); }
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .badge-aaa { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+        .badge-aa { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); }
+        .badge-normal { background: rgba(156, 163, 175, 0.15); color: #9ca3af; }
+        .text-up { color: var(--up-color); font-weight: 600; }
+        .text-down { color: var(--down-color); font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>🇨🇳 国家队资金干预 3 年历史数据回测与参数寻优报告</h1>
+                <div class="meta">样本周期: 近 800 个交易日 · 宽基协同模型全量回测</div>
+            </div>
+            <div class="meta">报告生成时间: 2026-08-20 12:46:59</div>
+        </div>
+
+        <div class="bento-grid">
+            <div class="card">
+                <div class="card-title">策略累计总收益</div>
+                <div class="card-value text-up">+47.37%</div>
+                <div class="card-desc">同期沪深300基准: +32.01%</div>
+            </div>
+            <div class="card">
+                <div class="card-title">策略超额收益 (Alpha)</div>
+                <div class="card-value text-up">+15.36%</div>
+                <div class="card-desc">纯正国家队护盘超额收益</div>
+            </div>
+            <div class="card">
+                <div class="card-title">T+5 交易日胜率</div>
+                <div class="card-value" style="color: #34d399;">75.0%</div>
+                <div class="card-desc">盈亏比: 3.59:1</div>
+            </div>
+            <div class="card">
+                <div class="card-title">T+60 交易日胜率 (中线)</div>
+                <div class="card-value" style="color: #60a5fa;">72.2%</div>
+                <div class="card-desc">中线胜率突破 70% 大关</div>
+            </div>
+            <div class="card">
+                <div class="card-title">策略夏普比率 (Sharpe)</div>
+                <div class="card-value" style="color: #fbbf24;">0.93</div>
+                <div class="card-desc">最大回撤控制在 10.3%</div>
+            </div>
+        </div>
+
+        <div class="section-title">📊 1. 不同持股周期胜率与前向收益率分布 (基于黄金参数)</div>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>持有周期</th>
+                        <th>胜率 (Win Rate)</th>
+                        <th>平均收益率</th>
+                        <th>单笔盈亏比</th>
+                        <th>平均最大潜在涨幅</th>
+                        <th>平均最大回撤</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+            <tr>
+                <td><strong>T+1</strong></td>
+                <td class="text-up"><strong>65.00%</strong></td>
+                <td class="text-up"><strong>+0.29%</strong></td>
+                <td>1.29 : 1</td>
+                <td class="text-up">+0.00%</td>
+                <td class="text-down">0.00%</td>
+            </tr>
+            
+            <tr>
+                <td><strong>T+3</strong></td>
+                <td class="text-up"><strong>60.00%</strong></td>
+                <td class="text-up"><strong>+0.88%</strong></td>
+                <td>2.96 : 1</td>
+                <td class="text-up">+0.00%</td>
+                <td class="text-down">0.00%</td>
+            </tr>
+            
+            <tr>
+                <td><strong>T+5</strong></td>
+                <td class="text-up"><strong>75.00%</strong></td>
+                <td class="text-up"><strong>+1.97%</strong></td>
+                <td>3.59 : 1</td>
+                <td class="text-up">+2.55%</td>
+                <td class="text-down">-0.34%</td>
+            </tr>
+            
+            <tr>
+                <td><strong>T+10</strong></td>
+                <td class="text-down"><strong>40.00%</strong></td>
+                <td class="text-up"><strong>+1.36%</strong></td>
+                <td>4.44 : 1</td>
+                <td class="text-up">+0.00%</td>
+                <td class="text-down">0.00%</td>
+            </tr>
+            
+            <tr>
+                <td><strong>T+20</strong></td>
+                <td class="text-up"><strong>75.00%</strong></td>
+                <td class="text-up"><strong>+2.82%</strong></td>
+                <td>2.61 : 1</td>
+                <td class="text-up">+5.10%</td>
+                <td class="text-down">-1.58%</td>
+            </tr>
+            
+            <tr>
+                <td><strong>T+60</strong></td>
+                <td class="text-up"><strong>72.22%</strong></td>
+                <td class="text-up"><strong>+3.23%</strong></td>
+                <td>0.99 : 1</td>
+                <td class="text-up">+0.00%</td>
+                <td class="text-down">0.00%</td>
+            </tr>
+            
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section-title">🔥 2. 六大核心板块收益大 PK (国家队进场时买哪个板块最赚钱？)</div>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>板块与标的</th>
+                        <th>5日胜率 (T+5)</th>
+                        <th>5日平均收益</th>
+                        <th>20日胜率 (T+20)</th>
+                        <th>20日平均收益</th>
+                        <th>20日前向最大涨幅</th>
+                        <th>实战选型与角色定位</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+            <tr>
+                <td><strong>沪深300 (510300)</strong></td>
+                <td class="text-up"><strong>75.0%</strong></td>
+                <td class="text-up"><strong>+1.97%</strong></td>
+                <td class="text-up"><strong>75.0%</strong></td>
+                <td class="text-up"><strong>+2.82%</strong></td>
+                <td class="text-up"><strong>+5.10%</strong></td>
+                <td><small>🛡️ <strong>【稳健定海神针】</strong>国家队主力托底底仓、下行回撤最小</small></td>
+            </tr>
+            
+            <tr>
+                <td><strong>中证500 (510500)</strong></td>
+                <td class="text-up"><strong>80.0%</strong></td>
+                <td class="text-up"><strong>+1.91%</strong></td>
+                <td class="text-up"><strong>60.0%</strong></td>
+                <td class="text-up"><strong>+2.94%</strong></td>
+                <td class="text-up"><strong>+5.83%</strong></td>
+                <td><small>⚪ <strong>【中盘均衡承接】</strong>兼顾稳健与中盘成长</small></td>
+            </tr>
+            
+            <tr>
+                <td><strong>中证1000 (512100)</strong></td>
+                <td class="text-up"><strong>65.0%</strong></td>
+                <td class="text-up"><strong>+1.81%</strong></td>
+                <td class=""><strong>50.0%</strong></td>
+                <td class="text-up"><strong>+3.11%</strong></td>
+                <td class="text-up"><strong>+6.36%</strong></td>
+                <td><small>🚀 <strong>【反弹弹性之王】</strong>救市确立后涨幅最大、进攻弹性最高</small></td>
+            </tr>
+            
+            <tr>
+                <td><strong>创业板ETF (159915)</strong></td>
+                <td class="text-up"><strong>60.0%</strong></td>
+                <td class="text-up"><strong>+2.05%</strong></td>
+                <td class=""><strong>50.0%</strong></td>
+                <td class="text-up"><strong>+3.88%</strong></td>
+                <td class="text-up"><strong>+8.01%</strong></td>
+                <td><small>⚡ <strong>【成长高Beta】</strong>适合风险偏好高的进攻资金右侧买入</small></td>
+            </tr>
+            
+            <tr>
+                <td><strong>科创50ETF (588000)</strong></td>
+                <td class=""><strong>55.0%</strong></td>
+                <td class="text-up"><strong>+0.63%</strong></td>
+                <td class=""><strong>50.0%</strong></td>
+                <td class="text-up"><strong>+1.27%</strong></td>
+                <td class="text-up"><strong>+6.84%</strong></td>
+                <td><small>⚡ <strong>【成长高Beta】</strong>适合风险偏好高的进攻资金右侧买入</small></td>
+            </tr>
+            
+            <tr>
+                <td><strong>证券ETF (512880)</strong></td>
+                <td class=""><strong>55.0%</strong></td>
+                <td class="text-up"><strong>+1.32%</strong></td>
+                <td class=""><strong>35.0%</strong></td>
+                <td class="text-up"><strong>+1.92%</strong></td>
+                <td class="text-up"><strong>+5.53%</strong></td>
+                <td><small>🚀 <strong>【反弹弹性之王】</strong>救市确立后涨幅最大、进攻弹性最高</small></td>
+            </tr>
+            
+            <tr>
+                <td><strong>银行ETF (512800)</strong></td>
+                <td class="text-up"><strong>75.0%</strong></td>
+                <td class="text-up"><strong>+1.83%</strong></td>
+                <td class="text-up"><strong>70.0%</strong></td>
+                <td class="text-up"><strong>+2.73%</strong></td>
+                <td class="text-up"><strong>+5.33%</strong></td>
+                <td><small>🛡️ <strong>【稳健定海神针】</strong>国家队主力托底底仓、下行回撤最小</small></td>
+            </tr>
+            
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section-title">🔍 3. 多维超参数网格寻优与灵敏度评估 (Pareto-Optimal)</div>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>参数配置</th>
+                        <th>放量阈值</th>
+                        <th>单日成交额门槛</th>
+                        <th>协同ETF数</th>
+                        <th>触发次数</th>
+                        <th>T+5 胜率</th>
+                        <th>T+5 收益</th>
+                        <th>T+20 胜率</th>
+                        <th>T+20 收益</th>
+                        <th>夏普比率</th>
+                        <th>超额 Alpha</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+            <tr style="background: rgba(59, 130, 246, 0.15); font-weight: 600;">
+                <td><span class="badge badge-aaa">👑 最佳黄金参数</span></td>
+                <td><strong>1.8x</strong></td>
+                <td>15.0 亿</td>
+                <td>1 只</td>
+                <td>20 次</td>
+                <td class="text-up">75.0%</td>
+                <td class="text-up">+1.97%</td>
+                <td class="text-up"><strong>75.0%</strong></td>
+                <td class="text-up"><strong>+2.82%</strong></td>
+                <td><strong>0.93</strong></td>
+                <td class="text-up"><strong>+15.36%</strong></td>
+            </tr>
+            
+            <tr >
+                <td><span class="badge badge-normal">评估组合</span></td>
+                <td><strong>3.2x</strong></td>
+                <td>40.0 亿</td>
+                <td>3 只</td>
+                <td>1 次</td>
+                <td class="text-up">100.0%</td>
+                <td class="text-up">+0.15%</td>
+                <td class="text-up"><strong>100.0%</strong></td>
+                <td class="text-up"><strong>+0.74%</strong></td>
+                <td><strong>-0.85</strong></td>
+                <td class="text-up"><strong>+-31.52%</strong></td>
+            </tr>
+            
+            <tr >
+                <td><span class="badge badge-normal">评估组合</span></td>
+                <td><strong>2.0x</strong></td>
+                <td>20.0 亿</td>
+                <td>2 只</td>
+                <td>14 次</td>
+                <td class="text-up">71.4%</td>
+                <td class="text-up">+0.87%</td>
+                <td class="text-up"><strong>71.4%</strong></td>
+                <td class="text-up"><strong>+1.60%</strong></td>
+                <td><strong>-0.09</strong></td>
+                <td class="text-up"><strong>+-27.87%</strong></td>
+            </tr>
+            
+            <tr >
+                <td><span class="badge badge-normal">评估组合</span></td>
+                <td><strong>2.5x</strong></td>
+                <td>30.0 亿</td>
+                <td>2 只</td>
+                <td>7 次</td>
+                <td class="text-up">42.9%</td>
+                <td class="text-up">+-0.19%</td>
+                <td class="text-up"><strong>71.4%</strong></td>
+                <td class="text-up"><strong>+0.94%</strong></td>
+                <td><strong>-0.63</strong></td>
+                <td class="text-up"><strong>+-33.41%</strong></td>
+            </tr>
+            
+            <tr >
+                <td><span class="badge badge-normal">评估组合</span></td>
+                <td><strong>2.8x</strong></td>
+                <td>35.0 亿</td>
+                <td>3 只</td>
+                <td>4 次</td>
+                <td class="text-up">50.0%</td>
+                <td class="text-up">+-0.07%</td>
+                <td class="text-up"><strong>75.0%</strong></td>
+                <td class="text-up"><strong>+0.38%</strong></td>
+                <td><strong>-0.93</strong></td>
+                <td class="text-up"><strong>+-32.93%</strong></td>
+            </tr>
+            
+            <tr >
+                <td><span class="badge badge-normal">评估组合</span></td>
+                <td><strong>2.2x</strong></td>
+                <td>25.0 亿</td>
+                <td>2 只</td>
+                <td>10 次</td>
+                <td class="text-up">60.0%</td>
+                <td class="text-up">+0.43%</td>
+                <td class="text-up"><strong>60.0%</strong></td>
+                <td class="text-up"><strong>+0.79%</strong></td>
+                <td><strong>-0.72</strong></td>
+                <td class="text-up"><strong>+-37.08%</strong></td>
+            </tr>
+            
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section-title">📜 3. 历史经典国家队救市干预信号明细记录 (最近 20 次触发点)</div>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>触发日期</th>
+                        <th>300ETF价格</th>
+                        <th>当日成交额</th>
+                        <th>相对放量倍数</th>
+                        <th>次日(T+1)收益</th>
+                        <th>5日(T+5)收益</th>
+                        <th>20日(T+20)收益</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+            <tr>
+                <td><strong>2023-07-20</strong></td>
+                <td>3.608</td>
+                <td>31.44 亿</td>
+                <td><span class="badge badge-aa">2.08x</span></td>
+                <td class="text-up">+0.06%</td>
+                <td class="text-up"><strong>+2.33%</strong></td>
+                <td class="text-up"><strong>+0.39%</strong></td>
+            </tr>
+            
+            <tr>
+                <td><strong>2023-10-23</strong></td>
+                <td>3.264</td>
+                <td>88.46 亿</td>
+                <td><span class="badge badge-aa">2.65x</span></td>
+                <td class="text-up">+0.15%</td>
+                <td class="text-up"><strong>+3.31%</strong></td>
+                <td class="text-up"><strong>+3.09%</strong></td>
+            </tr>
+            
+            <tr>
+                <td><strong>2023-12-21</strong></td>
+                <td>3.120</td>
+                <td>49.68 亿</td>
+                <td><span class="badge badge-aa">1.92x</span></td>
+                <td class="text-up">+0.19%</td>
+                <td class="text-up"><strong>+2.85%</strong></td>
+                <td class="text-down"><strong>-1.79%</strong></td>
+            </tr>
+            
+            <tr>
+                <td><strong>2023-12-22</strong></td>
+                <td>3.126</td>
+                <td>64.91 亿</td>
+                <td><span class="badge badge-aa">2.38x</span></td>
+                <td class="text-up">+0.29%</td>
+                <td class="text-up"><strong>+2.98%</strong></td>
+                <td class="text-down"><strong>-4.19%</strong></td>
+            </tr>
+            
+            <tr>
+                <td><strong>2024-01-19</strong></td>
+                <td>3.064</td>
+                <td>113.20 亿</td>
+                <td><span class="badge badge-aa">2.37x</span></td>
+                <td class="text-down">-2.25%</td>
+                <td class="text-up"><strong>+1.76%</strong></td>
+                <td class="text-up"><strong>+5.48%</strong></td>
+            </tr>
+            
+            <tr>
+                <td><strong>2024-06-21</strong></td>
+                <td>3.305</td>
+                <td>64.97 亿</td>
+                <td><span class="badge badge-aa">2.89x</span></td>
+                <td class="text-down">-0.51%</td>
+                <td class="text-down"><strong>-0.88%</strong></td>
+                <td class="text-up"><strong>+2.54%</strong></td>
+            </tr>
+            
+            <tr>
+                <td><strong>2024-06-24</strong></td>
+                <td>3.288</td>
+                <td>68.64 亿</td>
+                <td><span class="badge badge-aa">2.81x</span></td>
+                <td class="text-down">-0.64%</td>
+                <td class="text-up"><strong>+0.06%</strong></td>
+                <td class="text-up"><strong>+2.19%</strong></td>
+            </tr>
+            
+            <tr>
+                <td><strong>2024-06-25</strong></td>
+                <td>3.267</td>
+                <td>56.80 亿</td>
+                <td><span class="badge badge-aa">2.16x</span></td>
+                <td class="text-up">+0.64%</td>
+                <td class="text-up"><strong>+0.55%</strong></td>
+                <td class="text-up"><strong>+0.70%</strong></td>
+            </tr>
+            
+            <tr>
+                <td><strong>2024-09-20</strong></td>
+                <td>3.063</td>
+                <td>70.65 亿</td>
+                <td><span class="badge badge-aa">1.96x</span></td>
+                <td class="text-up">+0.29%</td>
+                <td class="text-up"><strong>+19.43%</strong></td>
+                <td class="text-up"><strong>+25.01%</strong></td>
+            </tr>
+            
+            <tr>
+                <td><strong>2025-06-24</strong></td>
+                <td>3.813</td>
+                <td>46.69 亿</td>
+                <td><span class="badge badge-aa">1.91x</span></td>
+                <td class="text-up">+1.70%</td>
+                <td class="text-up"><strong>+1.36%</strong></td>
+                <td class="text-up"><strong>+6.95%</strong></td>
+            </tr>
+            
+            <tr>
+                <td><strong>2025-11-21</strong></td>
+                <td>4.441</td>
+                <td>66.46 亿</td>
+                <td><span class="badge badge-aa">1.98x</span></td>
+                <td class="text-down">-0.16%</td>
+                <td class="text-up"><strong>+1.60%</strong></td>
+                <td class="text-up"><strong>+2.79%</strong></td>
+            </tr>
+            
+            <tr>
+                <td><strong>2026-01-20</strong></td>
+                <td>4.724</td>
+                <td>136.37 亿</td>
+                <td><span class="badge badge-aa">1.97x</span></td>
+                <td class="text-up">+0.13%</td>
+                <td class="text-down"><strong>-0.30%</strong></td>
+                <td class="text-up"><strong>+0.55%</strong></td>
+            </tr>
+            
+            <tr>
+                <td><strong>2026-01-21</strong></td>
+                <td>4.730</td>
+                <td>231.96 亿</td>
+                <td><span class="badge badge-aa">3.13x</span></td>
+                <td class="text-down">-0.06%</td>
+                <td class="text-down"><strong>-0.11%</strong></td>
+                <td class="text-up"><strong>+0.11%</strong></td>
+            </tr>
+            
+            <tr>
+                <td><strong>2026-01-22</strong></td>
+                <td>4.727</td>
+                <td>204.03 亿</td>
+                <td><span class="badge badge-aa">2.44x</span></td>
+                <td class="text-down">-0.49%</td>
+                <td class="text-up"><strong>+0.87%</strong></td>
+                <td class="text-down"><strong>-0.04%</strong></td>
+            </tr>
+            
+            <tr>
+                <td><strong>2026-01-23</strong></td>
+                <td>4.704</td>
+                <td>318.43 亿</td>
+                <td><span class="badge badge-aa">3.48x</span></td>
+                <td class="text-up">+0.17%</td>
+                <td class="text-up"><strong>+0.15%</strong></td>
+                <td class="text-up"><strong>+0.74%</strong></td>
+            </tr>
+            
+            <tr>
+                <td><strong>2026-01-26</strong></td>
+                <td>4.712</td>
+                <td>279.89 亿</td>
+                <td><span class="badge badge-aa">2.63x</span></td>
+                <td class="text-down">-0.04%</td>
+                <td class="text-down"><strong>-2.38%</strong></td>
+                <td class="text-down"><strong>-0.72%</strong></td>
+            </tr>
+            
+            <tr>
+                <td><strong>2026-01-28</strong></td>
+                <td>4.725</td>
+                <td>401.52 亿</td>
+                <td><span class="badge badge-aa">3.14x</span></td>
+                <td class="text-up">+0.91%</td>
+                <td class="text-down"><strong>-0.38%</strong></td>
+                <td class="text-down"><strong>-1.50%</strong></td>
+            </tr>
+            
+            <tr>
+                <td><strong>2026-03-23</strong></td>
+                <td>4.430</td>
+                <td>67.49 亿</td>
+                <td><span class="badge badge-aa">2.11x</span></td>
+                <td class="text-up">+1.11%</td>
+                <td class="text-up"><strong>+1.58%</strong></td>
+                <td class="text-up"><strong>+7.81%</strong></td>
+            </tr>
+            
+            <tr>
+                <td><strong>2026-07-17</strong></td>
+                <td>4.589</td>
+                <td>145.23 亿</td>
+                <td><span class="badge badge-aa">2.16x</span></td>
+                <td class="text-up">+1.33%</td>
+                <td class="text-up"><strong>+2.44%</strong></td>
+                <td class="text-up"><strong>+2.99%</strong></td>
+            </tr>
+            
+            <tr>
+                <td><strong>2026-07-20</strong></td>
+                <td>4.650</td>
+                <td>186.49 亿</td>
+                <td><span class="badge badge-aa">2.58x</span></td>
+                <td class="text-up">+2.95%</td>
+                <td class="text-up"><strong>+2.22%</strong></td>
+                <td class="text-up"><strong>+3.25%</strong></td>
+            </tr>
+            
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
+        

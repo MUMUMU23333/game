@@ -1,0 +1,246 @@
+# 四大搅屎棍策略 - 最终生产版 v2.4
+# 修复：UserPosition对象无returns属性，改用(price-avg_cost)/avg_cost计算
+
+from jqdata import *
+from jqfactor import *
+import numpy as np
+import pandas as pd
+import datetime
+
+def initialize(context):
+    global g
+    g = {}
+    
+    # 基础设置
+    set_benchmark('000985.XSHG')
+    set_option('use_real_price', True)
+    set_option("avoid_future_data", True)
+    set_slippage(FixedSlippage(0))  # 实盘建议改为0.002
+    set_order_cost(OrderCost(open_tax=0, close_tax=0.001, open_commission=0.0003, 
+                             close_commission=0.0003, close_today_commission=0, min_commission=5), type='stock')
+    log.set_level('order', 'error')
+
+    # 策略参数
+    g['stock_num'] = 5           # 进攻持股数
+    g['num'] = 2                 # 观察行业数
+    g['max_hold_stocknum'] = 1   # 防守持股数
+    g['single_stop_loss'] = 0.10 # 个股止损10%
+    g['port_stop_loss'] = 0.03   # 组合止损3%
+    g['min_turnover'] = 50000000 # 流动性门槛(元)
+    g['defensive_etfs'] = ['510300.XSHG', '159919.XSHE']  # 防守ETF池
+
+    # 状态变量
+    g['hold_list'] = []
+    g['yesterday_HL_list'] = []
+    g['yesterday_port_value'] = context.portfolio.total_value
+    g['just_rebalanced'] = False
+    g['last_adjust_date'] = None
+
+    # 定时任务
+    run_daily(prepare_stock_list, '9:05')
+    run_daily(daily_check, '9:30')
+    run_daily(check_stop_loss_and_limit_up, '14:00')
+
+def daily_check(context):
+    """调仓触发：周一或超5天未调仓"""
+    today = context.current_dt.date()
+    need_adjust = (today.weekday() == 0) or \
+                  (g['last_adjust_date'] and (today - g['last_adjust_date']).days >= 5)
+    
+    if need_adjust and g['last_adjust_date'] != today:
+        log.info(f"【调仓触发】日期:{today}")
+        weekly_adjustment(context)
+        g['last_adjust_date'] = today
+
+def prepare_stock_list(context):
+    g['hold_list'] = list(context.portfolio.positions.keys())
+    g['yesterday_HL_list'] = []
+    
+    if g['hold_list']:
+        try:
+            # 过滤ETF（ETF没有high_limit）
+            stocks = [s for s in g['hold_list'] if not s.startswith(('51', '15', '16', '18'))]
+            if stocks:
+                df = get_price(stocks, end_date=context.previous_date, frequency='daily', 
+                               fields=['close', 'high_limit'], count=1, panel=False)
+                if not df.empty:
+                    g['yesterday_HL_list'] = list(df[df['close'] == df['high_limit']].code)
+        except:
+            pass
+    
+    g['yesterday_port_value'] = context.portfolio.total_value
+
+def get_stock_list(context):
+    yesterday = context.previous_date
+    today = context.current_dt
+    
+    try:
+        initial_list = get_index_stocks('000985.XSHG', today)
+        h = get_price(initial_list, end_date=yesterday, frequency='1d', fields=['close'], count=21, panel=False)
+        h['date'] = pd.to_datetime(h['time']).dt.date
+        df_close = h.pivot(index='code', columns='date', values='close').sort_index(axis=1).dropna(how='any')
+        
+        if df_close.empty:
+            return select_defensive_etf(context)
+        
+        df_ma20 = df_close.rolling(window=20, axis=1).mean().iloc[:, -1]
+        df_bias = (df_close.iloc[:, -1] > df_ma20)
+        
+        industries = getStockIndustry(initial_list, 'sw_l1', yesterday)
+        df_bias = df_bias[df_bias.index.isin(industries.index)].to_frame('above')
+        df_bias['ind'] = industries
+        
+        ratio = (df_bias.groupby('ind')['above'].mean() * 100).round()
+        top_industries = ratio.nlargest(g['num']).index.tolist()
+        
+        log.info(f"【行业宽度】Top{g['num']}:{[i for i in top_industries]} 平均:{ratio.mean():.1f}%")
+        
+        bad = ['801780', '801050', '801950', '801040']
+        if any(i in top_industries for i in bad):
+            log.info("【策略状态】⚠️ 防守模式")
+            return select_defensive_etf(context)
+        else:
+            log.info("【策略状态】✅ 进攻模式")
+            return select_small_cap_stocks(context, today)
+    except Exception as e:
+        log.error(f"选股异常:{e}")
+        return select_defensive_etf(context)
+
+def select_defensive_etf(context):
+    """优选ETF"""
+    current = get_current_data()
+    for etf in g['defensive_etfs']:
+        try:
+            if not current[etf].paused:
+                log.info(f"【防守标的】{etf}")
+                return [etf]
+        except:
+            continue
+    log.warning("【防守标的】所有ETF停牌，空仓")
+    return []
+
+def select_small_cap_stocks(context, today):
+    try:
+        all_stocks = get_all_securities('stock', today).index.tolist()
+        stocks = [s for s in all_stocks if s.startswith(('60', '000', '002'))]
+        stocks = [s for s in stocks if not s.startswith(('68', '4', '8', '30'))]
+        
+        # 批量获取数据（性能优化）
+        current = get_current_data()
+        stocks = [s for s in stocks if not current[s].is_st and 'ST' not in current[s].name]
+        stocks = [s for s in stocks if (today - get_security_info(s).start_date).days >= 375]
+        
+        if not stocks:
+            return select_defensive_etf(context)
+        
+        # 流动性过滤
+        money_df = get_price(stocks, end_date=today, fields=['money'], count=20, panel=False)
+        if not money_df.empty:
+            avg_money = money_df.groupby('code')['money'].mean()
+            stocks = avg_money[avg_money > g['min_turnover']].index.tolist()
+            if len(stocks) < 10:
+                log.info(f"【流动性】放宽至3000万")
+                stocks = avg_money[avg_money > 30000000].index.tolist()
+        
+        # 财务筛选
+        q = query(valuation.code).filter(valuation.code.in_(stocks),
+                                          indicator.roe > 0.15,
+                                          indicator.roa > 0.10).order_by(valuation.market_cap.asc()).limit(g['stock_num'])
+        stock_list = get_fundamentals(q)['code'].tolist()
+        
+        # 最终过滤
+        stock_list = [s for s in stock_list if not current[s].paused]
+        stock_list = [s for s in stock_list if s in context.portfolio.positions or current[s].close < current[s].high_limit]
+        stock_list = [s for s in stock_list if s in context.portfolio.positions or current[s].close > current[s].low_limit]
+        
+        log.info(f"【小盘股】选出{len(stock_list)}只")
+        return stock_list if stock_list else select_defensive_etf(context)
+    except Exception as e:
+        log.error(f"小盘股筛选异常:{e}")
+        return select_defensive_etf(context)
+
+def weekly_adjustment(context):
+    g['just_rebalanced'] = True
+    old_hold = g['hold_list'].copy()
+    
+    try:
+        target_list = get_stock_list(context)
+        log.info(f"【调仓】目标池:{target_list}")
+        
+        if not target_list:
+            log.warning("【调仓】目标池为空，清仓")
+            for s in g['hold_list']:
+                if s in context.portfolio.positions:
+                    order_target_value(s, 0)
+            return
+        
+        # 卖出
+        sell_list = [s for s in g['hold_list'] if s not in target_list and s not in g['yesterday_HL_list']]
+        for s in sell_list:
+            if s in context.portfolio.positions:
+                order_target_value(s, 0)
+                log.info(f"【卖出】{s}")
+        
+        # 买入判断
+        is_defensive = len(target_list) == 1 and target_list[0] in g['defensive_etfs']
+        max_buy = g['max_hold_stocknum'] if is_defensive else g['stock_num']
+        
+        current_hold = [s for s in context.portfolio.positions if context.portfolio.positions[s].total_amount > 0]
+        to_buy = [s for s in target_list if s not in current_hold]
+        
+        if to_buy and len(current_hold) < len(target_list):
+            buy_num = min(len(to_buy), max_buy - len(current_hold) + len([s for s in to_buy if s in context.portfolio.positions]))
+            if buy_num > 0:
+                cash_per = context.portfolio.cash / buy_num
+                for s in to_buy[:buy_num]:
+                    if order_target_value(s, cash_per):
+                        log.info(f"【买入】{s}")
+        
+        new_hold = list(context.portfolio.positions.keys())
+        log.info(f"【调仓完成】{len(old_hold)}只→{len(new_hold)}只")
+        
+    except Exception as e:
+        log.error(f"调仓异常:{e}")
+    finally:
+        g['just_rebalanced'] = False
+
+def check_stop_loss_and_limit_up(context):
+    """风控检查 - 修复：手动计算收益率"""
+    # 组合止损（跳过调仓日）
+    if not g.get('just_rebalanced') and g.get('yesterday_port_value', 0) > 0:
+        drawdown = (g['yesterday_port_value'] - context.portfolio.total_value) / g['yesterday_port_value']
+        if drawdown > g['port_stop_loss']:
+            log.info(f"【组合止损】回撤{drawdown:.1%}，减仓一半")
+            for s in g['hold_list']:
+                if s in context.portfolio.positions:
+                    pos = context.portfolio.positions[s]
+                    order_target_value(s, pos.value * 0.5)
+            return
+    
+    # 个股检查
+    current = get_current_data()
+    for s in g['hold_list']:
+        if s not in context.portfolio.positions:
+            continue
+        pos = context.portfolio.positions[s]
+        
+        # 修复点：聚宽UserPosition没有returns属性，需手动计算
+        # 公式：(当前价 - 成本价) / 成本价
+        if pos.total_amount > 0 and pos.avg_cost > 0:
+            returns = (pos.price - pos.avg_cost) / pos.avg_cost
+            
+            # 个股止损
+            if returns < -g['single_stop_loss']:
+                log.info(f"【个股止损】{s} 亏损{returns:.1%}")
+                order_target_value(s, 0)
+            
+            # 涨停打开检查（仅非ETF）
+            elif s in g['yesterday_HL_list']:
+                is_etf = s.startswith(('51', '15', '16', '18'))
+                if not is_etf and current[s].close < current[s].high_limit:
+                    log.info(f"【涨停打开】{s}")
+                    order_target_value(s, 0)
+
+def getStockIndustry(stocks, ind_type, date):
+    d = get_industry(stocks, date=date)
+    return pd.Series({s: d[s][ind_type]['industry_code'] for s in d if ind_type in d[s]})

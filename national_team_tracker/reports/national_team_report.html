@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>国家队资金跟踪与入场时机决策大屏</title>
+    <style>
+        :root {
+            --bg: #0b0f19;
+            --card-bg: rgba(23, 32, 54, 0.7);
+            --border: rgba(255, 255, 255, 0.08);
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --up-color: #10b981;
+            --down-color: #ef4444;
+            --accent-blue: #3b82f6;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: radial-gradient(circle at top, #1e293b 0%, #0b0f19 100%);
+            color: var(--text-main);
+            font-family: var(--font-family);
+            padding: 24px;
+            min-height: 100vh;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 24px;
+        }
+        .header h1 {
+            font-size: 26px;
+            background: linear-gradient(135deg, #60a5fa, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+        }
+        .header .meta { color: var(--text-muted); font-size: 14px; }
+
+        /* 决策英雄卡 */
+        .hero-card {
+            background: linear-gradient(135deg, rgba(30, 58, 138, 0.5), rgba(15, 23, 42, 0.8));
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .hero-title { font-size: 14px; color: #93c5fd; text-transform: uppercase; font-weight: 700; margin-bottom: 6px; }
+        .hero-signal { font-size: 30px; font-weight: 800; color: #fde047; margin-bottom: 12px; }
+        .hero-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255,255,255,0.08);
+        }
+        .hero-item-title { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+        .hero-item-val { font-size: 16px; font-weight: 600; color: #fff; }
+
+        /* 6大板块卡片 */
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin: 24px 0 14px 0;
+            color: #93c5fd;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .sector-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            padding: 16px;
+        }
+        .card-title { font-size: 13px; color: var(--text-muted); margin-bottom: 6px; }
+        .card-value { font-size: 22px; font-weight: 700; }
+        .card-desc { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+        /* 表格样式 */
+        .table-wrapper {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+        th { background: rgba(15, 23, 42, 0.85); padding: 14px 16px; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--border); }
+        td { padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; }
+        tr:hover { background: rgba(255,255,255,0.03); }
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .badge-aaa { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+        .badge-aa { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); }
+        .badge-c { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
+        .badge-d { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
+        .badge-normal { background: rgba(156, 163, 175, 0.15); color: #9ca3af; }
+        .cat-pill { background: rgba(255,255,255,0.08); padding: 2px 8px; border-radius: 6px; font-size: 12px; }
+        .reason-tag { display: inline-block; background: rgba(99, 102, 241, 0.15); color: #a5b4fc; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-right: 4px; margin-top: 4px; }
+        .score-bar { width: 90px; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; display: flex; align-items: center; position: relative; }
+        .score-fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #ef4444); }
+        .text-up { color: var(--up-color); font-weight: 600; }
+        .text-down { color: var(--down-color); font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>🇨🇳 国家队资金跟踪与入场时机决策看板</h1>
+                <div class="meta">聚焦 6 大关键板块：沪深300 · 中证500 · 中证1000 · 创业板 · 科创50 · 大金融(券商/银行)</div>
+            </div>
+            <div class="meta">数据更新: 2026-08-20 12:59:44</div>
+        </div>
+
+        <div class="hero-card">
+            <div class="hero-title">🚦 国家队入场时机全局决策</div>
+            <div class="hero-signal">⚪ 常态持仓观望 (市场资金处于平衡期)</div>
+            <div><strong>阶段定性：</strong>【无明显外力干预】国家队处于日常静默状态 · ⚪ 【常态平衡期】国家队处于日常静默监控状态</div>
+            <div class="hero-grid">
+                <div>
+                    <div class="hero-item-title">建议持仓水平</div>
+                    <div class="hero-item-val text-up">30% ~ 50% (中性平衡)</div>
+                </div>
+                <div>
+                    <div class="hero-item-title">首选进攻/配置品种</div>
+                    <div class="hero-item-val">精选个股或按既定指数定投策略执行</div>
+                </div>
+                <div>
+                    <div class="hero-item-title">⚖️ 1000+银行动态智能杠铃配比</div>
+                    <div class="hero-item-val" style="color: #c084fc;"><strong>🚀 【极速进攻态】中证1000 (75%) : 银行ETF (25%)</strong><br><small style="color: #9ca3af; font-weight: normal;">国家队流动性外溢/共振反弹确立，重仓小盘成长博取最大单波弹性（目标冲高 +8%~+13%）</small></div>
+                </div>
+                <div>
+                    <div class="hero-item-title">🔥 顶级大V实战战法</div>
+                    <div class="hero-item-val" style="color: #60a5fa;"><small>【大V战法·耐心中性观望】维持 30%~50% 基础仓位，等待国家队下一轮放量托底信号。</small></div>
+                </div>
+                <div>
+                    <div class="hero-item-title">实战操作手法</div>
+                    <div class="hero-item-val"><small>维持常规平衡仓位，持续监控盘中突发异动。</small></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-title">🔥 1. 六大板块国家队资金流向与动向热力</div>
+        <div class="sector-grid">
+            
+            <div class="card sector-card">
+                <div class="card-title">沪深300</div>
+                <div class="card-value ">+0.00 亿</div>
+                <div class="card-desc">盘口异动热度: <strong>8.3 分</strong></div>
+            </div>
+            
+            <div class="card sector-card">
+                <div class="card-title">中证500</div>
+                <div class="card-value ">+0.00 亿</div>
+                <div class="card-desc">盘口异动热度: <strong>30.0 分</strong></div>
+            </div>
+            
+            <div class="card sector-card">
+                <div class="card-title">中证1000</div>
+                <div class="card-value ">+0.00 亿</div>
+                <div class="card-desc">盘口异动热度: <strong>40.0 分</strong></div>
+            </div>
+            
+            <div class="card sector-card">
+                <div class="card-title">创业板</div>
+                <div class="card-value ">+0.00 亿</div>
+                <div class="card-desc">盘口异动热度: <strong>50.0 分</strong></div>
+            </div>
+            
+            <div class="card sector-card">
+                <div class="card-title">科创50</div>
+                <div class="card-value ">+0.00 亿</div>
+                <div class="card-desc">盘口异动热度: <strong>25.0 分</strong></div>
+            </div>
+            
+            <div class="card sector-card">
+                <div class="card-title">大金融(证券银行)</div>
+                <div class="card-value ">+0.00 亿</div>
+                <div class="card-desc">盘口异动热度: <strong>8.3 分</strong></div>
+            </div>
+            
+        </div>
+
+        <div class="section-title">📋 2. 核心标的明细与分时异动监控</div>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>代码</th>
+                        <th>标的名称</th>
+                        <th>板块分类</th>
+                        <th>最新价</th>
+                        <th>涨跌幅</th>
+                        <th>成交额</th>
+                        <th>异动热度</th>
+                        <th>官方净流入</th>
+                        <th>国家队判定</th>
+                        <th>实战买卖指引与异动特征</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+            <tr>
+                <td><strong>159915</strong></td>
+                <td><strong>易方达创业板ETF</strong></td>
+                <td><span class="cat-pill">创业板</span></td>
+                <td>3.528</td>
+                <td class="text-up"><strong>+0.86%</strong></td>
+                <td>35.31 亿</td>
+                <td><div class="score-bar"><div class="score-fill" style="width:50.0%;"></div><span>50.0</span></div></td>
+                <td class=""><strong>+0.00 亿</strong></td>
+                <td><span class="badge badge-c">C 游资脉冲</span></td>
+                <td><small>【严禁追高】盘中放量急拉但官方份额并未实质净申购，多为游资或量化倒手，警惕冲高回落。</small><br><span class="reason-tag">⚡ 成交额显著放大 (35.3亿)</span><span class="reason-tag">📈 宽基温和反弹 (+0.86%)</span><span class="reason-tag">🧱 买盘深度显著占优 (买5/卖5=3.2x)</span></td>
+            </tr>
+            
+            <tr>
+                <td><strong>512100</strong></td>
+                <td><strong>南方中证1000ETF</strong></td>
+                <td><span class="cat-pill">中证1000</span></td>
+                <td>3.091</td>
+                <td class="text-up"><strong>+1.41%</strong></td>
+                <td>23.22 亿</td>
+                <td><div class="score-bar"><div class="score-fill" style="width:40.0%;"></div><span>40.0</span></div></td>
+                <td class=""><strong>+0.00 亿</strong></td>
+                <td><span class="badge badge-normal">常规波动</span></td>
+                <td><small>【维持现状】未触发显著的国家队异动或天量申赎，按原量化策略执行。</small><br><span class="reason-tag">⚡ 成交额显著放大 (23.2亿)</span><span class="reason-tag">📈 宽基温和反弹 (+1.41%)</span></td>
+            </tr>
+            
+            <tr>
+                <td><strong>510500</strong></td>
+                <td><strong>南方中证500ETF</strong></td>
+                <td><span class="cat-pill">中证500</span></td>
+                <td>7.892</td>
+                <td class="text-up"><strong>+1.13%</strong></td>
+                <td>14.02 亿</td>
+                <td><div class="score-bar"><div class="score-fill" style="width:30.0%;"></div><span>30.0</span></div></td>
+                <td class=""><strong>+0.00 亿</strong></td>
+                <td><span class="badge badge-normal">常规波动</span></td>
+                <td><small>【维持现状】未触发显著的国家队异动或天量申赎，按原量化策略执行。</small><br><span class="reason-tag">📈 宽基温和反弹 (+1.13%)</span></td>
+            </tr>
+            
+            <tr>
+                <td><strong>510300</strong></td>
+                <td><strong>华泰柏瑞沪深300ETF</strong></td>
+                <td><span class="cat-pill">沪深300</span></td>
+                <td>4.661</td>
+                <td class="text-up"><strong>+0.15%</strong></td>
+                <td>20.98 亿</td>
+                <td><div class="score-bar"><div class="score-fill" style="width:25.0%;"></div><span>25.0</span></div></td>
+                <td class=""><strong>+0.00 亿</strong></td>
+                <td><span class="badge badge-normal">常规波动</span></td>
+                <td><small>【维持现状】未触发显著的国家队异动或天量申赎，按原量化策略执行。</small><br><span class="reason-tag">⚡ 成交额显著放大 (21.0亿)</span></td>
+            </tr>
+            
+            <tr>
+                <td><strong>588000</strong></td>
+                <td><strong>华夏科创50ETF</strong></td>
+                <td><span class="cat-pill">科创50</span></td>
+                <td>1.760</td>
+                <td class="text-down"><strong>-0.06%</strong></td>
+                <td>36.86 亿</td>
+                <td><div class="score-bar"><div class="score-fill" style="width:25.0%;"></div><span>25.0</span></div></td>
+                <td class=""><strong>+0.00 亿</strong></td>
+                <td><span class="badge badge-normal">常规波动</span></td>
+                <td><small>【维持现状】未触发显著的国家队异动或天量申赎，按原量化策略执行。</small><br><span class="reason-tag">⚡ 成交额显著放大 (36.9亿)</span></td>
+            </tr>
+            
+            <tr>
+                <td><strong>512880</strong></td>
+                <td><strong>国泰证券ETF</strong></td>
+                <td><span class="cat-pill">大金融(证券)</span></td>
+                <td>1.059</td>
+                <td class="text-down"><strong>-0.28%</strong></td>
+                <td>8.78 亿</td>
+                <td><div class="score-bar"><div class="score-fill" style="width:15.0%;"></div><span>15.0</span></div></td>
+                <td class=""><strong>+0.00 亿</strong></td>
+                <td><span class="badge badge-normal">常规波动</span></td>
+                <td><small>【维持现状】未触发显著的国家队异动或天量申赎，按原量化策略执行。</small><br></td>
+            </tr>
+            
+            <tr>
+                <td><strong>510230</strong></td>
+                <td><strong>国泰金融ETF</strong></td>
+                <td><span class="cat-pill">大金融(综合)</span></td>
+                <td>1.293</td>
+                <td class="text-down"><strong>-0.46%</strong></td>
+                <td>0.71 亿</td>
+                <td><div class="score-bar"><div class="score-fill" style="width:10.0%;"></div><span>10.0</span></div></td>
+                <td class=""><strong>+0.00 亿</strong></td>
+                <td><span class="badge badge-normal">常规波动</span></td>
+                <td><small>【维持现状】未触发显著的国家队异动或天量申赎，按原量化策略执行。</small><br><span class="reason-tag">🧱 买盘深度显著占优 (买5/卖5=2.9x)</span></td>
+            </tr>
+            
+            <tr>
+                <td><strong>510310</strong></td>
+                <td><strong>易方达沪深300ETF</strong></td>
+                <td><span class="cat-pill">沪深300</span></td>
+                <td>4.528</td>
+                <td class="text-up"><strong>+0.29%</strong></td>
+                <td>2.55 亿</td>
+                <td><div class="score-bar"><div class="score-fill" style="width:0.0%;"></div><span>0.0</span></div></td>
+                <td class=""><strong>+0.00 亿</strong></td>
+                <td><span class="badge badge-normal">常规波动</span></td>
+                <td><small>【维持现状】未触发显著的国家队异动或天量申赎，按原量化策略执行。</small><br></td>
+            </tr>
+            
+            <tr>
+                <td><strong>159919</strong></td>
+                <td><strong>嘉实沪深300ETF</strong></td>
+                <td><span class="cat-pill">沪深300</span></td>
+                <td>4.870</td>
+                <td class="text-up"><strong>+0.41%</strong></td>
+                <td>2.27 亿</td>
+                <td><div class="score-bar"><div class="score-fill" style="width:0.0%;"></div><span>0.0</span></div></td>
+                <td class=""><strong>+0.00 亿</strong></td>
+                <td><span class="badge badge-normal">常规波动</span></td>
+                <td><small>【维持现状】未触发显著的国家队异动或天量申赎，按原量化策略执行。</small><br></td>
+            </tr>
+            
+            <tr>
+                <td><strong>512800</strong></td>
+                <td><strong>华宝银行ETF</strong></td>
+                <td><span class="cat-pill">大金融(银行)</span></td>
+                <td>0.813</td>
+                <td class="text-down"><strong>-0.25%</strong></td>
+                <td>7.10 亿</td>
+                <td><div class="score-bar"><div class="score-fill" style="width:0.0%;"></div><span>0.0</span></div></td>
+                <td class=""><strong>+0.00 亿</strong></td>
+                <td><span class="badge badge-normal">常规波动</span></td>
+                <td><small>【维持现状】未触发显著的国家队异动或天量申赎，按原量化策略执行。</small><br></td>
+            </tr>
+            
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
+        

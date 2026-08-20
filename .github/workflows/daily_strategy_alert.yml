@@ -1,0 +1,40 @@
+name: 👑 DTB 4.0 每日盘中量化策略信号与自动提醒
+
+on:
+  # 定时触发：每个交易日 A 股收盘前 14:45 (UTC 06:45) 和 收盘后 15:10 (UTC 07:10)
+  schedule:
+    - cron: '45 6 * * 1-5'
+    - cron: '10 7 * * 1-5'
+  
+  # 支持在 GitHub 网页上一键手动点击运行测试
+  workflow_dispatch:
+
+jobs:
+  run-daily-monitor:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 检出策略代码
+        uses: actions/checkout@v4
+
+      - name: 配置 Python 环境 (3.11)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: 'requirements.txt'
+
+      - name: 安装量化核心依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 运行 DTB 4.0 实时信号引擎并全渠道推送提醒
+        env:
+          PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
+          SERVERCHAN_KEY: ${{ secrets.SERVERCHAN_KEY }}
+          WECOM_WEBHOOK: ${{ secrets.WECOM_WEBHOOK }}
+          DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
+          FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
+        run: |
+          python national_team_tracker/daily_dtb_monitor.py

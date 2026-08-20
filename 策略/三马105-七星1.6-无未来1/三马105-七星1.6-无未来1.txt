@@ -1,0 +1,287 @@
+# 七星高照ETF轮动策略 - 最终稳定版
+# 修复：变量初始化位置、np.polyfit解包错误、缓存优化
+from jqdata import *
+import pandas as pd
+import numpy as np
+import math
+from datetime import timedelta
+
+def initialize(context):
+    # 资金分配（小市值 / ETF轮动）
+    g.portfolio_value_proportion = [0.5, 0.5]
+    g.starting_cash = context.portfolio.total_value
+    g.strategy_holdings = {1: [], 3: []}
+    g.stock_strategy = {}
+    
+    # 策略1 小市值参数
+    g.xsz_version = "v3"
+    g.xsz_stock_num = 5
+    g.xsz_buy_etf = "511880.XSHG"
+    g.avoid_trade_april = True
+    g.enable_dynamic_stock_num = True
+    g.run_stoploss = True
+    g.stoploss_limit = 0.09
+    g.enable_atr_stop_loss = False
+    g.atr_stop_prices = {}
+    g.trading_signal = True          # 移至此处
+    g.target_list = []               # 移至此处
+    
+    # 策略3 ETF轮动参数
+    g.etf_pool_3 = [
+        "518880.XSHG", "159985.XSHE", "501018.XSHG", "161226.XSHE",
+        "513100.XSHG", "159915.XSHE", "511220.XSHG"
+    ]
+    g.lookback_days = 25
+    g.holdings_num = 1
+    g.defensive_etf = "511880.XSHG"
+    g.min_money = 5000
+    g.stop_loss = 0.95
+    g.loss_limit = 0.97
+    g.min_score_threshold = 0
+    g.max_score_threshold = 500.0
+    g.enable_premium_filter = True
+    g.premium_threshold = 0.20
+    
+    # 系统设置
+    set_benchmark('000300.XSHG')
+    set_option('use_real_price', True)
+    set_option('avoid_future_data', True)
+    set_slippage(FixedSlippage(0.002), type='stock')
+    set_slippage(PriceRelatedSlippage(0.0001), type='fund')
+    set_order_cost(OrderCost(close_tax=0.001, open_commission=0.0003,
+                             close_commission=0.0003, min_commission=5), type='stock')
+    set_order_cost(OrderCost(close_tax=0, open_commission=0.0001,
+                             close_commission=0.0001, min_commission=5), type='fund')
+    
+    # 定时任务
+    run_weekly(strategy_1_sell, 2, time='09:40')
+    run_weekly(strategy_1_buy, 2, time='09:40:02')
+    run_daily(sell_small_cap_stocks, time='10:00')
+    run_daily(strategy_3_sell, time='14:00')
+    run_daily(strategy_3_buy, time='14:01')
+    run_daily(print_summary, time='15:02')
+    
+    # 缓存
+    g.rankings_cache = {'date': None, 'data': None}
+
+# ====================== 策略1 小市值 ======================
+def get_small_cap_stocks_v3(context):
+    initial_list = filter_stocks(context, get_index_stocks("399101.XSHE"))
+    q = query(valuation.code, valuation.market_cap, income.net_profit, income.operating_revenue).filter(
+        valuation.code.in_(initial_list),
+        valuation.market_cap.between(10, 100),
+        income.operating_revenue > 1e8,
+        indicator.roe > 0,
+        indicator.roa > 0,
+        income.net_profit > 2000000
+    ).order_by(valuation.market_cap.asc()).limit(g.xsz_stock_num * 5)
+    final_list = list(get_fundamentals(q).code)
+    final_list = filter_audit(context, final_list)
+    final_list = bonus_filter(context, final_list)
+    if not final_list:
+        return [g.xsz_buy_etf]
+    last_prices = history(1, '1d', 'close', final_list, df=False)
+    return [s for s in final_list if s in g.strategy_holdings[1] or last_prices[s][-1] <= 50][:g.xsz_stock_num]
+
+def filter_stocks(context, stock_list):
+    current_data = get_current_data()
+    last_prices = history(1, '1m', 'close', stock_list)
+    filtered = []
+    for stock in stock_list:
+        if current_data[stock].paused: continue
+        if current_data[stock].is_st: continue
+        if '退' in current_data[stock].name: continue
+        if stock.startswith(('30','68','8','4')): continue
+        if stock not in context.portfolio.positions and last_prices[stock][-1] >= current_data[stock].high_limit: continue
+        if stock not in context.portfolio.positions and last_prices[stock][-1] <= current_data[stock].low_limit: continue
+        start_date = get_security_info(stock).start_date
+        if context.previous_date - start_date < timedelta(days=375): continue
+        filtered.append(stock)
+    return filtered
+
+def filter_audit(context, code_list):
+    final = []
+    for stock in code_list:
+        q = query(finance.STK_AUDIT_OPINION).filter(
+            finance.STK_AUDIT_OPINION.code == stock,
+            finance.STK_AUDIT_OPINION.pub_date >= context.previous_date - timedelta(days=1095),
+            finance.STK_AUDIT_OPINION.pub_date <= context.previous_date
+        )
+        df = finance.run_query(q)
+        if not df['opinion_type_id'].isin([3,4,5,7]).any():
+            final.append(stock)
+    return final
+
+def bonus_filter(context, stock_list):
+    year = context.previous_date.year
+    end_date = context.previous_date
+    if end_date.month == 5:
+        start_date = datetime.datetime(year=year, month=1, day=1)
+        q = query(finance.STK_XR_XD.code).filter(
+            finance.STK_XR_XD.board_plan_pub_date > start_date,
+            finance.STK_XR_XD.implementation_pub_date <= end_date,
+            finance.STK_XR_XD.bonus_ratio_rmb > 0,
+            finance.STK_XR_XD.code.in_(stock_list)
+        )
+        df = finance.run_query(q)
+        bonus_list = df['code'].unique().tolist()
+    else:
+        reprot_date = datetime.datetime(year=year-1, month=12, day=31)
+        q = query(finance.STK_XR_XD.code).filter(
+            finance.STK_XR_XD.report_date == reprot_date,
+            finance.STK_XR_XD.bonus_type == '年度分红',
+            finance.STK_XR_XD.implementation_pub_date <= end_date,
+            finance.STK_XR_XD.board_plan_bonusnote == '不分配不转增',
+            finance.STK_XR_XD.code.in_(stock_list)
+        )
+        no_bonus = finance.run_query(q)['code'].unique().tolist()
+        bonus_list = [c for c in stock_list if c not in no_bonus]
+    if len(bonus_list) < g.xsz_stock_num:
+        short_q = query(valuation.code).filter(valuation.code.in_(stock_list)).order_by(valuation.market_cap.asc()).limit(g.xsz_stock_num)
+        short_df = get_fundamentals(short_q)
+        bonus_list.extend([c for c in short_df['code'].tolist() if c not in bonus_list][:g.xsz_stock_num - len(bonus_list)])
+    return bonus_list
+
+def strategy_1_sell(context):
+    g.target_list = get_small_cap_stocks_v3(context)
+    sell_list = [s for s in g.strategy_holdings[1] if s not in g.target_list]
+    for stock in sell_list:
+        close_position(stock)
+
+def strategy_1_buy(context):
+    if not g.trading_signal and g.xsz_buy_etf not in context.portfolio.positions:
+        open_position(context, g.xsz_buy_etf, context.portfolio.total_value * g.portfolio_value_proportion[0], 1)
+        return
+    strategy_value = context.portfolio.total_value * g.portfolio_value_proportion[0]
+    current_value = sum(pos.value for pos in context.portfolio.positions.values() if pos.security in g.strategy_holdings[1])
+    available = max(0, strategy_value - current_value)
+    buy_list = [s for s in g.target_list if s not in g.strategy_holdings[1]]
+    if buy_list and available > 0:
+        per = available / len(buy_list)
+        for stock in buy_list:
+            open_position(context, stock, per, 1)
+
+def sell_small_cap_stocks(context):
+    if not g.run_stoploss: return
+    for stock in list(g.strategy_holdings[1]):
+        pos = context.portfolio.positions.get(stock)
+        if not pos: continue
+        price = pos.price
+        avg = pos.avg_cost
+        if price < avg * (1 - g.stoploss_limit):
+            close_position(stock)
+
+def close_position(security):
+    order = order_target_value(security, 0)
+    if order:
+        sid = g.stock_strategy.get(security)
+        if sid and security in g.strategy_holdings[sid]:
+            g.strategy_holdings[sid].remove(security)
+        if security in g.stock_strategy:
+            del g.stock_strategy[security]
+    return order
+
+def open_position(context, security, value, strategy_id):
+    if value < 5000: return
+    order = order_target_value(security, value)
+    if order:
+        if security not in g.strategy_holdings[strategy_id]:
+            g.strategy_holdings[strategy_id].append(security)
+        g.stock_strategy[security] = strategy_id
+    return order
+
+# ====================== 策略3 ETF轮动 ======================
+def get_cached_rankings(context):
+    today = context.current_dt.date()
+    if g.rankings_cache['date'] != today:
+        g.rankings_cache['data'] = get_ranked_etfs(context)
+        g.rankings_cache['date'] = today
+    return g.rankings_cache['data']
+
+def get_ranked_etfs(context):
+    scores = []
+    for etf in g.etf_pool_3:
+        score = calculate_momentum_score(context, etf)
+        if score and g.min_score_threshold < score < g.max_score_threshold:
+            scores.append((etf, score))
+    scores.sort(key=lambda x: x[1], reverse=True)
+    return [s[0] for s in scores]
+
+def calculate_momentum_score(context, etf):
+    end_date = context.previous_date
+    df = get_price(etf, end_date=end_date, count=g.lookback_days + 5, frequency='1d', fields=['close'], fq='pre', panel=False)
+    if df is None or len(df) < g.lookback_days: return None
+    prices = df['close'].values
+    curr_price = get_current_data()[etf].last_price
+    if curr_price is None: return None
+    y = np.log(np.append(prices[-g.lookback_days:], curr_price))
+    x = np.arange(len(y))
+    weights = np.linspace(1, 2, len(y))
+    # 修复：正确解包 slope 和 intercept
+    slope, intercept = np.polyfit(x, y, 1, w=weights)
+    ann_ret = math.exp(slope * 250) - 1
+    y_pred = slope * x + intercept
+    ss_res = np.sum(weights * (y - y_pred)**2)
+    ss_tot = np.sum(weights * (y - np.mean(y))**2)
+    r2 = 1 - ss_res/ss_tot if ss_tot else 0
+    score = ann_ret * r2
+    if len(prices) >= 4 and min(prices[-1]/prices[-2], prices[-2]/prices[-3], prices[-3]/prices[-4]) < g.loss_limit:
+        score = 0
+    return score
+
+def get_premium_rate(etf, date):
+    price_data = get_price(etf, start_date=date, end_date=date, frequency='1d', fields=['close'], panel=False)
+    if price_data.empty: return None
+    price = price_data['close'][0]
+    net_data = get_extras('unit_net_value', etf, start_date=date, end_date=date, df=True)
+    if net_data.empty or pd.isna(net_data[etf][0]):
+        q = query(finance.FUND_NET_VALUE).filter(finance.FUND_NET_VALUE.code == etf, finance.FUND_NET_VALUE.day == date)
+        df = finance.run_query(q)
+        if df.empty: return None
+        net = df['net_value'][0]
+    else:
+        net = net_data[etf][0]
+    if net == 0: return None
+    return (price - net) / net
+
+def strategy_3_sell(context):
+    ranked = get_cached_rankings(context)
+    targets = ranked[:g.holdings_num] if ranked else []
+    if not targets:
+        targets = [g.defensive_etf]
+    for stock in g.strategy_holdings[3][:]:
+        if stock not in targets:
+            close_position(stock)
+    for stock in g.strategy_holdings[3][:]:
+        pos = context.portfolio.positions.get(stock)
+        if pos and pos.price <= pos.avg_cost * g.stop_loss:
+            close_position(stock)
+
+def strategy_3_buy(context):
+    ranked = get_cached_rankings(context)
+    candidates = ranked[:g.holdings_num] if ranked else []
+    targets = []
+    if g.enable_premium_filter and candidates:
+        prev_date = context.previous_date
+        for etf in candidates:
+            premium = get_premium_rate(etf, prev_date)
+            if premium is None or premium <= g.premium_threshold:
+                targets.append(etf)
+            else:
+                log.info(f"[溢价过滤] {etf} 溢价率{premium*100:.2f}% > {g.premium_threshold*100:.1f}% 跳过")
+    else:
+        targets = candidates
+    if not targets:
+        targets = [g.defensive_etf]
+    total_val = context.portfolio.total_value * g.portfolio_value_proportion[1]
+    per_val = total_val / len(targets)
+    for etf in targets:
+        if per_val >= g.min_money:
+            open_position(context, etf, per_val, 3)
+
+# ====================== 辅助函数 ======================
+def print_summary(context):
+    log.info(f"总资产: {context.portfolio.total_value:.2f}")
+    for sid, stocks in g.strategy_holdings.items():
+        if stocks:
+            log.info(f"策略{sid}持仓: {[s[:6] for s in stocks]}")

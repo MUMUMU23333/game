@@ -1,0 +1,228 @@
+# 多品种ETF动量轮动 + EPO优化（生产级最终版）
+# 修复：context传递、scipy兼容、数据对齐、权重约束、pandas2.0警告等
+
+from jqdata import *
+import numpy as np
+import pandas as pd
+import math
+
+# 检查 scipy 可用性，避免因缺少库而失败
+try:
+    from scipy.linalg import solve
+    HAS_SCIPY = True
+except ImportError:
+    HAS_SCIPY = False
+    log.warning("scipy不可用，EPO将使用等权重分配")
+
+def initialize(context):
+    # 全局变量（使用字典方式，更稳健）
+    global g
+    g = {}
+
+    set_benchmark('000300.XSHG')
+    set_option('use_real_price', True)
+    set_option('avoid_future_data', True)
+    set_slippage(FixedSlippage(0.002))
+    # ETF交易成本：无印花税，佣金万二
+    set_order_cost(OrderCost(open_tax=0, close_tax=0, open_commission=0.0002,
+                             close_commission=0.0002, close_today_commission=0,
+                             min_commission=5), type='stock')
+    log.set_level('system', 'error')
+
+    # 策略参数
+    g['stock_num'] = 3          # 持有ETF数量
+    g['_lambda'] = 10           # 风险厌恶系数（越大越保守）
+    g['w'] = 0.2                # 收缩系数（越大越分散）
+    g['m_days'] = 34            # 动量计算天数
+    g['max_weight'] = 0.4       # 单只ETF最大权重
+
+    # ETF池（覆盖商品、海外、宽基、窄基）
+    g['etf_pool'] = [
+        '518880.XSHG', '159985.XSHE',  # 黄金、豆粕
+        '513100.XSHG',                  # 纳指
+        '510300.XSHG', '159915.XSHE',  # 沪深300、创业板
+        '159992.XSHE', '515700.XSHG', '510150.XSHG', '515790.XSHG',
+        '515880.XSHG', '512720.XSHG', '512660.XSHG', '159740.XSHE'
+    ]
+
+    run_monthly(trade, 1, '9:30')   # 每月第一个交易日调仓
+
+def get_rank(context, etf_pool):
+    """动量打分：年化收益率 × 拟合优度（R²），返回排名靠前的ETF"""
+    scores = []
+    for etf in etf_pool:
+        try:
+            df = get_price(etf, end_date=context.previous_date, frequency='1d',
+                           fields=['close'], count=g['m_days'], panel=False)
+            if df.empty or len(df) < 10:
+                scores.append(-np.inf)
+                continue
+
+            y = np.log(df['close'].dropna().values)
+            if len(y) < 10:
+                scores.append(-np.inf)
+                continue
+
+            x = np.arange(len(y))
+            slope, intercept = np.polyfit(x, y, 1)
+            annual_ret = math.exp(slope * 252) - 1
+
+            # 计算R²，防止除零
+            var_y = np.var(y, ddof=1)
+            if var_y < 1e-10:
+                scores.append(-np.inf)
+                continue
+
+            y_pred = slope * x + intercept
+            ss_res = np.sum((y - y_pred) ** 2)
+            r2 = 1 - (ss_res / ((len(y) - 1) * var_y))
+
+            score = annual_ret * max(0, r2)
+            scores.append(score)
+        except Exception as e:
+            log.warning(f"动量计算失败 {etf}: {e}")
+            scores.append(-np.inf)
+
+    df_score = pd.DataFrame(index=etf_pool, data={'score': scores})
+    df_score = df_score.sort_values('score', ascending=False)
+    positive = df_score[df_score['score'] > 0]
+
+    # 优先取正分数，不足时取分数最高的前N只（保持持仓数量）
+    if len(positive) >= g['stock_num']:
+        return list(positive.index[:g['stock_num']])
+    else:
+        log.warning(f"正动量仅{len(positive)}只，取前{g['stock_num']}名")
+        return list(df_score.index[:g['stock_num']])
+
+def epo(context, x, signal, lambda_, w, anchor):
+    """EPO优化算法（带正则化与异常降级）"""
+    if not HAS_SCIPY:
+        n = x.shape[1] if len(x.shape) > 1 else len(signal)
+        return np.ones(n) / n
+
+    try:
+        n = x.shape[1]
+        # 协方差矩阵 + 微小正则项防止奇异
+        vcov = x.cov().values + np.eye(n) * 1e-8
+        corr = x.corr().values + np.eye(n) * 1e-8
+
+        V = np.diag(np.diag(vcov))
+        std = np.sqrt(V)
+        s = signal.values if hasattr(signal, 'values') else np.array(signal)
+        a = np.array(anchor)
+
+        # 收缩相关矩阵
+        shrunk_corr = (1 - w) * corr + w * np.eye(n)
+        cov_tilde = std @ shrunk_corr @ std
+
+        # 求逆（不使用assume_a，确保兼容性）
+        try:
+            inv_cov = solve(cov_tilde, np.eye(n))
+        except:
+            inv_cov = np.linalg.pinv(cov_tilde)
+
+        # anchored 方法
+        try:
+            denom = np.sqrt(s.T @ inv_cov @ cov_tilde @ inv_cov @ s)
+            if denom < 1e-10:
+                raise ValueError("分母接近零")
+            gamma = np.sqrt(a.T @ cov_tilde @ a) / denom
+            weights = inv_cov @ ((1 - w) * gamma * s + w * V @ a)
+        except:
+            # 降级为简单方法
+            weights = (1 / lambda_) * inv_cov @ s
+
+        # 负权重归零并归一化
+        weights = np.maximum(weights, 0)
+        total = np.sum(weights)
+        return weights / total if total > 0 else np.ones(n) / n
+
+    except Exception as e:
+        log.error(f"EPO计算失败: {e}")
+        n = x.shape[1] if len(x.shape) > 1 else len(signal)
+        return np.ones(n) / n
+
+def constrain_weights(weights, max_weight):
+    """限制单只最大权重（迭代平铺法）"""
+    weights = np.maximum(weights, 0)
+    weights = weights / np.sum(weights)
+
+    for _ in range(100):
+        excess = np.maximum(weights - max_weight, 0)
+        if np.sum(excess) < 1e-6:
+            break
+        weights = np.minimum(weights, max_weight)
+        weights = weights + np.sum(excess) / len(weights)
+
+    return weights / np.sum(weights)
+
+def run_optimization(context, stocks, end_date):
+    """执行EPO优化，返回优化后的权重数组"""
+    if len(stocks) <= 1:
+        return np.ones(len(stocks)) / len(stocks)
+
+    try:
+        # 获取历史价格（一年数据）
+        df = get_price(stocks, count=252, end_date=end_date,
+                       frequency='daily', fields=['close'], panel=False)
+        if df.empty:
+            return np.ones(len(stocks)) / len(stocks)
+
+        # 透视表对齐
+        prices = df.pivot(index='time', columns='code', values='close')
+        for s in stocks:
+            if s not in prices.columns:
+                prices[s] = np.nan
+
+        # 前向填充缺失值（pandas 2.0 兼容写法）
+        prices = prices.ffill().dropna()
+
+        if prices.shape[1] != len(stocks) or prices.shape[0] < 30:
+            log.warning("数据不完整，使用等权")
+            return np.ones(len(stocks)) / len(stocks)
+
+        returns = prices.pct_change().dropna()
+
+        # 计算锚定权重（风险倒数加权）
+        cov_diag = np.diag(returns.cov().values)
+        cov_diag = np.maximum(cov_diag, 1e-6)
+        anchor = (1 / cov_diag) / np.sum(1 / cov_diag)
+
+        # 运行EPO
+        weights = epo(context, returns, returns.mean(),
+                      g['_lambda'], g['w'], anchor)
+
+        # 约束权重上限
+        weights = constrain_weights(weights, g['max_weight'])
+        return weights
+
+    except Exception as e:
+        log.error(f"优化失败: {e}")
+        return np.ones(len(stocks)) / len(stocks)
+
+def trade(context):
+    """每月调仓主函数"""
+    end_date = context.previous_date
+    target_list = get_rank(context, g['etf_pool'])
+    if not target_list:
+        log.warning("无有效目标，暂停交易")
+        return
+
+    log.info(f"目标标的: {target_list}")
+
+    # 卖出不在目标池的持仓
+    for stock in list(context.portfolio.positions.keys()):
+        if stock not in target_list:
+            order_target_value(stock, 0)
+            log.info(f"卖出 {stock}")
+
+    # 计算权重
+    weights = run_optimization(context, target_list, end_date)
+    total_value = context.portfolio.total_value
+
+    # 买入目标池中的ETF
+    for stock, w in zip(target_list, weights):
+        target_value = total_value * w
+        if target_value > 1000:   # 避免小金额下单
+            order_target_value(stock, target_value)
+            log.info(f"买入 {stock} 权重 {w:.2%} 金额 {target_value:.0f}")

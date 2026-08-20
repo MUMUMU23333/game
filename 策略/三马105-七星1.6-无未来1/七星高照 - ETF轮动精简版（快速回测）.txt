@@ -1,0 +1,96 @@
+# 七星高照 - ETF轮动精简版（快速回测）
+from jqdata import *
+import numpy as np
+import pandas as pd
+import math
+
+def initialize(context):
+    g.etf_pool = [
+        "518880.XSHG", "159985.XSHE", "501018.XSHG", "161226.XSHE",
+        "513100.XSHG", "159915.XSHE", "511220.XSHG"
+    ]
+    g.lookback = 25
+    g.hold_num = 1
+    g.defensive = "511880.XSHG"
+    g.min_money = 5000
+    g.stop_loss = 0.95
+    g.premium_threshold = 0.20
+    g.enable_premium = True
+    
+    set_benchmark('000300.XSHG')
+    set_option('use_real_price', True)
+    set_option('avoid_future_data', True)
+    set_slippage(PriceRelatedSlippage(0.0001), type='fund')
+    set_order_cost(OrderCost(close_tax=0, open_commission=0.0001,
+                             close_commission=0.0001, min_commission=5), type='fund')
+    
+    run_daily(trade, time='14:50')
+    g.cache = {'date': None, 'rank': []}
+
+def momentum_score(etf, context):
+    end = context.previous_date
+    df = get_price(etf, end_date=end, count=g.lookback+5, frequency='1d', fields=['close'], panel=False)
+    if df is None or len(df) < g.lookback: return None
+    prices = df['close'].values
+    curr = get_current_data()[etf].last_price
+    if curr is None: return None
+    y = np.log(np.append(prices[-g.lookback:], curr))
+    x = np.arange(len(y))
+    w = np.linspace(1,2,len(y))
+    slope, _ = np.polyfit(x, y, 1, w=w)
+    ann = math.exp(slope*250)-1
+    pred = slope*x + _
+    ss_res = np.sum(w*(y-pred)**2)
+    ss_tot = np.sum(w*(y-np.mean(y))**2)
+    r2 = 1 - ss_res/ss_tot if ss_tot else 0
+    return ann * r2
+
+def get_premium(etf, date):
+    price = get_price(etf, start_date=date, end_date=date, fields='close', panel=False)
+    if price.empty: return None
+    price = price['close'][0]
+    net = get_extras('unit_net_value', etf, start_date=date, end_date=date, df=True)
+    if net.empty or pd.isna(net[etf][0]):
+        return None
+    net = net[etf][0]
+    return (price - net)/net if net else None
+
+def trade(context):
+    today = context.current_dt.date()
+    if g.cache['date'] != today:
+        scores = []
+        for etf in g.etf_pool:
+            s = momentum_score(etf, context)
+            if s and s>0:
+                scores.append((etf, s))
+        scores.sort(key=lambda x: x[1], reverse=True)
+        g.cache['rank'] = [x[0] for x in scores]
+        g.cache['date'] = today
+    
+    targets = g.cache['rank'][:g.hold_num] if g.cache['rank'] else []
+    if g.enable_premium and targets:
+        prev = context.previous_date
+        valid = []
+        for etf in targets:
+            prem = get_premium(etf, prev)
+            if prem is None or prem <= g.premium_threshold:
+                valid.append(etf)
+        targets = valid
+    if not targets:
+        targets = [g.defensive]
+    
+    # 调仓
+    for s in list(context.portfolio.positions.keys()):
+        if s not in targets:
+            order_target_value(s, 0)
+    total = context.portfolio.total_value
+    per = total / len(targets) if targets else 0
+    for s in targets:
+        if per >= g.min_money:
+            order_target_value(s, per)
+    
+    # 止损
+    for s in list(context.portfolio.positions.keys()):
+        pos = context.portfolio.positions[s]
+        if pos.price <= pos.avg_cost * g.stop_loss:
+            order_target_value(s, 0)
