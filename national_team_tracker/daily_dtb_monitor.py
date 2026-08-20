@@ -1,7 +1,7 @@
 """
 ========================================================================================
-👑 DTB-Apex V1.0 溢价熔断旗舰版 · 盘中实时监控与全渠道自动提醒引擎
-DTB-Apex V1.0: Real-Time Premium Circuit-Breaker & Barbell Alert Engine
+👑 纳指-银行全球策略 (DTB-Apex 旗舰版) · 盘中实时监控与全渠道自动提醒引擎
+Nasdaq-Bank Global Strategy (DTB-Apex Flagship): Real-Time Alert Engine
 ========================================================================================
 核心机制：
 1. 黄金三元底座：50% 科技资产 + 30% 农业银行 (601288) + 20% 华安黄金 (518880)
@@ -203,7 +203,7 @@ class DTBApexRealtimeMonitor:
 
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
-        markdown_body = f"""### 👑 DTB-Apex V1.0 溢价熔断旗舰版 · 实盘监控信号
+        markdown_body = f"""### 👑 纳指-银行全球策略 (DTB-Apex 旗舰版) · 实盘监控信号
 
 > ⏰ **监控时间**：{now_str} (北京时间)
 
@@ -218,7 +218,7 @@ class DTBApexRealtimeMonitor:
 • **银行底座建议**: **30%** (农业银行 601288 · 6.5% 免税高股息现金流)
 • **黄金底座建议**: **20%** (华安黄金 518880 · 全球避险硬通货)
 
-**⚡ 【DTB-Apex 核心量化雷达】**:
+**⚡ 【核心量化雷达】**:
 • **相对溢价偏离度**: `{prem:+.2f}%` (8.0% 溢价熔断线 | -1.5% 错位低吸线)
 • 纳指100 现价: `{c_cur:.3f}` | EMA20: `{e20:.3f}` | MA50牛熊线: `{m50:.3f}`
 • ATR(20) 突破阈值: `{e20 + 0.3 * atr:.3f}` | RSI(14) 动量值: `{rsi:.1f}`
@@ -233,7 +233,7 @@ class DTBApexRealtimeMonitor:
 """
         return {
             'time': now_str,
-            'title': f"DTB-Apex V1.0 策略提醒: 科技端持有【{recommended_tech.split('·')[0].strip()}】",
+            'title': f"纳指-银行全球策略提醒: 科技端持有【{recommended_tech.split('·')[0].strip()}】",
             'markdown': markdown_body.strip(),
             'recommended_tech': recommended_tech,
             'prem_spread': prem,

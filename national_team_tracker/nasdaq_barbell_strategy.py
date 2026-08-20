@@ -1,7 +1,7 @@
 """
 ========================================================================================
-星辰投研团 · 【DTB-Apex V1.0 溢价熔断旗舰版 · 策略核心计算引擎】
-DTB-Apex V1.0: Premium Circuit-Breaker & Dynamic Barbell Engine
+星辰投研团 · 【纳指-银行全球策略 (DTB-Apex 旗舰版) · 策略核心计算引擎】
+Nasdaq-Bank Global Strategy (DTB-Apex Flagship): Core Strategy Engine
 ========================================================================================
 核心机制与五大跨世纪支柱：
 1. 黄金三元底座：50% 科技资产 + 30% 农业银行 (601288) + 20% 华安黄金 (518880)
@@ -225,7 +225,7 @@ if __name__ == '__main__':
     engine = NasdaqBarbellDTBApexStrategyV1()
     res = engine.run_backtest()
     print("\n" + "=" * 80)
-    print("👑 【DTB-Apex V1.0 溢价熔断旗舰版】实盘引擎基准测试")
+    print("👑 【纳指-银行全球策略 (DTB-Apex 旗舰版)】实盘引擎基准测试")
     print("=" * 80)
     print(f"• 累计总收益率: +{res['total_return']}% (本金翻 {1+res['total_return']/100:.2f} 倍 🚀)")
     print(f"• 年化复合收益: +{res['ann_return']}% 🏆")
