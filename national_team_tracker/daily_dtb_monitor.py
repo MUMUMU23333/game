@@ -3,29 +3,18 @@
 DTB 4.0 巅峰旗舰版 · 盘中实时监控与全渠道自动提醒引擎
 Real-Time Daily Monitor & Multi-Channel Alert Engine (GitHub Actions Ready)
 ========================================================================================
-支持渠道：
-1. PushPlus (微信公众号极速推送，个人推荐首选)
-2. Server酱 (ServerChan 微信推送)
-3. 企业微信 Webhook 机器人
-4. 钉钉自定义机器人 Webhook
-5. 飞书自定义机器人 Webhook
-6. SMTP 邮件提醒
-7. GitHub Actions Step Summary (控制台直接渲染 Markdown 报表)
+已配置默认推送通道：企业微信机器人 Webhook
 ========================================================================================
 """
 
 import sys
 import os
 import json
-import smtplib
-from email.mime.text import MIMEText
-from email.header import Header
 import requests
 import pandas as pd
 import numpy as np
 from datetime import datetime
 
-# 确保路径
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
@@ -35,6 +24,9 @@ if sys.platform == 'win32':
         sys.stdout.reconfigure(encoding='utf-8')
     except Exception:
         pass
+
+# 默认企业微信 Webhook 地址
+DEFAULT_WECOM_WEBHOOK = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=64166d95-479a-4426-a405-e3f9af55656d"
 
 
 class DTBRealtimeMonitor:
@@ -70,8 +62,8 @@ class DTBRealtimeMonitor:
                 change_pct = float(parts[32])
                 high = float(parts[33])
                 low = float(parts[34])
-                volume = float(parts[36]) # 手
-                amount = float(parts[37]) # 万元
+                volume = float(parts[36])
+                amount = float(parts[37])
                 
                 return {
                     'code': code,
@@ -151,48 +143,42 @@ class DTBRealtimeMonitor:
         
         # 1. 判定当前科技端主选标的
         is_breakout = (c_cur > e20 + 0.3 * atr) and (rsi > 50)
-        is_breakdown = (c_cur < m50) or (rsi < 44)
         
         if is_breakout:
             recommended_tech = f"🚀 纳指科技 ({self.tech_alpha}) · 主升浪加速态"
-            tech_target_code = self.tech_alpha
         else:
             recommended_tech = f"🛡️ 纳指100 ({self.tech_core}) · 低回撤防守/筑底态"
-            tech_target_code = self.tech_core
 
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
-        report_text = f"""
-===================================================================
-👑 【DTB 4.0 巅峰旗舰版 · 今日量化实盘监控信号】
-===================================================================
-⏰ 监控时间：{now_str} (北京时间)
+        markdown_body = f"""### 👑 DTB 4.0 巅峰旗舰版 · 今日量化实盘监控信号
 
-📊 【实时行情速览】:
-• 纳斯达克100 ({q_ndx['code']}) : {q_ndx['price']:.3f} 元 ({q_ndx['change_pct']:+.2f}%)
-• 纳斯达克科技 ({q_tech['code']}) : {q_tech['price']:.3f} 元 ({q_tech['change_pct']:+.2f}%)
-• 农业银行     ({q_bank['code']}) : {q_bank['price']:.3f} 元 ({q_bank['change_pct']:+.2f}%)
-• 华安黄金ETF ({q_gold['code']}) : {q_gold['price']:.3f} 元 ({q_gold['change_pct']:+.2f}%)
+> ⏰ **监控时间**：{now_str} (北京时间)
 
-🎯 【核心决策指令】:
-• 科技端当前推荐持有 : 【{recommended_tech}】
-• 黄金底座建议配置   : 20% (华安黄金 518880)
-• 银行底座建议配置   : 30% (农业银行 601288)
+**📊 【实时行情速览】**:
+• **纳斯达克100 (513100)**: <font color="info">{q_ndx['price']:.3f} 元 ({q_ndx['change_pct']:+.2f}%)</font>
+• **纳斯达克科技 (159509)**: <font color="info">{q_tech['price']:.3f} 元 ({q_tech['change_pct']:+.2f}%)</font>
+• **农业银行     (601288)**: <font color="info">{q_bank['price']:.3f} 元 ({q_bank['change_pct']:+.2f}%)</font>
+• **华安黄金ETF (518880)**: <font color="warning">{q_gold['price']:.3f} 元 ({q_gold['change_pct']:+.2f}%)</font>
 
-⚡ 【量化技术雷达】:
-• 纳指100 现价: {c_cur:.3f} | EMA20: {e20:.3f} | MA50牛熊线: {m50:.3f}
-• ATR(20) 突破阈值: {e20 + 0.3 * atr:.3f} | RSI(14) 动量值: {rsi:.1f}
+**🎯 【核心决策指令】**:
+• **科技端推荐持有**: <font color="comment">**{recommended_tech}**</font>
+• **银行底座建议**: **30%** (农业银行 601288 · 6.5%分红压舱石)
+• **黄金底座建议**: **20%** (华安黄金 518880 · 避险抗通胀)
 
-📌 【再平衡操作提示】:
-• 若当前科技市值偏离 ≥ 56%：执行【止盈部分科技，补入农行/黄金】
-• 若当前科技市值偏离 ≤ 44%：执行【用农行股息/黄金浮盈低吸纳指】
-• 若在 44% ~ 56% 之间：【🟢 维持持仓，静待复利，无需任何操作】
-===================================================================
+**⚡ 【量化技术雷达】**:
+• 纳指100 现价: `{c_cur:.3f}` | EMA20: `{e20:.3f}` | MA50牛熊线: `{m50:.3f}`
+• ATR(20) 突破阈值: `{e20 + 0.3 * atr:.3f}` | RSI(14) 动量值: `{rsi:.1f}`
+
+**📌 【再平衡操作提示】**:
+• 若科技市值偏离 $\\ge 56\\%$：【止盈部分科技，买入农行与黄金】
+• 若科技市值偏离 $\\le 44\\%$：【用农行股息与黄金浮盈低吸纳指】
+• 44% ~ 56% 之间：<font color="info">**【🟢 维持持仓，静待复利，无需操作】**</font>
 """
         return {
             'time': now_str,
             'title': f"DTB 4.0 策略提醒: 科技端持有【{recommended_tech.split('·')[0].strip()}】",
-            'text': report_text.strip(),
+            'markdown': markdown_body.strip(),
             'recommended_tech': recommended_tech,
             'q_ndx': q_ndx,
             'q_tech': q_tech,
@@ -201,8 +187,17 @@ class DTBRealtimeMonitor:
         }
 
     # -------------------------------------------------------------
-    # 消息推送渠道集成
+    # 消息推送渠道
     # -------------------------------------------------------------
+    def send_wecom_webhook(self, markdown_content: str, webhook_url: str):
+        if not webhook_url: return
+        payload = {"msgtype": "markdown", "markdown": {"content": markdown_content}}
+        try:
+            r = self.session.post(webhook_url, json=payload, timeout=5)
+            print(f"[+] [企业微信] 推送响应: {r.text}")
+        except Exception as e:
+            print(f"[-] [企业微信] 推送失败: {e}")
+
     def send_pushplus(self, title: str, content: str, token: str):
         if not token: return
         url = "http://www.pushplus.plus/send"
@@ -213,73 +208,27 @@ class DTBRealtimeMonitor:
         except Exception as e:
             print(f"[-] [PushPlus] 推送失败: {e}")
 
-    def send_serverchan(self, title: str, content: str, sckey: str):
-        if not sckey: return
-        url = f"https://sctapi.ftqq.com/{sckey}.send"
-        payload = {"title": title, "desp": content}
-        try:
-            r = self.session.post(url, data=payload, timeout=5)
-            print(f"[+] [Server酱] 微信推送响应: {r.json().get('message')}")
-        except Exception as e:
-            print(f"[-] [Server酱] 推送失败: {e}")
-
-    def send_wecom_webhook(self, title: str, content: str, webhook_url: str):
-        if not webhook_url: return
-        payload = {"msgtype": "markdown", "markdown": {"content": f"### {title}\n\n{content}"}}
-        try:
-            r = self.session.post(webhook_url, json=payload, timeout=5)
-            print(f"[+] [企业微信] 推送响应: {r.text}")
-        except Exception as e:
-            print(f"[-] [企业微信] 推送失败: {e}")
-
-    def send_dingtalk_webhook(self, title: str, content: str, webhook_url: str):
-        if not webhook_url: return
-        payload = {"msgtype": "markdown", "markdown": {"title": title, "text": f"### {title}\n\n{content}"}}
-        try:
-            r = self.session.post(webhook_url, json=payload, timeout=5)
-            print(f"[+] [钉钉] 推送响应: {r.text}")
-        except Exception as e:
-            print(f"[-] [钉钉] 推送失败: {e}")
-
-    def send_feishu_webhook(self, title: str, content: str, webhook_url: str):
-        if not webhook_url: return
-        payload = {"msg_type": "text", "content": {"text": f"【{title}】\n\n{content}"}}
-        try:
-            r = self.session.post(webhook_url, json=payload, timeout=5)
-            print(f"[+] [飞书] 推送响应: {r.text}")
-        except Exception as e:
-            print(f"[-] [飞书] 推送失败: {e}")
-
     def run_and_notify_all(self):
         """
-        主执行入口：生成报告并分发到所有已配置的环境变量渠道
+        主执行入口：生成报告并分发到所有已配置渠道
         """
         rep = self.generate_daily_signal_report()
-        print(rep['text'])
+        print("\n" + rep['markdown'] + "\n")
         
-        # 读取环境变量配置
+        # 读取环境变量配置 (优先环境变量，默认企业微信)
+        wecom = os.environ.get("WECOM_WEBHOOK", DEFAULT_WECOM_WEBHOOK).strip()
         pp_token = os.environ.get("PUSHPLUS_TOKEN", "").strip()
-        sckey = os.environ.get("SERVERCHAN_KEY", "").strip()
-        wecom = os.environ.get("WECOM_WEBHOOK", "").strip()
-        dingtalk = os.environ.get("DINGTALK_WEBHOOK", "").strip()
-        feishu = os.environ.get("FEISHU_WEBHOOK", "").strip()
         
-        title = rep['title']
-        content = rep['text']
-        
-        if pp_token: self.send_pushplus(title, content, pp_token)
-        if sckey: self.send_serverchan(title, content, sckey)
-        if wecom: self.send_wecom_webhook(title, content, wecom)
-        if dingtalk: self.send_dingtalk_webhook(title, content, dingtalk)
-        if feishu: self.send_feishu_webhook(title, content, feishu)
-        
-        # 输出 GitHub Actions Step Summary (如果处于 GitHub Actions 环境)
+        if wecom:
+            self.send_wecom_webhook(rep['markdown'], wecom)
+        if pp_token:
+            self.send_pushplus(rep['title'], rep['markdown'], pp_token)
+            
         summary_file = os.environ.get("GITHUB_STEP_SUMMARY")
         if summary_file:
             try:
                 with open(summary_file, "a", encoding="utf-8") as f:
-                    f.write(f"```text\n{content}\n```\n")
-                print("[+] [GitHub Actions] 已成功写入 Step Summary 报表！")
+                    f.write(rep['markdown'] + "\n")
             except Exception:
                 pass
 
