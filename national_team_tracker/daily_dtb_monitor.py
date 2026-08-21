@@ -88,7 +88,7 @@ class DualBankGlobalDTBApexMonitor:
 
     def get_recent_hfq_kline(self, code: str, days: int = 80) -> pd.DataFrame:
         market = 'sh' if code.startswith('51') or code.startswith('58') or code.startswith('60') or code.startswith('000') else 'sz'
-        url = f"http://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param={market}{code},day,,,{days},hfq"
+        url = f"http://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param={market}{code},day,,,{days},qfq"
         try:
             s = requests.Session()
             s.trust_env = False
@@ -97,7 +97,7 @@ class DualBankGlobalDTBApexMonitor:
             data_dict = r.get('data', {}) if isinstance(r, dict) else {}
             raw = data_dict.get(f"{market}{code}", {}) if isinstance(data_dict, dict) else {}
             if isinstance(raw, dict):
-                k = raw.get('hfqday') or raw.get('day', [])
+                k = raw.get('qfqday') or raw.get('day', [])
             elif isinstance(raw, list):
                 k = raw
             else:
