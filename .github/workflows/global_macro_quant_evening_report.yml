@@ -8,6 +8,9 @@ on:
   # 支持在 GitHub 网页上一键手动点击运行测试
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   run-global-macro-report:
     runs-on: ubuntu-latest
@@ -28,8 +31,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: 生成全球宏观大势与顶级机构量化战略晚报并推送企业微信
+      - name: 生成 4K Bento HTML 研报并向企业微信推送精炼图文简报
         env:
           MACRO_EVENING_WEBHOOK: ${{ secrets.MACRO_EVENING_WEBHOOK }}
         run: |
           python global_macro_evening_report.py
+
+      - name: 自动同步最新深度 HTML 研报至 GitHub Pages
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add index.html quant_dashboard.html || true
+          git commit -m "chore: auto update global macro HTML report [skip ci]" || true
+          git push || true
