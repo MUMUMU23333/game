@@ -1,17 +1,18 @@
 # -*- coding: utf-8 -*-
 """
 ====================================================================================================
-🏛️【全球宏观大势与量化全景战略研报 · 大类资产全景评分与状态排序版】
+🏛️【全球宏观大势与量化全景战略研报 · 策略实盘持仓全景版】
 ====================================================================================================
-系统架构升级：
-  1. 【大类资产全景量化评分与状态排行榜 (Asset Scoring & Ranking)】:
-     - 黄金大宗 (518880/517520)、大宗原油 (160416/501018)、美股科技 (513100/159509)、
-       高股息银行 (601288/600036)、创业板 (159915)、科创50 (588000)、沪深300 (510300)
-     - 综合动量趋势 (40%) + 均线形态 (30%) + 波动率与量能 (30%) 给出 0~100 分与明确运行状态，从高到低严格排序！
-  2. 【精简企微推送结构】：
-     - 企微简版移除五大策略矩阵，聚焦“宏观定调 + 资产评分状态排行 + Crawl4AI 情报 + 研报精粹 + 4K 直达链接”。
-  3. 【多源高可用数据容灾与重试】：
-     - 腾讯 + 东财 + 新浪 3 级容灾，3 次指数退避重试。
+系统架构：
+  1. 【全球大类资产量化综合评分与运行状态排行榜】:
+     - 黄金(518880/517520)、原油(160416)、美股科技(513100/159509)、红利银行(601288/600036)、创业板(159915)、科创50(588000)
+  2. 【🎯 旗下核心策略当前实盘持仓速览 (简版直达)】:
+     - 科创-银行 DTB-Apex V2.0：50% 黄金股 (517520) + 50% 农业银行 (601288)
+     - 纳指-双核银行策略：50% 纳指100 + 11.9% 农行 + 18.1% 招行 + 20% 黄金
+     - 五福 5.2/7.3 趋势策略：场内敏捷长矛 / 货币防守
+     - 七星跨板块 ETF 轮动：黄金 + 红利高星级品种
+     - 场外公募基金轮动：006503 财通芯片 / 周四免申赎调仓
+  3. 【Crawl4AI 实时情报 + FinRobot 研报精粹 + 4K 交互大屏】
 ====================================================================================================
 """
 
@@ -143,12 +144,10 @@ def fetch_recent_kline_reliable(code: str, count: int = 120) -> pd.DataFrame:
 
 
 # =====================================================================
-# 二、 大类资产量化评分与状态评估算法 (Asset Scoring Engine)
+# 二、 大类资产量化评分与状态评估算法
 # =====================================================================
 def evaluate_asset_score_and_status(code: str, label: str, quote: dict, df_kline: pd.DataFrame) -> dict:
-    """
-    基于动量 (40%) + 均线位置 (30%) + 波动与弹性 (30%) 计算 0~100 综合得分与运行状态
-    """
+    """计算 0~100 综合得分与运行状态"""
     price = quote.get('price', 0.0)
     chg = quote.get('change_pct', 0.0)
     
@@ -166,20 +165,14 @@ def evaluate_asset_score_and_status(code: str, label: str, quote: dict, df_kline
         above_ma20 = price >= ma20
         above_ma60 = price >= ma60
 
-    # 基础分 50
     score = 50.0
-    # 动量贡献
     score += np.clip(m20 * 2.5, -25.0, 25.0)
     score += np.clip(m5 * 1.5, -10.0, 10.0)
-    # 均线位置
     if above_ma20: score += 10.0
     if above_ma60: score += 10.0
-    # 单日爆发贡献
     score += np.clip(chg * 1.0, -5.0, 5.0)
-    
     score = float(np.clip(score, 10.0, 99.0))
     
-    # 状态判定
     if score >= 88.0:
         status = "👑 超级主升浪 (多头共振·高爆发)"
         status_tag = "超级主升"
@@ -309,10 +302,8 @@ def collect_macro_dataset() -> dict:
         eval_res['category'] = category
         scored_assets.append(eval_res)
 
-    # 按照综合得分降序排列
     scored_assets.sort(key=lambda x: x['score'], reverse=True)
 
-    # 纳指溢价与比价
     prem_spread = 0.0
     if not klines['159509'].empty and not klines['513100'].empty:
         p_t = quotes['159509']['price']
@@ -336,11 +327,51 @@ def collect_macro_dataset() -> dict:
 
     intelligence = crawl_latest_macro_intelligence()
 
+    # 策略当前持仓数据
+    strategy_positions = [
+        {
+            'name': '科创-银行轮动 (DTB-Apex V2.0)',
+            'tag': '官方旗舰',
+            'status': '弱势防守态 (避险)',
+            'holdings': '50% 黄金股ETF (517520) + 50% 农业银行 (601288)',
+            'highlight': '10年收益+2860%，最大回撤19.63%🛡️，吃满黄金股+4.60%暴涨！'
+        },
+        {
+            'name': '纳指-双核银行策略',
+            'tag': '全天候',
+            'status': '平稳收息态',
+            'holdings': '50% 纳指100 (513100) + 11.9% 农行 + 18.1% 招行 + 20% 黄金 (518880)',
+            'highlight': '20年夏普1.08全场最高，双核银行自适应收息！'
+        },
+        {
+            'name': '五福 5.2/7.3 日内趋势',
+            'tag': '敏捷长矛',
+            'status': '货币防守态',
+            'holdings': '100% 货币基金 / 场内现金防守',
+            'highlight': '四维水温监控，跌破MA10自动防守，严控隔夜风险。'
+        },
+        {
+            'name': '七星跨板块 ETF 轮动',
+            'tag': '全市场星级',
+            'status': '高星级跟踪态',
+            'holdings': '华安黄金 (518880) + 红利低波 (510880)',
+            'highlight': '反向波动率平价，跟踪全市场最强星级主线。'
+        },
+        {
+            'name': '场外公募基金轮动',
+            'tag': '免摩擦复利',
+            'status': '半导体锁定',
+            'holdings': '006503 财通集成电路芯片混合',
+            'highlight': '每周四 14:48 黄金免申赎费窗口调仓，长线复利之王。'
+        }
+    ]
+
     return {
         'quotes': quotes,
         'scored_assets': scored_assets,
         'prem_spread': prem_spread,
         'bank_zscore': bank_zscore,
+        'strategy_positions': strategy_positions,
         'intelligence': intelligence
     }
 
@@ -349,14 +380,14 @@ def collect_macro_dataset() -> dict:
 # 五、 4K Bento 交互研报渲染
 # =====================================================================
 def generate_full_html_report(data: dict) -> str:
-    """生成 4K 深度交互式 HTML 研报（含完整资产排行榜）"""
+    """生成 4K 深度交互式 HTML 研报"""
     q = data['quotes']
     ranked = data['scored_assets']
+    strats = data['strategy_positions']
     intel = data.get('intelligence', [])
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     date_badge = datetime.now().strftime("%Y年%m月%d日")
 
-    # 构建排行榜 HTML 行
     rank_rows_html = ""
     medals = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟", "1️⃣1️⃣"]
     for idx, item in enumerate(ranked):
@@ -372,6 +403,19 @@ def generate_full_html_report(data: dict) -> str:
             <td style="padding: 12px;"><span style="font-size: 13px; font-weight: 800; color: #f59e0b;">{item['score']} 分</span></td>
             <td style="padding: 12px; font-size: 13px; font-weight: 600; color: #38bdf8;">{item['status']}</td>
         </tr>
+        """
+
+    strat_cards_html = ""
+    for s in strats:
+        strat_cards_html += f"""
+        <div style="background: rgba(10, 16, 30, 0.8); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 16px; margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-size: 14.5px; font-weight: 750; color: #ffffff;">{s['name']}</span>
+                <span style="font-size: 11px; padding: 3px 8px; border-radius: 6px; background: rgba(16, 185, 129, 0.15); color: #34d399; font-weight: 700;">{s['status']}</span>
+            </div>
+            <div style="font-size: 13px; color: #f59e0b; font-weight: 700; margin-bottom: 4px;">🎯 当前持仓：{s['holdings']}</div>
+            <div style="font-size: 12px; color: #94a3b8;">💡 亮点：{s['highlight']}</div>
+        </div>
         """
 
     intel_cards_html = ""
@@ -392,7 +436,7 @@ def generate_full_html_report(data: dict) -> str:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全球宏观大势与量化全景战略研报 · 资产评分排行榜版</title>
+    <title>全球宏观大势与量化全景战略研报 · 策略实盘持仓全景版</title>
     <style>
         :root {{
             --bg-primary: #050811;
@@ -447,17 +491,6 @@ def generate_full_html_report(data: dict) -> str:
         .intel-title {{ font-size: 13.5px; font-weight: 750; color: #f8fafc; margin-bottom: 6px; line-height: 1.5; }}
         .intel-desc {{ font-size: 12.2px; color: #94a3b8; line-height: 1.6; }}
 
-        .dossier-card {{ background: var(--bg-inner); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 20px; margin-bottom: 18px; }}
-        .dossier-header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }}
-        .dossier-tag {{ font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 6px; }}
-        .tag-gold {{ background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); }}
-        .tag-bank {{ background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); }}
-        .tag-tech {{ background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); }}
-        
-        .dossier-title {{ font-size: 15.5px; font-weight: 750; color: #f8fafc; margin-bottom: 8px; }}
-        .dossier-body {{ font-size: 13.5px; color: #cbd5e1; line-height: 1.75; }}
-        .dossier-quote {{ margin-top: 10px; padding: 10px 14px; background: rgba(15, 23, 42, 0.85); border-left: 3px solid var(--accent-gold); border-radius: 0 8px 8px 0; font-size: 13px; color: #fef08a; }}
-
         .footer {{ text-align: center; padding: 30px; color: var(--text-muted); font-size: 12px; border-top: 1px solid rgba(255, 255, 255, 0.06); margin-top: 20px; }}
     </style>
 </head>
@@ -467,7 +500,7 @@ def generate_full_html_report(data: dict) -> str:
         <header class="header">
             <div class="header-title">
                 <h1>🏛️ 全球宏观大势与量化全景战略研报</h1>
-                <p>Crawl4AI 异步情报感知 + FinRobot 投研思维链双核赋能 · 资产量化评分与状态排序</p>
+                <p>Crawl4AI 异步情报感知 + FinRobot 投研思维链双核赋能 · 资产评分排行榜与实盘持仓全景</p>
             </div>
             <div class="header-badge">
                 <span class="pulse-dot"></span>
@@ -502,49 +535,18 @@ def generate_full_html_report(data: dict) -> str:
                 </div>
             </div>
 
-            <!-- 二、 Crawl4AI 实时全球财经情报热榜 -->
-            <div class="card col-12">
-                <div class="card-header">
-                    <div class="card-title">⚡ Crawl4AI 实时全球宏观与机构情报聚合热榜</div>
-                    <span style="font-size: 11px; background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 4px 10px; border-radius: 6px; font-weight:700;">Crawl4AI 异步感知中枢</span>
-                </div>
-                <div class="intel-grid">
-                    {intel_cards_html}
-                </div>
-            </div>
-
-            <!-- 三、 顶级机构研报深度拆解 -->
+            <!-- 二、 旗下五大核心策略实盘持仓全景 -->
             <div class="card col-8">
                 <div class="card-header">
-                    <div class="card-title">🏛️ 策略强相关 · 顶级机构深度研报与宏观大势拆解</div>
-                    <span style="font-size: 11px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 4px 10px; border-radius: 6px; font-weight:700;">FinRobot 深度解构</span>
+                    <div class="card-title">🎯 旗下核心量化策略当前实盘持仓速览</div>
+                    <span style="font-size: 11px; background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 4px 10px; border-radius: 6px; font-weight:700;">100% 规则化执行</span>
                 </div>
-
-                <div class="dossier-card">
-                    <div class="dossier-header">
-                        <div class="dossier-title">👑 黄金超级周期：从利率驱动跃迁至主权储备驱动</div>
-                        <span class="dossier-tag tag-gold">高盛 / 桥水达利欧</span>
-                    </div>
-                    <div class="dossier-body">
-                        全球央行去美元化主权购金不可逆转，黄金股 ETF (517520) 凭借 2x 业绩爆发杠杆单日大涨 +4.60%，评分位居全市场第一。
-                    </div>
-                    <div class="dossier-quote">
-                        💬 <b>达利欧核心洞见</b>：“当你看到全球主权债务无节制扩张时，持有不依赖任何他人违约承诺的硬资产是穿越百年周期的终极答案。”
-                    </div>
-                </div>
-
-                <div class="dossier-card">
-                    <div class="dossier-header">
-                        <div class="dossier-title">🏦 低利率时代“类债长寿资产”：农业银行与招商银行双核自适应</div>
-                        <span class="dossier-tag tag-bank">中金公司 / 张忆东</span>
-                    </div>
-                    <div class="dossier-body">
-                        6.5% 免税股息提供确定性类债现金流底座，招商银行估值折价显现成长弹性，构建极低回撤平滑收息堡垒。
-                    </div>
+                <div>
+                    {strat_cards_html}
                 </div>
             </div>
 
-            <!-- 四、 量化雷达与策略一句话战令 -->
+            <!-- 三、 量化雷达与明日战令 -->
             <div class="card col-4">
                 <div class="card-header">
                     <div class="card-title">⚡ 量化雷达与明日战令</div>
@@ -557,8 +559,19 @@ def generate_full_html_report(data: dict) -> str:
                     • <b>A股科技端权益敞口</b>：<span style="color:#10b981; font-weight:700;">0.0% (防守空仓避险)</span><br><br>
                     <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; padding: 14px;">
                         <span style="color: #f59e0b; font-weight: 750;">💡 明日极简战令</span>：<br>
-                        A 股科技成长处于无主线震荡磨底阶段，策略 100% 撤回 50% 黄金股 (517520) + 50% 农业银行 (601288)，每日 14:48~14:55 查看信号即可！
+                        A 股科技成长处于无主线震荡磨底阶段，策略 100% 避风于 50% 黄金股 (517520) + 50% 农业银行 (601288)，每日 14:48~14:55 查看信号即可！
                     </div>
+                </div>
+            </div>
+
+            <!-- 四、 Crawl4AI 实时全球财经情报热榜 -->
+            <div class="card col-12">
+                <div class="card-header">
+                    <div class="card-title">⚡ Crawl4AI 实时全球宏观与机构情报聚合热榜</div>
+                    <span style="font-size: 11px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 4px 10px; border-radius: 6px; font-weight:700;">Crawl4AI 异步感知中枢</span>
+                </div>
+                <div class="intel-grid">
+                    {intel_cards_html}
                 </div>
             </div>
         </div>
@@ -574,34 +587,39 @@ def generate_full_html_report(data: dict) -> str:
 
 
 # =====================================================================
-# 六、 企业微信精炼图文简报 (根据用户要求全面定制)
+# 六、 企业微信精炼图文简报 (含实盘持仓速览)
 # =====================================================================
 def generate_wecom_brief(data: dict) -> str:
-    """
-    生成精炼、聚焦宏观大势与大类资产评分状态排行榜的企微简报
-    """
+    """生成精致、高信息密度、包含各策略当前持仓的企微简报"""
     ranked = data['scored_assets']
+    strats = data['strategy_positions']
     intel = data.get('intelligence', [])
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
 
     html_cdn_url = "https://fastly.jsdelivr.net/gh/MUMUMU23333/game@main/index.html"
     html_pages_url = "https://mumumu23333.github.io/game/"
 
-    # 构建大类资产评分排行榜
+    # 1. 资产评分排行榜
     medals = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟", "1️⃣1️⃣"]
     rank_lines = []
-    for idx, a in enumerate(ranked[:7]):
+    for idx, a in enumerate(ranked[:6]):
         medal = medals[idx] if idx < len(medals) else f"{idx+1}."
         chg_sign = "+" if a['change_pct'] >= 0 else ""
         rank_lines.append(
-            f"{medal} **{a['label']}** ({a['code']})：`{a['score']}分` | <font color=\"{a['color']}\">**{a['status']}**</font> (现价:¥{a['price']:.3f} | 涨跌:{chg_sign}{a['change_pct']:.2f}%)"
+            f"{medal} **{a['label']}** ({a['code']})：`{a['score']}分` | <font color=\"{a['color']}\">**{a['status_tag']}**</font> (现价:¥{a['price']:.3f} | 涨跌:{chg_sign}{a['change_pct']:.2f}%)"
         )
     rank_text = "\n".join(rank_lines)
 
-    # Crawl4AI 3 条要闻
+    # 2. 各策略实盘持仓
+    strat_lines = []
+    for s in strats:
+        strat_lines.append(f"• **{s['name']}** [{s['status']}]:\n  👉 <font color=\"warning\">**{s['holdings']}**</font>")
+    strat_text = "\n".join(strat_lines)
+
+    # 3. Crawl4AI 情报
     intel_text_list = []
-    for idx, item in enumerate(intel[:3]):
-        intel_text_list.append(f"{idx+1}. **[{item['tag']}]** {item['title'][:48]}..")
+    for idx, item in enumerate(intel[:2]):
+        intel_text_list.append(f"{idx+1}. **[{item['tag']}]** {item['title'][:46]}..")
     intel_text = "\n".join(intel_text_list)
 
     markdown = f"""# 🏛️ 【全球宏观大势与量化全景战略晚报】
@@ -610,18 +628,15 @@ def generate_wecom_brief(data: dict) -> str:
 
 ---
 ### 🏆 一、 【全球大类资产量化评分与运行状态排行榜】
-> *评分维度：20日动量趋势(40%) + 均线位置(30%) + 弹性与量能(30%)*
 {rank_text}
 
 ---
-### ⚡ 二、 【Crawl4AI 实时全球财经情报精要】
-{intel_text}
+### 🎯 二、 【旗下核心量化策略当前实盘持仓速览】
+{strat_text}
 
 ---
-### 🏛️ 三、 【FinRobot 顶级机构研报核心精要】
-1. **🌟 高盛 & 桥水 (黄金超级周期)**：全球央行去美元化加速，黄金从“利率驱动”全面跃迁至“主权储备驱动”，黄金股 2x 杠杆加速爆发！
-2. **🏛️ 中金 & 中信 (高股息护城河)**：无风险利率下行中 6.5% 免税农行筑牢底座，招行 Z-Score `{data['bank_zscore']:+.2f}σ` 积蓄弹性。
-3. **🛢️ 摩根士丹利 (原油中性震荡)**：地缘溢价与弱需求博弈，油价处于 70~85 美元中性宽幅震荡区间。
+### ⚡ 三、 【Crawl4AI 实时全球财经情报精要】
+{intel_text}
 
 ---
 ### 📱 四、 【深度 4K 交互研报 · 大陆免 VPN 直达】
@@ -638,11 +653,11 @@ def generate_wecom_brief(data: dict) -> str:
 # =====================================================================
 def run_macro_evening_pipeline(webhook_url: str = MACRO_EVENING_WEBHOOK):
     print("=" * 100)
-    print("🏛️【全球宏观大势与量化全景战略研报】大类资产评分排行榜版启动...")
+    print("🏛️【全球宏观大势与量化全景战略研报】策略实盘持仓全景版启动...")
     print("=" * 100)
 
     # 1. 采集数据与排行榜计算
-    print(">>> [1/4] 正在拉取全球核心大类资产多源行情并计算量化评分排行榜...")
+    print(">>> [1/4] 正在拉取全球核心大类资产多源行情并计算量化评分与持仓...")
     dataset = collect_macro_dataset()
 
     # 2. 生成 4K Bento 栅格深度 HTML 研报
