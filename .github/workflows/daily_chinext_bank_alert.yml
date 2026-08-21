@@ -1,0 +1,38 @@
+name: 👑 创业板-银行策略 (双核主权母基金版) · 每日实盘监控与企业微信推送
+
+on:
+  # 定时自动触发：
+  # 1. 交易日早盘开盘后 09:35 (UTC 01:35) - 评估早盘趋势
+  # 2. 交易日尾盘决策窗口 14:48 (UTC 06:48) - 核心调仓与持仓确认推送
+  schedule:
+    - cron: '35 1 * * 1-5'
+    - cron: '48 6 * * 1-5'
+
+  # 支持在 GitHub 网页上一键手动点击运行测试
+  workflow_dispatch:
+
+jobs:
+  run-chinext-bank-monitor:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出策略代码
+        uses: actions/checkout@v4
+
+      - name: 配置 Python 环境 (3.11)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: 'requirements.txt'
+
+      - name: 安装量化核心依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 运行 创业板-银行策略 (双核母基金) 信号引擎并推送企业微信
+        env:
+          CHINEXT_BANK_WEBHOOK: ${{ secrets.CHINEXT_BANK_WEBHOOK }}
+        run: |
+          python chinext_bank_strategy_notifier.py
