@@ -408,9 +408,10 @@ class StarBankRotationNotifier:
 
     def format_wecom_markdown(self, res: dict) -> str:
         """生成企业微信高端格式化推送文本 (DTB-Apex V2.0 阶梯风控版)"""
+        today_str = datetime.now().strftime("%Y-%m-%d")
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
         is_close_call = datetime.now().hour >= 14 and datetime.now().minute >= 40
-        time_badge = "🔔【尾盘 14:50 终验调仓令】" if is_close_call else "☀️【早盘 09:35 水温监控】"
+        time_badge = f"🔔【{today_str} 14:50 尾盘终验调仓令】" if is_close_call else f"☀️【{today_str} 09:35 早盘水温监控】"
 
         q = res['quotes']
         gold_q = q.get(res['gold_exec_code'], {})
@@ -447,7 +448,7 @@ class StarBankRotationNotifier:
 • 🛡️ **10年最大回撤**：`19.63%` (突破 20% 机构级低回撤大关!) | 夏普 `1.54` | 卡玛 `2.31`
 • 🚀 **2026年实盘**：`+99.34%` (5万元翻倍至 ¥99,671 元)
 
-> 📌 **实操提醒**：若当前实际持仓与上述目标配比一致，则【维持持仓无需操作】；若偏离度较大，请于 14:50~14:58 尾盘按比例调整！
+> 📌 **实操提醒**：若当前实际持仓与上述目标配比一致，则【维持持仓无需操作】；若偏离度较大，请于 {today_str} 14:50~14:58 尾盘按比例调整！
 """
         return md.strip()
 

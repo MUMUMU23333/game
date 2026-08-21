@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 """
 ================================================================================
-⭐ 七星高照 ETF 动量轮动策略 - 企业微信推送引擎 (极简专业·持仓天数与盈亏版)
+⭐ 七星高照 ETF 动量轮动策略 - 企业微信推送引擎 (精准日期与时序节点版)
 ================================================================================
 核心规范：
-  1. 交易时间节点：14:47 调仓卖出 ➔ 14:48 动量买入 ➔ 15:02 盘后复盘
+  1. 交易时间节点全带日期：(YYYY-MM-DD HH:MM 尾盘确认)
   2. 持仓天数与盈亏透视：明确标注【已持仓 X 个交易日】与【盈利/亏损 XX 元 (+XX.XX%)】
-  3. 极简专业卡片：精简 70% 冗余行，突出 🔴卖出/🟢买入/🛡️续持 与 盈亏安全垫
+  3. 极简专业卡片：突出 🔴卖出/🟢买入/🛡️续持 与 盈亏安全垫
   4. 动量榜 Top3：仅保留前 3 名核心有效梯队，折叠无效与深跌标的
   5. 防重复推送拦截（Idempotent Lock）：按 [交易日_阶段] 去重，严防重复打扰
-  6. 端口完全独立：默认企业微信 Webhook 端口与五福隔离，支持独立配置
+  6. 统一真实状态源：杜绝收盘后推送冲突数据
 ================================================================================
 """
 
@@ -76,17 +76,25 @@ class QiXingWeComNotifier:
 
     def format_report(
         self,
-        stage: str,               # "14:47 盘中调仓" 或 "14:48 盘尾确认" 或 "15:02 盘后复盘"
+        stage: str,               # 如 "14:48 尾盘确认"
         action_type: str,         # "HOLD" (继续持有最强龙头) 或 "TRANSFER" (触发调仓换标)
         total_asset: float,       # 账户总资产 (如 82617.28)
         position_pct: float,      # 仓位百分比 (如 99.1)
-        current_pos: dict,        # 持仓字典: {code, name, amount, market_val, cost, price, pnl_amount, pnl_pct, holding_days, buy_date, stop_price, cushion_pct}
-        target_buy: dict = None,  # 买入字典 (TRANSFER时提供): {code, name, price, amount, score}
+        current_pos: dict,        # 持仓字典
+        target_buy: dict = None,  # 买入字典 (TRANSFER时提供)
         top_candidates: list = None, # 动量打分前3名
         timeline: list = None,    # 当日时序全景
-        special_reason: str = None # 特殊情况说明 (如溢价熔断、调仓门槛过滤等)
+        special_reason: str = None # 特殊情况说明
     ) -> str:
-        """渲染高颜值、专业清爽的七星策略 Markdown 格式 (含特殊情况归因)"""
+        """渲染带精准日期、专业清爽的七星策略 Markdown 格式"""
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        
+        # 确保 stage 带有完整日期
+        if not stage.startswith("20"):
+            full_stage = f"{today_str} {stage}"
+        else:
+            full_stage = stage
+
         pnl_val = current_pos.get('pnl_amount', 0.0)
         pnl_pct = current_pos.get('pnl_pct', 0.0)
         hold_days = current_pos.get('holding_days', current_pos.get('days', 1))
@@ -117,36 +125,37 @@ class QiXingWeComNotifier:
 > {special_reason}
 """
 
-        # 当日时序节点
+        # 当日时序节点 (全部带有完整日期)
         timeline_lines = []
         if timeline:
             for t in timeline:
                 if isinstance(t, str):
                     timeline_lines.append(t if t.startswith("•") else f"• {t}")
                 elif isinstance(t, dict):
-                    timeline_lines.append(f"• `⏰ {t.get('time', '')}` {t.get('desc', '')}")
+                    t_time = t.get('time', '')
+                    time_prefix = f"{today_str} {t_time}" if not t_time.startswith("20") else t_time
+                    timeline_lines.append(f"• `⏰ {time_prefix}` {t.get('desc', '')}")
         if not timeline_lines:
             default_timeline = [
-                {"time": "09:30", "desc": "开盘监控 (跨板块7大主题ETF动量扫描)"},
-                {"time": "14:40", "desc": "尾盘动量终测 (原版公式斜率与波动率平价测算)"},
-                {"time": "14:47", "desc": "卖出执行 (清退动量衰减标的)" if action_type == 'TRANSFER' else "动量校验 (龙头优势稳固，无需卖出)"},
-                {"time": "14:48", "desc": f"买入建仓 ({target_buy['name']})" if action_type == 'TRANSFER' and target_buy else "续持确认 (持仓标的吃满波段)"},
-                {"time": "15:02", "desc": "收盘归档与账户资产净值结算"}
+                {"time": f"{today_str} 09:30", "desc": "开盘监控 (跨板块7大主题ETF动量扫描)"},
+                {"time": f"{today_str} 14:40", "desc": "尾盘动量终测 (原版公式斜率与波动率平价测算)"},
+                {"time": f"{today_str} 14:47", "desc": "卖出执行 (清退动量衰减标的)" if action_type == 'TRANSFER' else "动量校验 (龙头优势稳固，无需卖出)"},
+                {"time": f"{today_str} 14:48", "desc": f"买入建仓 ({target_buy['name']})" if action_type == 'TRANSFER' and target_buy else "续持确认 (持仓标的吃满波段)"},
+                {"time": f"{today_str} 15:02", "desc": "收盘归档与账户资产净值结算"}
             ]
             for t in default_timeline:
                 timeline_lines.append(f"• `⏰ {t['time']}` {t['desc']}")
         timeline_block = "\n".join(timeline_lines)
 
         if action_type == "TRANSFER" and target_buy:
-            # 调仓指令
-            markdown = f"""# 🔔 七星量化 调仓换标报告 ({stage})
+            markdown = f"""# 🔔 七星量化 调仓换标报告 ({full_stage})
 > 💰 **账户总资产**：¥{total_asset:,.2f} 元 (仓位: {position_pct:.1f}%) | 策略：⭐ **七星跨板块轮动**
 
 ### 🎯 【今日执行指令】(按时间节点)
-🔴 **卖出** [14:47]：`{current_pos['code']}` {current_pos['name']} · **{current_pos.get('amount', 0):,}股** (清仓)
+🔴 **卖出** [{today_str} 14:47]：`{current_pos['code']}` {current_pos['name']} · **{current_pos.get('amount', 0):,}股** (清仓)
    └ 结算：已持仓 {hold_days} 日 | 成本 ¥{current_pos['cost']:.3f} ➔ 现价 ¥{current_pos['price']:.3f} | {pnl_color_txt}
 
-🟢 **买入** [14:48]：`{target_buy['code']}` {target_buy['name']} · **约 {target_buy.get('amount', 0):,}股**
+🟢 **买入** [{today_str} 14:48]：`{target_buy['code']}` {target_buy['name']} · **约 {target_buy.get('amount', 0):,}股**
    └ 挂单：参考价 **¥{target_buy['price']:.3f}** (动量得分 `{target_buy.get('score', 0):.3f}`)
 
 ---
@@ -160,9 +169,8 @@ class QiXingWeComNotifier:
 > 💡 *风控防线：止损线 ¥{current_pos.get('stop_price', 0):.3f} (距 5% 硬止损尚有 {current_pos.get('cushion_pct', 0):+.2f}% 安全垫)*
 """
         else:
-            # 续持最强龙头 (HOLD)
             leader_score = current_pos.get('score', 0.050)
-            markdown = f"""# 🛡️ 七星量化 持仓与动量报告 ({stage})
+            markdown = f"""# 🛡️ 七星量化 持仓与动量报告 ({full_stage})
 > 💰 **账户总资产**：¥{total_asset:,.2f} 元 (仓位: {position_pct:.1f}%) | 状态：<font color="info">**【继续持有最强龙头】**</font>
 
 ### 📦 【当前持仓与实时盈亏】
@@ -181,7 +189,7 @@ class QiXingWeComNotifier:
 ### ⏱️ 【当日时序节点全景】
 {timeline_block}
 
-> 💡 *风控提示：建议在每个交易日 14:47 卖出、14:48 买入执行 (止损线 ¥{current_pos.get('stop_price', 0):.3f} · 安全垫 {current_pos.get('cushion_pct', 0):+.2f}%)*
+> 💡 *风控提示：建议在每个交易日 {today_str} 14:47 卖出、{today_str} 14:48 买入执行 (止损线 ¥{current_pos.get('stop_price', 0):.3f} · 安全垫 {current_pos.get('cushion_pct', 0):+.2f}%)*
 """
         return markdown.strip()
 
@@ -198,8 +206,7 @@ class QiXingWeComNotifier:
         special_reason: str = None,
         force: bool = False
     ) -> bool:
-        """发送七星量化企业微信通知 (自动防重复拦截)"""
-        push_key = f"QIXING_{stage.split()[0]}_{action_type}"
+        push_key = f"QIXING_{stage.split()[-2] if len(stage.split())>=2 else stage}_{action_type}"
 
         if not force and self._is_duplicate(push_key):
             print(f"[i] [七星量化] 今日阶段 [{stage}] 已经推送过，防重复机制已拦截。")
@@ -244,6 +251,7 @@ class QiXingWeComNotifier:
 
 if __name__ == '__main__':
     notifier = QiXingWeComNotifier()
+    today_str = datetime.now().strftime("%Y-%m-%d")
 
     sample_current_pos = {
         'code': '518880',
@@ -270,9 +278,9 @@ if __name__ == '__main__':
   - **触发风控**：501018 触发了 QDII/LOF **高溢价率熔断机制** (二级市场溢价率已超风控阈值 20%)，策略主动规避高位接盘杀溢价的踩踏风险；
   - **执行决策**：根据策略风控规则，自动顺延由有效标的第 1 名 **华安黄金ETF (518880)** 接管，继续持有吃满主升浪！"""
 
-    print(">>> 正在向企业微信发送【七星量化·带特殊情况说明】实测报告...")
+    print(">>> 正在向企业微信发送【七星量化·带精准日期】实测报告...")
     notifier.send_notification(
-        stage="14:48 盘尾确认",
+        stage=f"{today_str} 14:48 尾盘确认",
         action_type="HOLD",
         total_asset=82617.28,
         position_pct=99.1,
