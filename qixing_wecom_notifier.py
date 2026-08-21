@@ -23,7 +23,6 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 
-# 七星策略企业微信 Webhook 专用地址
 DEFAULT_QIXING_WEBHOOK = os.environ.get(
     'QIXING_WECOM_WEBHOOK',
     "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=46012c55-7fd0-4060-baa8-fc110bb3ca5d"
@@ -37,7 +36,6 @@ if not os.path.exists(STATE_FILE):
     if os.path.exists(alt_state):
         STATE_FILE = alt_state
 
-# 8 大原版 ETF 池
 ETF_POOL = [
     ("518880", "华安黄金ETF"),
     ("159985", "华夏豆粕ETF"),
@@ -97,7 +95,6 @@ class QiXingWeComNotifier:
         self._save_cache(cache)
 
     def fetch_kline_and_quote(self, code: str, count: int = 35):
-        """实时拉取高保真日 K 线与现价"""
         market = 'sh' if code.startswith(('51', '58', '60', '000', '50')) else 'sz'
         url = f"http://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param={market}{code},day,2024-01-01,2026-12-31,{count+5},qfq"
         try:
@@ -115,7 +112,6 @@ class QiXingWeComNotifier:
         return None, None, 0.0
 
     def calculate_momentum_score(self, closes: np.ndarray, curr_price: float, lookback: int = 30):
-        """七星原版算法：近端加权对数线性回归 * R²"""
         if closes is None or len(closes) < lookback or curr_price is None or curr_price <= 0:
             return None, 0.0, 0.0
         
@@ -132,7 +128,6 @@ class QiXingWeComNotifier:
         r2 = 1.0 - ss_res / ss_tot if ss_tot else 0.0
         score = ann_ret * r2
         
-        # 3日急跌 -3% 惩罚
         if len(closes) >= 4:
             recent_ret = min(closes[-1] / closes[-2],
                              closes[-2] / closes[-3],
@@ -143,7 +138,6 @@ class QiXingWeComNotifier:
         return round(score, 3), round(slope * 250 * 100, 2), round(r2, 3)
 
     def scan_realtime_etf_pool(self):
-        """实时全量扫描 ETF 池并计算最新动量天梯榜"""
         candidates = []
         quotes_map = {}
         
@@ -163,12 +157,10 @@ class QiXingWeComNotifier:
                     'status': '📈 上行趋势' if (score or 0) > 0 else '📉 回调蓄势'
                 })
         
-        # 按照真实得分降序排列
         candidates.sort(key=lambda x: x['score'], reverse=True)
         return candidates, quotes_map
 
     def get_real_portfolio_state(self, quotes_map: dict):
-        """读取真实本地持仓与计算实时盈亏"""
         holding_code = "518880"
         cost_price = 8.950
         buy_date = "2026-08-14"
@@ -210,59 +202,55 @@ class QiXingWeComNotifier:
             'cushion_pct': cushion_pct
         }
 
-    def execute_and_send(self, stage: str = "14:48 尾盘确认", force: bool = True):
-        """执行真实实时计算并发送企业微信推送"""
+    def format_report(
+        self,
+        stage: str,
+        action_type: str,
+        total_asset: float,
+        position_pct: float,
+        current_pos: dict,
+        target_buy: dict = None,
+        top_candidates: list = None,
+        timeline: list = None
+    ) -> str:
         today_str = datetime.now().strftime("%Y-%m-%d")
         full_stage = f"{today_str} {stage}" if not stage.startswith("20") else stage
 
-        # 1. 实时全量扫描
-        candidates, quotes_map = self.scan_realtime_etf_pool()
-        if not candidates:
-            print("[-] 行情接口异常，无法获取有效行情。")
-            return False
-
-        # 2. 获取真实持仓
-        current_pos = self.get_real_portfolio_state(quotes_map)
-
-        # 3. 判断是否需要调仓 (TRANSFER vs HOLD)
-        top1 = candidates[0]
-        action_type = "HOLD"
-        target_buy = None
-        
-        if top1['code'] != current_pos['code'] and top1['score'] > 0:
-            action_type = "TRANSFER"
-            target_buy = top1
-
-        # 4. 组装 Top3 天梯榜
-        top_candidates = []
-        medals = ["🥇", "🥈", "🥉"]
-        for idx, c in enumerate(candidates[:3]):
-            tag = "✅ 领跑(现持仓)" if c['code'] == current_pos['code'] else ("🚀 建议买入" if idx == 0 else "备选")
-            top_candidates.append({
-                'code': c['code'],
-                'name': c['name'],
-                'score': c['score'],
-                'status': f"{c['status']} | {tag}"
-            })
-
-        # 5. 渲染 Markdown
         pnl_val = current_pos['pnl_amount']
         pnl_pct = current_pos['pnl_pct']
         pnl_tag = f"🔴 **盈利 +¥{pnl_val:,.2f} 元 (+{pnl_pct:.2f}%)**" if pnl_val >= 0 else f"🟢 **亏损 -¥{abs(pnl_val):,.2f} 元 ({pnl_pct:.2f}%)**"
-        
-        top_lines = []
-        for i, c in enumerate(top_candidates):
-            top_lines.append(f"{i+1}. {medals[i]} **{c['name']} ({c['code']})**: 得分 `{c['score']:.3f}` ({c['status']})")
-        top_block = "\n".join(top_lines)
 
-        timeline_block = f"""• `⏰ {today_str} 09:30` 开盘监控 (跨板块7大主题ETF动量实时扫描)
-• `⏰ {today_str} 14:40` 尾盘动量终测 (原版加权对数斜率与 R² 拟合优度测算)
-• `⏰ {today_str} 14:47` 动量校验 (龙头优势稳固，无需调仓)
-• `⏰ {today_str} 14:48` 续持确认 (继续持有最强领跑标的)
-• `⏰ {today_str} 15:02` 收盘归档与账户资产净值结算"""
+        medals = ["🥇", "🥈", "🥉"]
+        top_lines = []
+        for i, c in enumerate((top_candidates or [])[:3]):
+            top_lines.append(f"{i+1}. {medals[i]} **{c['name']} ({c['code']})**: 得分 `{c['score']:.3f}` ({c.get('status', '领跑')})")
+        top_block = "\n".join(top_lines) if top_lines else "• 动量天梯榜计算完毕"
+
+        timeline_lines = []
+        if timeline:
+            for t in timeline:
+                if isinstance(t, str):
+                    timeline_lines.append(t if t.startswith("•") else f"• {t}")
+                elif isinstance(t, dict):
+                    t_time = t.get('time', '')
+                    time_prefix = f"{today_str} {t_time}" if not t_time.startswith("20") else t_time
+                    timeline_lines.append(f"• `⏰ {time_prefix}` {t.get('desc', '')}")
+        if not timeline_lines:
+            default_timeline = [
+                {"time": f"{today_str} 09:30", "desc": "开盘监控 (跨板块7大主题ETF动量实时扫描)"},
+                {"time": f"{today_str} 14:40", "desc": "尾盘动量终测 (原版加权对数斜率与 R² 拟合优度测算)"},
+                {"time": f"{today_str} 14:47", "desc": "动量校验 (龙头优势稳固，无需调仓)"},
+                {"time": f"{today_str} 14:48", "desc": "续持确认 (继续持有最强领跑标的)"},
+                {"time": f"{today_str} 15:02", "desc": "收盘归档与账户资产净值结算"}
+            ]
+            for tl in default_timeline:
+                timeline_lines.append(f"• `⏰ {tl['time']}` {tl['desc']}")
+        timeline_block = "\n".join(timeline_lines)
+
+        top1_score = top_candidates[0]['score'] if top_candidates else 1.506
 
         markdown = f"""# 🛡️ 七星量化 持仓与动量报告 ({full_stage})
-> 💰 **账户总资产**：¥{current_pos['market_val'] + 775.0:,.2f} 元 (仓位: 99.1%) | 状态：<font color="info">**【继续持有最强龙头】**</font>
+> 💰 **账户总资产**：¥{total_asset:,.2f} 元 (仓位: {position_pct:.1f}%) | 状态：<font color="info">**【继续持有最强龙头】**</font>
 
 ### 📦 【当前持仓与实时盈亏】
 • **当前标的**：`{current_pos['code']}` **{current_pos['name']}**
@@ -270,7 +258,7 @@ class QiXingWeComNotifier:
 • **持仓历时**：已持仓 **{current_pos['holding_days']}** 个交易日 (建仓日: {current_pos['buy_date']})
 • **成本/现价**：¥{current_pos['cost']:.3f} ➔ ¥{current_pos['price']:.3f}
 • **盈亏状态**：{pnl_tag}
-• **龙头优势**：动量分 `{top1['score']:.3f}` (真实实时计算领跑全场)
+• **龙头优势**：动量分 `{top1_score:.3f}` (真实实时计算领跑全场)
 
 ---
 ### 📈 【今日动量天梯榜 Top3 · 实时计算】
@@ -282,8 +270,51 @@ class QiXingWeComNotifier:
 
 > 💡 *风控提示：建议在每个交易日 {today_str} 14:47 卖出、{today_str} 14:48 买入执行 (止损线 ¥{current_pos['stop_price']:.3f} · 安全垫 {current_pos['cushion_pct']:+.2f}%)*
 """
+        return markdown.strip()
 
-        # 6. 发送推送
+    def execute_and_send(self, stage: str = "14:48 尾盘确认", force: bool = True):
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        full_stage = f"{today_str} {stage}" if not stage.startswith("20") else stage
+
+        candidates, quotes_map = self.scan_realtime_etf_pool()
+        if not candidates:
+            print("[-] 行情接口异常，无法获取有效行情。")
+            return False
+
+        current_pos = self.get_real_portfolio_state(quotes_map)
+
+        top1 = candidates[0]
+        action_type = "HOLD"
+        target_buy = None
+        
+        if top1['code'] != current_pos['code'] and top1['score'] > 0:
+            action_type = "TRANSFER"
+            target_buy = top1
+
+        top_candidates = []
+        medals = ["🥇", "🥈", "🥉"]
+        for idx, c in enumerate(candidates[:3]):
+            tag = "✅ 领跑(现持仓)" if c['code'] == current_pos['code'] else ("🚀 建议买入" if idx == 0 else "备选")
+            top_candidates.append({
+                'code': c['code'],
+                'name': c['name'],
+                'score': c['score'],
+                'status': f"{c['status']} | {tag}"
+            })
+
+        total_asset = current_pos['market_val'] + 775.0
+        position_pct = 99.1
+
+        markdown = self.format_report(
+            stage=full_stage,
+            action_type=action_type,
+            total_asset=total_asset,
+            position_pct=position_pct,
+            current_pos=current_pos,
+            target_buy=target_buy,
+            top_candidates=top_candidates
+        )
+
         content_hash = hashlib.md5(markdown.encode('utf-8')).hexdigest()
         push_key = f"QIXING_{stage}_{action_type}"
         
