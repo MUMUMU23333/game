@@ -38,7 +38,3 @@ jobs:
           git add quant_strategies/seven_stars/portfolio_state.json || true
           git commit -m "chore: auto update seven stars state [skip ci]" || true
           git push || true
-
-      - name: 运行双策略收盘全景对比大屏并发送企微
-        run: |
-          python compare_strategies.py

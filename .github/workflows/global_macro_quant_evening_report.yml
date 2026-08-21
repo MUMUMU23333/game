@@ -1,0 +1,35 @@
+name: 🏛️ 全球宏观大势与量化全景战略晚报 · 每日晚间 20:00 深度内参推送
+
+on:
+  # 每日北京时间 20:00 (UTC 12:00) 自动触发
+  schedule:
+    - cron: '0 12 * * *'
+
+  # 支持在 GitHub 网页上一键手动点击运行测试
+  workflow_dispatch:
+
+jobs:
+  run-global-macro-report:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出仓库代码
+        uses: actions/checkout@v4
+
+      - name: 配置 Python 3.11 运行环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: 'requirements.txt'
+
+      - name: 安装量化计算依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 生成全球宏观大势与顶级机构量化战略晚报并推送企业微信
+        env:
+          MACRO_EVENING_WEBHOOK: ${{ secrets.MACRO_EVENING_WEBHOOK }}
+        run: |
+          python global_macro_evening_report.py
