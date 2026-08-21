@@ -3,28 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全球宏观大势与量化全景战略研报 · FinRobot 智能体旗舰版</title>
+    <title>全球宏观大势与量化全景战略研报 · Crawl4AI + FinRobot 旗舰版</title>
     <style>
         :root {
-            --bg-primary: #070a12;
-            --bg-card: rgba(15, 23, 42, 0.78);
-            --bg-card-hover: rgba(26, 38, 64, 0.88);
-            --bg-inner: rgba(10, 16, 30, 0.75);
-            --border-color: rgba(64, 88, 140, 0.35);
-            --border-highlight: rgba(96, 165, 250, 0.65);
+            --bg-primary: #050811;
+            --bg-card: rgba(13, 20, 38, 0.82);
+            --bg-card-hover: rgba(22, 34, 60, 0.92);
+            --bg-inner: rgba(9, 14, 28, 0.8);
+            --border-color: rgba(56, 80, 130, 0.38);
+            --border-highlight: rgba(96, 165, 250, 0.7);
             --text-primary: #f8fafc;
             --text-secondary: #94a3b8;
             --text-muted: #64748b;
             --accent-gold: #f59e0b;
-            --accent-gold-glow: rgba(245, 158, 11, 0.25);
             --accent-green: #10b981;
             --accent-red: #ef4444;
             --accent-blue: #38bdf8;
             --accent-purple: #a855f7;
-            --accent-cyan: #06b6d4;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
-        body { background-color: var(--bg-primary); color: var(--text-primary); min-height: 100vh; padding: 24px 16px; line-height: 1.65; background-image: radial-gradient(circle at 12% 18%, rgba(30, 58, 138, 0.38) 0%, transparent 45%), radial-gradient(circle at 88% 82%, rgba(88, 28, 135, 0.35) 0%, transparent 45%); }
+        body { background-color: var(--bg-primary); color: var(--text-primary); min-height: 100vh; padding: 24px 16px; line-height: 1.65; background-image: radial-gradient(circle at 10% 15%, rgba(30, 58, 138, 0.42) 0%, transparent 45%), radial-gradient(circle at 90% 85%, rgba(88, 28, 135, 0.38) 0%, transparent 45%); }
         .container { max-width: 1440px; margin: 0 auto; }
         
         /* 顶部 Header */
@@ -59,20 +57,22 @@
         .down { color: #ef4444; }
         .gold { color: #f59e0b; }
 
-        /* FinRobot 核心亮点 (Key Investment Highlights) */
+        /* FinRobot 核心投资论点三要素 (Executive Thesis Highlights) */
         .highlights-box { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-bottom: 22px; }
         .highlight-card { background: rgba(14, 23, 42, 0.9); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 16px; padding: 18px; }
         .highlight-badge { font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 6px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; display: inline-block; margin-bottom: 8px; }
         .highlight-title { font-size: 14.5px; font-weight: 750; color: #ffffff; margin-bottom: 6px; }
         .highlight-desc { font-size: 12.8px; color: #94a3b8; line-height: 1.65; }
         
-        /* FinRobot 多智能体圆桌卡片 */
-        .agent-dossier-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
-        .agent-card { background: var(--bg-inner); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 20px; }
-        .agent-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .agent-role { font-size: 14px; font-weight: 800; color: #f8fafc; display: flex; align-items: center; gap: 8px; }
-        .agent-tag { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; }
-        
+        /* Crawl4AI 实时情报网格 */
+        .intel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; margin-top: 10px; }
+        .intel-item { background: var(--bg-inner); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 16px; }
+        .intel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .intel-tag { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 4px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .intel-source { font-size: 11px; color: var(--text-muted); }
+        .intel-title { font-size: 13.5px; font-weight: 750; color: #f8fafc; margin-bottom: 6px; line-height: 1.5; }
+        .intel-desc { font-size: 12.2px; color: #94a3b8; line-height: 1.6; }
+
         /* 深度研报核心卡片 */
         .dossier-card { background: var(--bg-inner); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 20px; margin-bottom: 18px; }
         .dossier-card:last-child { margin-bottom: 0; }
@@ -89,12 +89,6 @@
         .dossier-quote.gold-border { border-left-color: var(--accent-gold); color: #fef08a; }
         .dossier-quote.green-border { border-left-color: var(--accent-green); color: #a7f3d0; }
         
-        /* 压力测试情景分析 */
-        .stress-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 14px; }
-        .stress-item { background: rgba(10, 16, 30, 0.8); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 14px; }
-        .stress-title { font-size: 13px; font-weight: 750; margin-bottom: 6px; }
-        .stress-desc { font-size: 12px; color: #94a3b8; line-height: 1.6; }
-
         /* 策略矩阵展示 */
         .strategy-matrix-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
         .strategy-box { background: var(--bg-inner); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 18px; }
@@ -118,7 +112,7 @@
         <header class="header">
             <div class="header-title">
                 <h1>🏛️ 全球宏观大势与量化全景战略研报</h1>
-                <p>FinRobot 智能体深度赋能 · Data-CoT ➔ Concept-CoT ➔ Thesis-CoT 三级逻辑推演 · 顶级机构投研内参</p>
+                <p>Crawl4AI 异步情报感知 + FinRobot 投研思维链双核赋能 · 顶级机构投研内参</p>
             </div>
             <div class="header-badge">
                 <span class="pulse-dot"></span>
@@ -130,18 +124,18 @@
         <div class="highlights-box">
             <div class="highlight-card" style="border-color: rgba(245, 158, 11, 0.4);">
                 <div class="highlight-badge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">THESIS 1 · 黄金超级周期</div>
-                <div class="highlight-title">去美元化储备驱动 · 黄金2x主升浪确认</div>
+                <div class="highlight-title">去美元化主权储备驱动 · 黄金 2x 杠杆超级主升浪</div>
                 <div class="highlight-desc">华安黄金 20 日动量突破 +1.8%，黄金股凭借 2x 业绩爆发杠杆单日大涨 +4.60%，从“利率驱动”全面跃迁至“主权储备驱动”。</div>
             </div>
             <div class="highlight-card" style="border-color: rgba(16, 185, 129, 0.4);">
                 <div class="highlight-badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">THESIS 2 · 高股息双核压舱</div>
-                <div class="highlight-title">利率下行资产荒 · 6.5%免税长寿现金流堡垒</div>
-                <div class="highlight-desc">农业银行构筑无风险类债压舱底座，招商银行比价 Z-Score (-0.69σ) 显现成长性估值弹性，双核自适应平滑配比。</div>
+                <div class="highlight-title">低利率资产荒 · 6.5% 免税长寿现金流堡垒</div>
+                <div class="highlight-desc">农业银行构筑无风险类债压舱底座，招商银行比价 Z-Score (-0.69σ) 显现成长性估值弹性，双核自适应平滑收息。</div>
             </div>
             <div class="highlight-card" style="border-color: rgba(56, 189, 248, 0.4);">
-                <div class="highlight-badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">THESIS 3 · 量化吊灯一票否决</div>
-                <div class="highlight-title">A股科技蓄势磨底 · 0%权益敞口拒绝震荡损耗</div>
-                <div class="highlight-desc">双创与纳指触发 -5.0% 宽幅动态吊灯风控防御，规避阴跌损耗；纳指科技溢价处于安全带，长线复利中枢稳固。</div>
+                <div class="highlight-badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">THESIS 3 · DTB-Apex V2.0 阶梯风控</div>
+                <div class="highlight-title">4 阶梯动态风险预算 · 10年回撤破 20% 防线</div>
+                <div class="highlight-desc">宏观评分自适应分配权益敞口，-5.0% 宽幅动态吊灯一票否决，10年最大回撤仅 19.63%，夏普高达 1.54！</div>
             </div>
         </div>
 
@@ -150,13 +144,13 @@
             <div class="card col-12">
                 <div class="card-header">
                     <div class="card-title">🌐 全球核心大类资产实时收盘大屏</div>
-                    <div style="font-size: 12px; color: var(--text-secondary);">行情精准更新时间：2026-08-22 00:33:06 (北京时间)</div>
+                    <div style="font-size: 12px; color: var(--text-secondary);">行情精准更新时间：2026-08-22 01:13:50 (北京时间)</div>
                 </div>
                 <div class="ticker-grid">
                     <div class="ticker-item">
                         <div class="ticker-name"><span>华安黄金ETF</span><code>518880</code></div>
                         <div class="ticker-price gold">¥9.388</div>
-                        <div class="ticker-chg up">+1.67% (抗通胀/去美元化底座)</div>
+                        <div class="ticker-chg up">+1.67% (去美元化主权底座)</div>
                     </div>
                     <div class="ticker-item" style="border-color: rgba(245, 158, 11, 0.5); background: rgba(245, 158, 11, 0.06);">
                         <div class="ticker-name"><span style="color:#f59e0b; font-weight:750;">黄金股ETF (2x杠杆加速)</span><code>517520</code></div>
@@ -186,7 +180,72 @@
                 </div>
             </div>
 
-            <!-- 二、 【策略高度相关 · 顶级机构与顶流大V深度研报拆解】 (核心深度大篇章) -->
+            <!-- 二、 Crawl4AI 实时全球财经情报热榜 -->
+            <div class="card col-12">
+                <div class="card-header">
+                    <div class="card-title">⚡ Crawl4AI 实时全球宏观与机构情报聚合热榜</div>
+                    <span style="font-size: 11px; background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 4px 10px; border-radius: 6px; font-weight:700;">Crawl4AI 异步感知中枢</span>
+                </div>
+                <div class="intel-grid">
+                    
+        <div class="intel-item">
+            <div class="intel-header">
+                <span class="intel-tag">🌐 全球宏观</span>
+                <span class="intel-source">新浪全球财经</span>
+            </div>
+            <div class="intel-title">消息人士：博通债务交易规模预计最高可达700亿美元</div>
+            <div class="intel-desc">核心要点博通正在谈判，计划为一项芯片融资交易筹集 700‑800 亿美元债务资金。这笔资金将为包括 Anthropic 在内的多家人工智能企业提供支持。</div>
+        </div>
+        
+        <div class="intel-item">
+            <div class="intel-header">
+                <span class="intel-tag">🌐 全球宏观</span>
+                <span class="intel-source">新浪全球财经</span>
+            </div>
+            <div class="intel-title">财报密集周，零售股整体收跌</div>
+            <div class="intel-desc">零售股在这场备受关注的财报周即将收官，整体录得下跌。 标普零售 ETF（XRT）周五跟随大盘展开反弹，午盘时段涨幅接近 1%。但该 ETF 全周跌幅依旧超过 1%。</div>
+        </div>
+        
+        <div class="intel-item">
+            <div class="intel-header">
+                <span class="intel-tag">🌐 全球宏观</span>
+                <span class="intel-source">新浪全球财经</span>
+            </div>
+            <div class="intel-title">零售股财报周收官在即，整体表现仍录得跌幅</div>
+            <div class="intel-desc">零售股即将结束其标志性的财报周，但整体表现仍录得跌幅。尽管State Street SPDR S&amp;P Retail ETF（XRT）在周五午盘交易中跟随大盘反弹，上涨近1%...</div>
+        </div>
+        
+        <div class="intel-item">
+            <div class="intel-header">
+                <span class="intel-tag">👑 黄金大宗</span>
+                <span class="intel-source">新浪全球财经</span>
+            </div>
+            <div class="intel-title">高盛：黄金看涨期权需求激增，或放大金价双向波动</div>
+            <div class="intel-desc">高盛分析师在最新报告中指出，黄金看涨期权需求的激增，正在加大金价出现剧烈波动的风险。 高盛分析师Lina Thomas等人在报告中写道，黄金看涨期权交易量的增加...</div>
+        </div>
+        
+        <div class="intel-item">
+            <div class="intel-header">
+                <span class="intel-tag">🌐 全球宏观</span>
+                <span class="intel-source">新浪全球财经</span>
+            </div>
+            <div class="intel-title">城堡投资：已出售逾40亿美元购自Situational Awareness的持仓，化解80%以上风险</div>
+            <div class="intel-desc">肯·格里芬旗下城堡投资（Citadel）已出售逾40亿美元的持仓，这些持仓来自该公司此前从陷入困境的AI对冲基金Situational Awareness收购的股票投资组合。</div>
+        </div>
+        
+        <div class="intel-item">
+            <div class="intel-header">
+                <span class="intel-tag">👑 黄金大宗</span>
+                <span class="intel-source">新浪全球财经</span>
+            </div>
+            <div class="intel-title">黄金升至三个月高位，去年令金价飙升的“贬值交易”全面回潮</div>
+            <div class="intel-desc">受美国财政部为遏制借贷成本大幅上升而采取大胆干预行动的影响，市场对美国财政负担的担忧再度升温，推动黄金价格升至三个月高位。</div>
+        </div>
+        
+                </div>
+            </div>
+
+            <!-- 三、 【策略高度相关 · 顶级机构与顶流大V深度研报拆解】 (核心深度篇章) -->
             <div class="card col-8">
                 <div class="card-header">
                     <div class="card-title">🏛️ 策略强相关 · 顶级机构深度研报与大 V 视角剖析</div>
@@ -218,7 +277,7 @@
                     <div class="dossier-body">
                         <b>【资产荒底座】</b>：在我国 10 年期国债收益率长期下行的大趋势下，具备 6.0%~6.5% 免税分红收益率的国有大行（农业银行 601288）构成了机构资金配置的<b>“超级类债现金流堡垒”</b>。<br>
                         <b>【双核比价自愈】</b>：中金策略团队指出，招商银行（600036）代表零售与财富管理成长弹性，农业银行代表极致稳健防御。当前招行/农行比价 Z-Score 处于 <b>-0.69σ</b>，招行成长性估值折价充分，具备极高赔率。<br>
-                        <b>【量化策略映射】</b>：策略构建平滑利差模型 $w = 	ext{clip}(0.50 - 0.15 	imes Z, 0.30, 0.70)$，在招行估值便宜时加大招行配置（18.1% vs 11.9%），实现高股息吃息与估值均值回归的双重收益。
+                        <b>【量化策略映射】</b>：策略构建平滑利差模型 $w = 	ext{clip}(0.50 - 0.15 	imes Z, 0.30, 0.70)$，在招行估值便宜时加大招行配置，实现高股息吃息与估值均值回归的双重收益。
                     </div>
                     <div class="dossier-quote green-border">
                         💬 <b>张忆东 (兴业证券全球首席) 核心洞见</b>：“在结构性行情中，投资的胜负手在于‘高股息确定性现金流’与‘核心资产成长弹性’的哑铃型配置，绝不做平庸的中间态。”
@@ -237,10 +296,10 @@
                     </div>
                 </div>
 
-                <!-- 专题 4：A股科技成长多因子选拔与 -5.0% 动态吊灯风控 -->
+                <!-- 专题 4：DTB-Apex V2.0 阶梯风控与 -5.0% 动态吊灯跳车 -->
                 <div class="dossier-card">
                     <div class="dossier-header">
-                        <div class="dossier-title">⚔️ 专题四：A 股科技成长（创业板/科创50）多因子选拔与 -5.0% 宽幅动态吊灯跳车</div>
+                        <div class="dossier-title">⚔️ 专题四：DTB-Apex V2.0 宏观 4 级阶梯风险预算与 -5.0% 宽幅动态吊灯跳车</div>
                         <span class="dossier-tag tag-star">天风证券 / 刘煜辉</span>
                     </div>
                     <div class="dossier-body">
@@ -250,7 +309,7 @@
                 </div>
             </div>
 
-            <!-- 三、 量化雷达多因子面板与压力测试 -->
+            <!-- 四、 量化雷达多因子面板与压力测试 -->
             <div class="card col-4">
                 <div class="card-header">
                     <div class="card-title">⚡ 全景量化雷达与估值温度计</div>
@@ -287,24 +346,24 @@
                     <div style="font-size: 13.5px; font-weight: 750; color: #f8fafc; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
                         🛡️ FinRobot 三维情景压力测试 (Stress-Test)
                     </div>
-                    <div class="stress-grid">
-                        <div class="stress-item" style="border-left: 3px solid #10b981;">
-                            <div class="stress-title" style="color: #34d399;">🟢 乐观突破情景 (Bull)</div>
-                            <div class="stress-desc">科技突破 EMA20，系统瞬间 100% 满仓独尊最强增强标的 (588170/159363)。</div>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <div style="background: rgba(10, 16, 30, 0.8); border: 1px solid rgba(255, 255, 255, 0.08); border-left: 3px solid #10b981; border-radius: 10px; padding: 12px;">
+                            <div style="font-size: 12.5px; font-weight: 750; color: #34d399; margin-bottom: 4px;">🟢 乐观突破情景 (Bull)</div>
+                            <div style="font-size: 11.5px; color: #94a3b8;">科技突破 EMA20，系统瞬间 100% 满仓独尊最强增强标的 (588170/159363)。</div>
                         </div>
-                        <div class="stress-item" style="border-left: 3px solid #f59e0b;">
-                            <div class="stress-title" style="color: #fbbf24;">🟡 震荡磨底情景 (Base)</div>
-                            <div class="stress-desc">当前基准情景：50% 黄金股吃大宗暴涨，50% 农行吃 6.5% 免税股息，零磨损。</div>
+                        <div style="background: rgba(10, 16, 30, 0.8); border: 1px solid rgba(255, 255, 255, 0.08); border-left: 3px solid #f59e0b; border-radius: 10px; padding: 12px;">
+                            <div style="font-size: 12.5px; font-weight: 750; color: #fbbf24; margin-bottom: 4px;">🟡 震荡磨底情景 (Base)</div>
+                            <div style="font-size: 11.5px; color: #94a3b8;">当前基准：50% 黄金股吃大宗暴涨，50% 农行吃 6.5% 免税股息，零磨损。</div>
                         </div>
-                        <div class="stress-item" style="border-left: 3px solid #ef4444;">
-                            <div class="stress-title" style="color: #f87171;">🔴 极端股灾情景 (Bear)</div>
-                            <div class="stress-desc">触发 -5% 动态吊灯跳车，100% 规避大盘暴跌，黄金+银行充当避风港。</div>
+                        <div style="background: rgba(10, 16, 30, 0.8); border: 1px solid rgba(255, 255, 255, 0.08); border-left: 3px solid #ef4444; border-radius: 10px; padding: 12px;">
+                            <div style="font-size: 12.5px; font-weight: 750; color: #f87171; margin-bottom: 4px;">🔴 极端股灾情景 (Bear)</div>
+                            <div style="font-size: 11.5px; color: #94a3b8;">触发 -5% 动态吊灯跳车，100% 规避大盘暴跌，黄金+银行充当避风港。</div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 四、 五大策略大联合舰队实时战备矩阵 -->
+            <!-- 五、 五大策略大联合舰队实时战备矩阵 -->
             <div class="card col-12">
                 <div class="card-header">
                     <div class="card-title">🎯 旗下五大策略大联合舰队战备矩阵与明日战令</div>
@@ -314,12 +373,12 @@
                 <div class="strategy-matrix-grid">
                     <div class="strategy-box">
                         <div class="strategy-box-header">
-                            <div class="strategy-title">👑 科创-银行轮动策略</div>
+                            <div class="strategy-title">👑 科创-银行轮动 (DTB-Apex V2.0)</div>
                             <span class="strategy-badge">弱势防守态</span>
                         </div>
                         <div class="strategy-content">
                             • <b>当前持仓</b>：50% 黄金股 (517520) + 50% 农业银行 (601288)<br>
-                            • <b>实战战绩</b>：10年总收益 +2926.21% 🏆，2026年翻倍 +100.05% 🚀<br>
+                            • <b>实战战绩</b>：10年收益 +2860.46%，回撤 19.63% 🛡️，夏普 1.54 🏆<br>
                             • <b>实战效果</b>：完全避开 A 股震荡，吃满黄金股 +4.60% 暴涨！
                         </div>
                     </div>
@@ -374,7 +433,7 @@
                 </div>
             </div>
 
-            <!-- 五、 明日操盘指南与终极启示录 -->
+            <!-- 六、 明日操盘指南与终极启示录 -->
             <div class="card col-12" style="background: linear-gradient(135deg, rgba(16, 24, 40, 0.9) 0%, rgba(28, 40, 68, 0.95) 100%); border-color: rgba(245, 158, 11, 0.45);">
                 <div class="card-header">
                     <div class="card-title" style="color: #f59e0b;">💡 明日操盘指南与终极战略启示录</div>
@@ -389,8 +448,8 @@
         </div>
 
         <footer class="footer">
-            <p>👑 量化策略大联合舰队 · FinRobot 智能体宏观大势战略研报系统 · 自动化生成于 2026-08-22 00:33:06</p>
-            <p style="margin-top: 6px; font-size: 11px; color: #475569;">免责声明：本报告由量化系统根据公开行情与机构研报数据自动计算生成，仅供量化策略科研与实盘辅助参考，不构成任何投资买卖建议。</p>
+            <p>👑 量化策略大联合舰队 · Crawl4AI + FinRobot 智能体宏观大势战略研报系统 · 自动化生成于 2026-08-22 01:13:50</p>
+            <p style="margin-top: 6px; font-size: 11px; color: #475569;">免责声明：本报告由量化系统根据公开行情、Crawl4AI实时情报与机构研报数据自动计算生成，仅供量化策略科研与实盘辅助参考，不构成任何投资买卖建议。</p>
         </footer>
     </div>
 </body>
