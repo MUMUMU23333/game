@@ -15,5 +15,13 @@ ENV/
 Thumbs.db
 *.log
 
+# Caches and runtime state
+.*_cache.json
+.*_state.json
+.key_pool_state.json
+.dtb_apex_state.json
+.star_bank_state.json
+config_secrets.py
+
 # Scratch temporary test files
 scratch/

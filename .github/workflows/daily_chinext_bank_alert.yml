@@ -1,4 +1,4 @@
-name: 👑 创业板-银行策略 (双核主权母基金版) · 每日实盘监控与企业微信推送
+name: 👑 科创-银行轮动ETF策略 (DTB-Apex 黄金增强旗舰版) · 每日实盘监控与企业微信推送
 
 on:
   # 定时自动触发：
@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  run-chinext-bank-monitor:
+  run-star-bank-monitor:
     runs-on: ubuntu-latest
 
     steps:
@@ -31,8 +31,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: 运行 创业板-银行策略 (双核母基金) 信号引擎并推送企业微信
+      - name: 运行 科创-银行轮动ETF策略 信号引擎并推送企业微信
         env:
           CHINEXT_BANK_WEBHOOK: ${{ secrets.CHINEXT_BANK_WEBHOOK }}
+          WECOM_WEBHOOK: ${{ secrets.WECOM_WEBHOOK }}
         run: |
-          python chinext_bank_strategy_notifier.py
+          python chinext_bank_strategy_notifier.py --push
