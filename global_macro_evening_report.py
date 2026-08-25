@@ -495,6 +495,9 @@ def generate_full_html_report(data: dict) -> str:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>全球宏观大势与量化全景战略研报 · 全舰队实盘共振版</title>
     <style>
         :root {{
@@ -654,9 +657,24 @@ def generate_wecom_brief(data: dict) -> str:
     strats = data['strategy_positions']
     intel = data.get('intelligence', [])
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+    import subprocess
+    commit_hash = "main"
+    try:
+        res = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=SCRIPT_DIR, capture_output=True, text=True)
+        if res.returncode == 0 and res.stdout.strip():
+            commit_hash = res.stdout.strip()
+    except Exception:
+        pass
 
-    html_cdn_url = "https://fastly.jsdelivr.net/gh/MUMUMU23333/game@main/index.html"
-    html_pages_url = "https://mumumu23333.github.io/game/"
+    ts_now = int(time.time())
+    html_cdn_url = f"https://fastly.jsdelivr.net/gh/MUMUMU23333/game@{commit_hash}/index.html"
+    html_pages_url = f"https://mumumu23333.github.io/game/?v={ts_now}"
+
+    # 主动刷新 jsDelivr CDN 缓存
+    try:
+        requests.get("https://purge.jsdelivr.net/gh/MUMUMU23333/game@main/index.html", timeout=3)
+    except Exception:
+        pass
 
     # 1. 资产评分排行榜 (精选前 5 核心)
     medals = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"]
