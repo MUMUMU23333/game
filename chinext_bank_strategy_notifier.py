@@ -54,10 +54,10 @@ if sys.platform == 'win32':
     except Exception:
         pass
 
-# 默认企业微信 Webhook 专用地址
+# 默认企业微信 Webhook 专用地址 (科创银行轮动策略专用群)
 CHINEXT_BANK_WEBHOOK = os.environ.get(
     'CHINEXT_BANK_WEBHOOK',
-    os.environ.get('WECOM_WEBHOOK', "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=ff8a4364-c59a-4e7e-957d-7f1ce2e16a8c")
+    "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=ff8a4364-c59a-4e7e-957d-7f1ce2e16a8c"
 )
 
 CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".chinext_bank_push_cache.json")
@@ -427,7 +427,7 @@ class StarBankRotationNotifier:
             holdings_list.append(f"  • **{c_name} ({c})**：`{w}%` 仓位 | 现价 `¥{c_price:.3f}` ({c_chg:+.2f}%)")
         holdings_str = "\n".join(holdings_list)
 
-        md = f"""# 🏛️ 【科创-银行轮动策略 · DTB-Apex V2.0 阶梯风控版】
+        md = f"""# 🏛️ 【科创银行轮动策略 · DTB-Apex V2.0 阶梯风控版】
 > {time_badge} · {now_str}
 > 🌟 **宏观风控状态**：<font color="info">**{res['stage_desc']}**</font> (宏观评分: `{res['macro_score']:.0f}/100` 分)
 

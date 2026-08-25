@@ -1,10 +1,16 @@
 name: 七星量化策略每日 14:47 自动推送与双策略收盘汇总
 
 on:
-  # 每个交易日北京时间 14:47 (UTC 06:47) 自动触发
+  # 提前至北京时间 14:25 (UTC 06:25) 预热虚拟机，避开 14:45~15:00 的全球排队高峰
   schedule:
-    - cron: '47 6 * * 1-5'
+    - cron: '25 6 * * 1-5'
   workflow_dispatch:
+    inputs:
+      skip_wait:
+        description: '是否跳过等待立即执行 (true/false)'
+        required: false
+        default: 'false'
+        type: boolean
 
 permissions:
   contents: write
@@ -25,6 +31,11 @@ jobs:
       - name: 安装量化计算依赖
         run: |
           pip install requests numpy pandas schedule
+
+      - name: ⏳ 毫秒级准点对齐 (等待至北京时间 14:47:00)
+        if: "${{ github.event_name == 'schedule' || !inputs.skip_wait }}"
+        run: |
+          python precision_scheduler.py --target 14:47
 
       - name: 执行七星量化策略计算与企业微信推送
         run: |

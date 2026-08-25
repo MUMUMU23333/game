@@ -1,15 +1,21 @@
 name: 👑 纳指-双核银行全球策略 (稳健财富旗舰版) · 每日实盘监控与全渠道提醒
 
 on:
-  # 定时触发：
-  # 1. 每个交易日 A 股收盘前 14:45 (UTC 06:45) - 盘中 15 分钟黄金决策窗口
-  # 2. 每天晚上 21:00 (UTC 13:00) - 待全市场公募基金净值全部公布后的晚间透视总报告
+  # 定时触发（提前错峰预热）：
+  # 1. 交易日收盘前预热：14:20 (UTC 06:20) ➔ 14:45 发射
+  # 2. 晚间全市场透视预热：20:50 (UTC 12:50) ➔ 21:00 发射
   schedule:
-    - cron: '45 6 * * 1-5'
-    - cron: '0 13 * * 1-5'
+    - cron: '20 6 * * 1-5'
+    - cron: '50 12 * * 1-5'
   
   # 支持在 GitHub 网页上一键手动点击运行测试
   workflow_dispatch:
+    inputs:
+      skip_wait:
+        description: '是否跳过等待立即执行 (true/false)'
+        required: false
+        default: 'false'
+        type: boolean
 
 jobs:
   run-daily-monitor:
@@ -30,6 +36,18 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+
+      - name: ⏳ 毫秒级准点对齐 (尾盘 14:45 或 晚间 21:00)
+        if: "${{ github.event_name == 'schedule' || !inputs.skip_wait }}"
+        run: |
+          python -c "
+          from precision_scheduler import wait_until_target_beijing_time, get_beijing_now
+          now = get_beijing_now()
+          if now.hour < 18:
+              wait_until_target_beijing_time(14, 45)
+          else:
+              wait_until_target_beijing_time(21, 0)
+          "
 
       - name: 运行 DTB 4.0 实时信号引擎并全渠道推送提醒
         env:

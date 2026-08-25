@@ -18,6 +18,7 @@ import sys
 import json
 import time
 import math
+import hashlib
 import argparse
 import datetime
 import requests
@@ -39,7 +40,7 @@ os.environ.pop("https_proxy", None)
 
 # ==================== 1. 五福 5.2 核心参数与 ETF 池 ====================
 CONFIG = {
-    "wecom_webhook_url": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=46012c55-7fd0-4060-baa8-fc110bb3ca5d",
+    "wecom_webhook_url": os.environ.get("WECOM_WEBHOOK", "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=8b74cac3-9fc2-497c-a287-b591246e3393"),
     "initial_capital": 50000.0,
     
     # 策略参数
@@ -104,11 +105,51 @@ CONFIG = {
 }
 
 
-# ==================== 2. 消息推送模块 ====================
-def send_wecom_markdown(webhook_url: str, title: str, content: str) -> bool:
+# ==================== 2. 消息推送与防重复模块 ====================
+CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".wufu_push_cache.json")
+
+def is_duplicate_push(push_key: str) -> bool:
+    """基于语义唯一键检查今日是否已推送过相同的调仓/持仓指令"""
+    if os.path.exists(CACHE_FILE):
+        try:
+            with open(CACHE_FILE, "r", encoding="utf-8") as f:
+                cache = json.load(f)
+                today = datetime.datetime.now().strftime("%Y-%m-%d")
+                record = cache.get(today, {})
+                return push_key in record
+        except Exception:
+            pass
+    return False
+
+def record_push_cache(push_key: str):
+    """记录推送语义键至缓存"""
+    today = datetime.datetime.now().strftime("%Y-%m-%d")
+    cache = {}
+    if os.path.exists(CACHE_FILE):
+        try:
+            with open(CACHE_FILE, "r", encoding="utf-8") as f:
+                cache = json.load(f)
+        except Exception:
+            cache = {}
+    if today not in cache:
+        cache[today] = {}
+    cache[today][push_key] = {
+        "time": datetime.datetime.now().strftime("%H:%M:%S")
+    }
+    try:
+        with open(CACHE_FILE, "w", encoding="utf-8") as f:
+            json.dump(cache, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+def send_wecom_markdown(webhook_url: str, title: str, content: str, push_key: str = "daily_signal", force: bool = False) -> bool:
     if "YOUR_BOT_KEY" in webhook_url or not webhook_url.startswith("http"):
         print(f"⚠️ 未配置有效的企业微信 Webhook URL:\n{content}")
         return False
+
+    if not force and is_duplicate_push(push_key):
+        print(f"[-] [防重复推送] 今日已成功推送过该指令 ({push_key})，自动拦截重复推送！🛡️")
+        return True
 
     payload = {"msgtype": "markdown", "markdown": {"content": content}}
     headers = {"Content-Type": "application/json"}
@@ -117,6 +158,7 @@ def send_wecom_markdown(webhook_url: str, title: str, content: str) -> bool:
         res_json = resp.json()
         if res_json.get("errcode") == 0:
             print(f"✅ 企业微信消息推送成功！({title})")
+            record_push_cache(push_key)
             return True
         else:
             print(f"❌ 企业微信消息推送失败: {res_json.get('errmsg')}")
@@ -269,7 +311,7 @@ def calculate_wufu_metrics(hist_closes: np.ndarray, curr_price: float, is_weak: 
 
 
 # ==================== 7. 主执行引擎与企业微信报告 ====================
-def run_wufu_strategy_check():
+def run_wufu_strategy_check(force: bool = False):
     now = datetime.datetime.now()
     today_str = now.strftime("%Y-%m-%d")
     time_str = now.strftime("%Y-%m-%d %H:%M:%S")
@@ -392,7 +434,11 @@ def run_wufu_strategy_check():
 > 💡 *提示：五福5.2在 13:10 首次买卖，14:55 尾盘确认。*
 """
 
-    send_wecom_markdown(CONFIG["wecom_webhook_url"], "五福5.2调仓决策", markdown_content)
+    push_key = f"{today_str}_{action_type}_{target_code}"
+    send_wecom_markdown(CONFIG["wecom_webhook_url"], "五福5.2调仓决策", markdown_content, push_key=push_key, force=force)
 
 if __name__ == "__main__":
-    run_wufu_strategy_check()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--force", action="store_true", help="强制推送忽略防重缓存")
+    args, _ = parser.parse_known_args()
+    run_wufu_strategy_check(force=args.force)

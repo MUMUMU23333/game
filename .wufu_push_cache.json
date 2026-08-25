@@ -4,5 +4,27 @@
       "time": "17:33:41",
       "hash": "37230ce68c5a9ed35dd349879ccc87f6"
     }
+  },
+  "2026-08-21": {
+    "STAGE_14:55_TRANSFER": {
+      "time": "22:23:23",
+      "hash": "7f8dc263e6b360db3b3d3c0b196fdc05"
+    },
+    "STAGE_13:10_TRANSFER": {
+      "time": "22:24:32",
+      "hash": "388ed03e4d89e0cf917cd5bc8cf7d600"
+    }
+  },
+  "2026-08-22": {
+    "WUFU_14:55_TRANSFER": {
+      "time": "01:29:20",
+      "hash": "03deb530cac17c2f053d280c1d148dca"
+    }
+  },
+  "2026-08-24": {
+    "WUFU_14:55_HOLD": {
+      "time": "17:41:17",
+      "hash": "5a758e050fcb7c4f231e3b488ed1e589"
+    }
   }
 }

@@ -39,7 +39,7 @@ os.environ.pop("https_proxy", None)
 
 # ==================== 1. 五福 5.2 核心参数与 ETF 池 ====================
 CONFIG = {
-    "wecom_webhook_url": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=46012c55-7fd0-4060-baa8-fc110bb3ca5d",
+    "wecom_webhook_url": os.environ.get("WECOM_WEBHOOK", "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=8b74cac3-9fc2-497c-a287-b591246e3393"),
     "initial_capital": 50000.0,
     
     # 策略参数

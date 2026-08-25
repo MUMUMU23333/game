@@ -324,6 +324,22 @@ def collect_macro_dataset() -> dict:
 
     intelligence = crawl_latest_macro_intelligence()
 
+    # 计算 8 万元黄金铁三角实盘穿透分配 (科创银行 50% + 五福 25% + 七星 25%)
+    p_abc = quotes.get('601288', {}).get('price', 6.87)
+    p_gold_stock = quotes.get('517520', {}).get('price', 2.28)
+    p_bio = 1.815  # 513290 纳指生物ETF 现价
+    p_gold = quotes.get('518880', {}).get('price', 9.58)
+
+    portfolio_80k = {
+        'total_capital': 80000.0,
+        'allocations': [
+            {'name': '农业银行', 'code': '601288', 'amount': 20000.0, 'price': p_abc, 'shares': int(20000/p_abc/100)*100, 'weight': 25.0, 'source': '科创-银行 (50%)'},
+            {'name': '黄金股ETF', 'code': '517520', 'amount': 20000.0, 'price': p_gold_stock, 'shares': int(20000/p_gold_stock/100)*100, 'weight': 25.0, 'source': '科创-银行 (50%)'},
+            {'name': '纳指生物ETF', 'code': '513290', 'amount': 20000.0, 'price': p_bio, 'shares': int(20000/p_bio/100)*100, 'weight': 25.0, 'source': '五福 5.2 (25% 动量第1)'},
+            {'name': '华安黄金ETF', 'code': '518880', 'amount': 20000.0, 'price': p_gold, 'shares': int(20000/p_gold/100)*100, 'weight': 25.0, 'source': '七星量化 (25%)'}
+        ]
+    }
+
     # 全舰队真实实盘持仓
     strategy_positions = [
         {
@@ -331,35 +347,28 @@ def collect_macro_dataset() -> dict:
             'tag': '官方旗舰',
             'status': '弱势防守态 (避险)',
             'holdings': '50% 黄金股ETF (517520) + 50% 农业银行 (601288)',
-            'highlight': '10年收益+2860%，最大回撤19.63%🛡️，吃满黄金股+4.60%暴涨！'
-        },
-        {
-            'name': '纳指-双核银行策略',
-            'tag': '全天候',
-            'status': '平稳收息态',
-            'holdings': '50% 纳指100 (513100) + 11.9% 农行 + 18.1% 招行 + 20% 黄金 (518880)',
-            'highlight': '20年夏普1.08全场最高，双核银行自适应收息！'
+            'highlight': '2026年实盘收益 +99.34% 🚀，吃满黄金股+农行避风港！'
         },
         {
             'name': '五福 5.2/7.3 日内趋势',
             'tag': '敏捷长矛',
-            'status': '黄金防御态',
-            'holdings': '华安黄金ETF (518880) (~5,600股)',
-            'highlight': '14:45止盈纳指生物(+6.57%)，14:46切换黄金龙头(动量分1.612)！'
+            'status': '全球动量领跑态',
+            'holdings': '100% 纳指生物ETF (513290)',
+            'highlight': '14:22 动量评分2.356登顶第一，14:55 尾盘止盈黄金(+3.7%)切换纳指生物！'
         },
         {
             'name': '七星跨板块 ETF 轮动',
             'tag': '全市场星级',
-            'status': '龙头领跑态',
+            'status': '大宗领跑态',
             'holdings': '100% 华安黄金ETF (518880)',
-            'highlight': '动量领跑 (0.050) 顺延接管，主动规避原油LOF 20%高溢价熔断踩踏！'
+            'highlight': '2026年实盘收益 +414.36% 🚀，白银原油黄金大波段接力！'
         },
         {
             'name': '场外公募基金轮动',
             'tag': '免摩擦复利',
-            'status': '半导体锁定',
-            'holdings': '006503 财通集成电路芯片混合',
-            'highlight': '每周四 14:48 黄金免申赎费窗口调仓，长线复利之王。'
+            'status': '持币防御态',
+            'holdings': '空仓(8月19日已止损离场观望)',
+            'highlight': '2026年收益 +72.79% 🚀，周四 14:48 黄金免申赎费窗口调仓。'
         }
     ]
 
@@ -368,6 +377,7 @@ def collect_macro_dataset() -> dict:
         'scored_assets': scored_assets,
         'prem_spread': prem_spread,
         'bank_zscore': bank_zscore,
+        'portfolio_80k': portfolio_80k,
         'strategy_positions': strategy_positions,
         'intelligence': intelligence
     }
@@ -404,13 +414,14 @@ def generate_full_html_report(data: dict) -> str:
 
     strat_cards_html = ""
     for s in strats:
+        hold_color = "#ef4444" if "空仓" in s['holdings'] else "#f59e0b"
         strat_cards_html += f"""
         <div style="background: rgba(10, 16, 30, 0.8); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 16px; margin-bottom: 12px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                 <span style="font-size: 14.5px; font-weight: 750; color: #ffffff;">{s['name']}</span>
                 <span style="font-size: 11px; padding: 3px 8px; border-radius: 6px; background: rgba(16, 185, 129, 0.15); color: #34d399; font-weight: 700;">{s['status']}</span>
             </div>
-            <div style="font-size: 13px; color: #f59e0b; font-weight: 700; margin-bottom: 4px;">🎯 当前持仓：{s['holdings']}</div>
+            <div style="font-size: 13px; color: {hold_color}; font-weight: 700; margin-bottom: 4px;">🎯 当前持仓：{s['holdings']}</div>
             <div style="font-size: 12px; color: #94a3b8;">💡 亮点：{s['highlight']}</div>
         </div>
         """
@@ -596,24 +607,35 @@ def generate_wecom_brief(data: dict) -> str:
     html_cdn_url = "https://fastly.jsdelivr.net/gh/MUMUMU23333/game@main/index.html"
     html_pages_url = "https://mumumu23333.github.io/game/"
 
-    # 1. 资产评分排行榜
-    medals = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟", "1️⃣1️⃣"]
+    # 1. 资产评分排行榜 (精选前 5 核心)
+    medals = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"]
     rank_lines = []
-    for idx, a in enumerate(ranked[:6]):
-        medal = medals[idx] if idx < len(medals) else f"{idx+1}."
+    for idx, a in enumerate(ranked[:5]):
+        medal = medals[idx]
         chg_sign = "+" if a['change_pct'] >= 0 else ""
         rank_lines.append(
-            f"{medal} **{a['label']}** ({a['code']})：`{a['score']}分` | <font color=\"{a['color']}\">**{a['status_tag']}**</font> (现价:¥{a['price']:.3f} | 涨跌:{chg_sign}{a['change_pct']:.2f}%)"
+            f"{medal} **{a['label']}** ({a['code']})：`{a['score']}分` | <font color=\"{a['color']}\">**{a['status_tag']}**</font> (¥{a['price']:.3f} | {chg_sign}{a['change_pct']:.2f}%)"
         )
     rank_text = "\n".join(rank_lines)
 
-    # 2. 各策略实盘持仓 (精准校对)
+    # 2. 8万元实盘买单推荐表格
+    p80 = data.get('portfolio_80k', {})
+    alloc_lines = []
+    if p80 and 'allocations' in p80:
+        for item in p80['allocations']:
+            alloc_lines.append(
+                f"• **{item['name']}** ({item['code']}): 买入 <font color=\"warning\">**¥{item['amount']:,.0f}**</font> ({item['weight']:.0f}%) | 约 **{item['shares']:,}股** @ ¥{item['price']:.3f}"
+            )
+    alloc_text = "\n".join(alloc_lines)
+
+    # 3. 各策略实盘持仓
     strat_lines = []
     for s in strats:
-        strat_lines.append(f"• **{s['name']}** [{s['status']}]:\n  👉 <font color=\"warning\">**{s['holdings']}**</font>")
+        h_color = "#f87171" if "空仓" in s['holdings'] else "warning"
+        strat_lines.append(f"• **{s['name']}** [{s['status']}]:\n  👉 <font color=\"{h_color}\">**{s['holdings']}**</font>\n  *(实证: {s['highlight']})*")
     strat_text = "\n".join(strat_lines)
 
-    # 3. Crawl4AI 情报
+    # 4. Crawl4AI 情报
     intel_text_list = []
     for idx, item in enumerate(intel[:2]):
         intel_text_list.append(f"{idx+1}. **[{item['tag']}]** {item['title'][:46]}..")
@@ -622,6 +644,17 @@ def generate_wecom_brief(data: dict) -> str:
     markdown = f"""# 🏛️ 【全球宏观大势与量化全景战略晚报】
 > ⏰ **复盘时间**：{now_str} (北京时间 · Crawl4AI + FinRobot 晚间 20:00 深度内参)
 > 🌐 **宏观核心定调**：<font color="warning">**【全球去美元化共振 · 黄金2x主升爆发 · 50%高股息双核压舱】**</font>
+
+---
+### 💰 👑 【8 万元总资金实盘配置与买单推荐 (黄金铁三角 5:2.5:2.5)】
+> 💡 *配置逻辑：4.0万科创银行全天候底座 + 2.0万五福行业长矛 + 2.0万七星大宗长矛，抗跌又暴利！*
+
+{alloc_text}
+
+📊 **穿透总敞口汇总**：
+- 🛡️ **黄金避险 (实物黄金 2万 + 黄金股2x 2万)**：**¥40,000 元 (50.0%)**
+- 🏛️ **高股息银行 (农业银行 601288)**：**¥20,000 元 (25.0%)**
+- 🧬 **海外动量进攻 (纳指生物 513290)**：**¥20,000 元 (25.0%)**
 
 ---
 ### 🏆 一、 【全球大类资产量化评分与运行状态排行榜】

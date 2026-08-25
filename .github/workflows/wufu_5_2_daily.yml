@@ -1,10 +1,17 @@
-name: 五福 5.2 策略每日 13:10 自动推送
+name: 五福 5.2 策略每日 13:10 & 14:55 自动推送
 
 on:
-  # 每个交易日北京时间 13:10 (UTC 05:10) 自动触发
+  # 提前预热：北京时间 13:00 (UTC 05:00) 与 14:35 (UTC 06:35)
   schedule:
-    - cron: '10 5 * * 1-5'
+    - cron: '0 5 * * 1-5'
+    - cron: '35 6 * * 1-5'
   workflow_dispatch:
+    inputs:
+      skip_wait:
+        description: '是否跳过等待立即执行 (true/false)'
+        required: false
+        default: 'false'
+        type: boolean
 
 permissions:
   contents: write
@@ -26,10 +33,24 @@ jobs:
         run: |
           pip install requests numpy pandas schedule
 
+      - name: ⏳ 毫秒级准点对齐 (智能判定 13:10 或 14:55)
+        if: "${{ github.event_name == 'schedule' || !inputs.skip_wait }}"
+        run: |
+          python -c "
+          from precision_scheduler import wait_until_target_beijing_time, get_beijing_now
+          now = get_beijing_now()
+          if now.hour < 14:
+              wait_until_target_beijing_time(13, 10)
+          else:
+              wait_until_target_beijing_time(14, 55)
+          "
+
       - name: 执行五福 5.2 策略计算与企业微信推送
+        env:
+          WECOM_WEBHOOK: ${{ secrets.WECOM_WEBHOOK }}
         run: |
           cd quant_strategies/wufu_5_2
-          python wufu_5_2_local_bot.py
+          python wufu_5_2_local_bot.py --force
 
       - name: 自动同步并持久化持仓状态
         run: |
