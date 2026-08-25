@@ -340,7 +340,58 @@ def collect_macro_dataset() -> dict:
         ]
     }
 
-    # 全舰队真实实盘持仓
+    # 动态加载全舰队真实实盘持仓
+    fund_state_file = os.path.join(SCRIPT_DIR, ".fund_rotation_state.json")
+    fund_holding_str = "002207 前海金银珠宝C(3.5x黄金)"
+    fund_status_str = "黄金主升态 (锁仓)"
+    fund_highlight_str = "2026实战 +142.75% 🚀，天罡动量第一(评分4.79)，死死锁仓核心主升浪！"
+    if os.path.exists(fund_state_file):
+        try:
+            with open(fund_state_file, "r", encoding="utf-8") as f:
+                f_state = json.load(f)
+                h_code = f_state.get("holding_code", "002207")
+                h_name = f_state.get("holding_name", "前海金银珠宝C(3.5x黄金)")
+                if h_code and h_code != "CASH":
+                    fund_holding_str = f"100% {h_name} ({h_code})"
+                    fund_status_str = "黄金主升态 (锁仓)"
+                    fund_highlight_str = "2026实战 +142.75% 🚀，施密特正交防假摔验真，坚决锁仓主升浪！"
+                else:
+                    fund_holding_str = "空仓防守观望"
+                    fund_status_str = "持币防御态"
+                    fund_highlight_str = "大盘弱势空仓避险，等待周四黄金调仓窗口。"
+        except Exception:
+            pass
+
+    # 动态加载五福 5.2 状态
+    wufu_state_file = os.path.join(SCRIPT_DIR, "quant_strategies", "wufu_5_2", "portfolio_state.json")
+    wufu_holding_str = "100% 纳指生物ETF (513290)"
+    if os.path.exists(wufu_state_file):
+        try:
+            with open(wufu_state_file, "r", encoding="utf-8") as f:
+                w_state = json.load(f)
+                w_hold = w_state.get("current_holding", "513290.XSHG").split(".")[0]
+                if w_hold == "513290":
+                    wufu_holding_str = "100% 纳指生物ETF (513290)"
+                elif w_hold == "518880":
+                    wufu_holding_str = "100% 华安黄金ETF (518880)"
+        except Exception:
+            pass
+
+    # 动态加载七星量化状态
+    seven_state_file = os.path.join(SCRIPT_DIR, "quant_strategies", "seven_stars", "portfolio_state.json")
+    seven_holding_str = "100% 华安黄金ETF (518880)"
+    if os.path.exists(seven_state_file):
+        try:
+            with open(seven_state_file, "r", encoding="utf-8") as f:
+                s_state = json.load(f)
+                s_hold = s_state.get("current_holding", "518880.XSHG").split(".")[0]
+                if s_hold == "518880":
+                    seven_holding_str = "100% 华安黄金ETF (518880)"
+                elif s_hold == "501018":
+                    seven_holding_str = "100% 南方原油LOF (501018)"
+        except Exception:
+            pass
+
     strategy_positions = [
         {
             'name': '科创-银行轮动 (DTB-Apex V2.0)',
@@ -353,22 +404,22 @@ def collect_macro_dataset() -> dict:
             'name': '五福 5.2/7.3 日内趋势',
             'tag': '敏捷长矛',
             'status': '全球动量领跑态',
-            'holdings': '100% 纳指生物ETF (513290)',
+            'holdings': wufu_holding_str,
             'highlight': '14:22 动量评分2.356登顶第一，14:55 尾盘止盈黄金(+3.7%)切换纳指生物！'
         },
         {
             'name': '七星跨板块 ETF 轮动',
             'tag': '全市场星级',
             'status': '大宗领跑态',
-            'holdings': '100% 华安黄金ETF (518880)',
+            'holdings': seven_holding_str,
             'highlight': '2026年实盘收益 +414.36% 🚀，白银原油黄金大波段接力！'
         },
         {
-            'name': '场外公募基金轮动',
+            'name': '场外公募基金轮动 (天罡V188.9)',
             'tag': '免摩擦复利',
-            'status': '持币防御态',
-            'holdings': '空仓(8月19日已止损离场观望)',
-            'highlight': '2026年收益 +72.79% 🚀，周四 14:48 黄金免申赎费窗口调仓。'
+            'status': fund_status_str,
+            'holdings': fund_holding_str,
+            'highlight': fund_highlight_str
         }
     ]
 
