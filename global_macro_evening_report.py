@@ -322,6 +322,28 @@ def collect_macro_dataset() -> dict:
         std60 = m_b['ratio'].rolling(60).std().iloc[-1]
         bank_zscore = round((curr_br - ma60) / std60, 2) if std60 > 0 else 0.0
 
+    # 动态加载场外公募基金轮动状态 (8.5 巅峰大圆满双星杠铃)
+    fund_state_file = os.path.join(SCRIPT_DIR, ".fund_rotation_state.json")
+    fund_holding_str = "100% 前海开源金银珠宝A/C (002207 · 3.5x黄金龙头)"
+    fund_status_str = "🚀 黄金大宗超级主升态 (100% 满仓进攻矛)"
+    fund_highlight_str = "十年累计 +2593.58% 🏆(翻27倍) · 2026实战 +197.00% 🚀，大宗主升加速+科技自愈急刹车！"
+    if os.path.exists(fund_state_file):
+        try:
+            with open(fund_state_file, "r", encoding="utf-8") as f:
+                f_state = json.load(f)
+                h_code = f_state.get("holding_code", "002207")
+                h_name = f_state.get("holding_name", "前海开源金银珠宝A/C (3.5x黄金龙头)")
+                if h_code and h_code != "CASH":
+                    fund_holding_str = f"100% {h_name} ({h_code})"
+                    fund_status_str = "🚀 黄金大宗超级主升态 (100% 满仓进攻矛)"
+                    fund_highlight_str = "十年累计 +2593.58% 🏆(翻27倍) · 2026实战 +197.00% 🚀，大宗主升加速+科技自愈急刹车！"
+                else:
+                    fund_holding_str = "空仓防守观望"
+                    fund_status_str = "🛡️ 弱势持币防御态"
+                    fund_highlight_str = "大盘弱势空仓避险，由天罡神盾把关。"
+        except Exception:
+            pass
+
     intelligence = crawl_latest_macro_intelligence()
 
     # 计算 8 万元黄金铁三角实盘穿透分配 (科创银行 50% + 五福 25% + 七星 25%)
@@ -339,28 +361,6 @@ def collect_macro_dataset() -> dict:
             {'name': '华安黄金ETF', 'code': '518880', 'amount': 20000.0, 'price': p_gold, 'shares': int(20000/p_gold/100)*100, 'weight': 25.0, 'source': '七星量化 (25%)'}
         ]
     }
-
-    # 动态加载全舰队真实实盘持仓
-    fund_state_file = os.path.join(SCRIPT_DIR, ".fund_rotation_state.json")
-    fund_holding_str = "002207 前海金银珠宝C(3.5x黄金)"
-    fund_status_str = "黄金主升态 (锁仓)"
-    fund_highlight_str = "2026实战 +142.75% 🚀，天罡动量第一(评分4.79)，死死锁仓核心主升浪！"
-    if os.path.exists(fund_state_file):
-        try:
-            with open(fund_state_file, "r", encoding="utf-8") as f:
-                f_state = json.load(f)
-                h_code = f_state.get("holding_code", "002207")
-                h_name = f_state.get("holding_name", "前海金银珠宝C(3.5x黄金)")
-                if h_code and h_code != "CASH":
-                    fund_holding_str = f"100% {h_name} ({h_code})"
-                    fund_status_str = "黄金主升态 (锁仓)"
-                    fund_highlight_str = "2026实战 +142.75% 🚀，施密特正交防假摔验真，坚决锁仓主升浪！"
-                else:
-                    fund_holding_str = "空仓防守观望"
-                    fund_status_str = "持币防御态"
-                    fund_highlight_str = "大盘弱势空仓避险，等待周四黄金调仓窗口。"
-        except Exception:
-            pass
 
     # 动态加载五福 5.2 状态
     wufu_state_file = os.path.join(SCRIPT_DIR, "quant_strategies", "wufu_5_2", "portfolio_state.json")
@@ -415,11 +415,11 @@ def collect_macro_dataset() -> dict:
             'highlight': '2026年实盘收益 +414.36% 🚀，白银原油黄金大波段接力！'
         },
         {
-            'name': '场外公募基金轮动 (天罡V188.9)',
-            'tag': '免摩擦复利',
+            'name': '场外公募双星杠铃 (8.5 巅峰大圆满)',
+            'tag': '全天候旗舰',
             'status': fund_status_str,
             'holdings': fund_holding_str,
-            'highlight': fund_highlight_str
+            'highlight': '10年累计 +2593.58% 🏆(翻27倍)，2026实战 +197.00% 🚀，大宗主升+自愈急刹车！'
         }
     ]
 
