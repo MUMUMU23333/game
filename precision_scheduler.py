@@ -35,7 +35,8 @@ def wait_until_target_beijing_time(target_hour: int, target_minute: int, target_
     delta_seconds = (target_dt - now).total_seconds()
     
     if delta_seconds <= 0:
-        print(f"⏰ [时钟调度] 当前北京时间 {now.strftime('%H:%M:%S')} 已到达/超过目标时间 {target_hour:02d}:{target_minute:02d}:{target_second:02d}，立即触发执行！")
+        over_sec = abs(delta_seconds)
+        print(f"⏰ [时钟调度] 当前北京时间 {now.strftime('%H:%M:%S')} 已到达/超过目标时间 {target_hour:02d}:{target_minute:02d}:{target_second:02d} (超时 {over_sec:.1f}s)，立即触发执行！")
         return
     
     if delta_seconds > max_wait_seconds:
@@ -45,14 +46,21 @@ def wait_until_target_beijing_time(target_hour: int, target_minute: int, target_
     print(f"⏳ [时钟调度] 提前预热就绪！当前北京时间: {now.strftime('%H:%M:%S.%f')[:-3]}")
     print(f"🎯 [时钟调度] 目标发射时间: {target_hour:02d}:{target_minute:02d}:{target_second:02d} (需精准等待 {delta_seconds:.1f} 秒)")
     
-    # 倒计时等待（大块 sleep + 毫秒微调）
+    # 倒计时等待（大块 sleep + 毫秒微调 + 心跳输出防止 CI 超时）
+    last_heartbeat = time.time()
     while True:
         curr_now = get_beijing_now()
         remain = (target_dt - curr_now).total_seconds()
         if remain <= 0.05:  # 提前 50ms 唤醒就绪
             break
+            
+        # 每隔 60 秒打印一次心跳
+        if time.time() - last_heartbeat >= 60:
+            print(f"💓 [时钟调度心跳] 距离发射还有 {remain:.1f} 秒 (当前北京时间: {curr_now.strftime('%H:%M:%S')})")
+            last_heartbeat = time.time()
+            
         if remain > 10:
-            time.sleep(remain - 5)
+            time.sleep(min(remain - 5, 10))
         elif remain > 1:
             time.sleep(0.5)
         else:

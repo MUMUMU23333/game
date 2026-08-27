@@ -1,0 +1,27 @@
+name: 💓 GitHub Actions 永久防休眠心跳守护 (Keepalive)
+
+on:
+  schedule:
+    # 每周一、三、五凌晨 02:00 (UTC 18:00) 自动巡检心跳
+    - cron: '0 18 * * 0,2,4'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库代码
+        uses: actions/checkout@v4
+
+      - name: 更新心跳时间戳防止 Actions 休眠
+        run: |
+          mkdir -p .system_keepalive
+          date -u +"%Y-%m-%dT%H:%M:%SZ" > .system_keepalive/heartbeat.txt
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add .system_keepalive/heartbeat.txt
+          git commit -m "chore(ops): github actions keepalive heartbeat [skip ci]" || echo "No changes to commit"
+          git push || true

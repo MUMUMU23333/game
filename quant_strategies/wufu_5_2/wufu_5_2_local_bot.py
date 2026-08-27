@@ -40,7 +40,7 @@ os.environ.pop("https_proxy", None)
 
 # ==================== 1. 五福 5.2 核心参数与 ETF 池 ====================
 CONFIG = {
-    "wecom_webhook_url": os.environ.get("WECOM_WEBHOOK", "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=8b74cac3-9fc2-497c-a287-b591246e3393"),
+    "wecom_webhook_url": (os.environ.get("WECOM_WEBHOOK") or "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=8b74cac3-9fc2-497c-a287-b591246e3393"),
     "initial_capital": 50000.0,
     
     # 策略参数
@@ -142,8 +142,9 @@ def record_push_cache(push_key: str):
     except Exception:
         pass
 
-def send_wecom_markdown(webhook_url: str, title: str, content: str, push_key: str = "daily_signal", force: bool = False) -> bool:
-    if "YOUR_BOT_KEY" in webhook_url or not webhook_url.startswith("http"):
+def send_wecom_markdown(webhook_url: str, title: str, content: str, push_key: str = "daily_signal", force: bool = False, max_retries: int = 3) -> bool:
+    target_url = os.environ.get("WECOM_WEBHOOK", webhook_url)
+    if not target_url or "YOUR_BOT_KEY" in target_url or not target_url.startswith("http"):
         print(f"⚠️ 未配置有效的企业微信 Webhook URL:\n{content}")
         return False
 
@@ -153,19 +154,30 @@ def send_wecom_markdown(webhook_url: str, title: str, content: str, push_key: st
 
     payload = {"msgtype": "markdown", "markdown": {"content": content}}
     headers = {"Content-Type": "application/json"}
-    try:
-        resp = requests.post(webhook_url, json=payload, headers=headers, timeout=10)
-        res_json = resp.json()
-        if res_json.get("errcode") == 0:
-            print(f"✅ 企业微信消息推送成功！({title})")
-            record_push_cache(push_key)
-            return True
-        else:
-            print(f"❌ 企业微信消息推送失败: {res_json.get('errmsg')}")
-            return False
-    except Exception as e:
-        print(f"❌ 推送网络异常: {e}")
-        return False
+    
+    session = requests.Session()
+    session.trust_env = False
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            resp = session.post(target_url, json=payload, headers=headers, timeout=15)
+            if resp.status_code == 200:
+                res_json = resp.json()
+                if res_json.get("errcode") == 0:
+                    print(f"✅ 企业微信消息推送成功！({title}) [尝试 {attempt}/{max_retries}]")
+                    record_push_cache(push_key)
+                    return True
+                else:
+                    print(f"⚠️ 企业微信返回错误: {res_json.get('errmsg')}")
+            else:
+                print(f"⚠️ HTTP 响应码异常: {resp.status_code}")
+        except Exception as e:
+            print(f"❌ 推送网络异常 (尝试 {attempt}/{max_retries}): {e}")
+            
+        if attempt < max_retries:
+            time.sleep(2 ** attempt)
+            
+    return False
 
 
 # ==================== 3. 状态存储与读取 ====================

@@ -90,9 +90,11 @@ CONFIG = {
 
 
 # ==================== 2. 企业微信 Webhook 消息推送 ====================
-def send_wecom_markdown(webhook_url: str, title: str, content: str) -> bool:
-    """向企业微信群机器人发送 Markdown 消息"""
-    if "YOUR_BOT_KEY_HERE" in webhook_url or not webhook_url.startswith("http"):
+def send_wecom_markdown(webhook_url: str, title: str, content: str, max_retries: int = 3) -> bool:
+    """向企业微信群机器人发送 Markdown 消息（内置 3 次指数退避重试）"""
+    # 优先使用环境变量中的 WECOM_WEBHOOK
+    target_url = os.environ.get("WECOM_WEBHOOK", webhook_url)
+    if not target_url or "YOUR_BOT_KEY" in target_url or not target_url.startswith("http"):
         print(f"⚠️ [提示] 未配置有效的企业微信 Webhook URL，消息将在控制台展示：")
         print("\n" + "="*55)
         print(f"【企业微信推送预览】\n{content}")
@@ -106,18 +108,29 @@ def send_wecom_markdown(webhook_url: str, title: str, content: str) -> bool:
         }
     }
     headers = {"Content-Type": "application/json"}
-    try:
-        resp = requests.post(webhook_url, json=payload, headers=headers, timeout=10)
-        res_json = resp.json()
-        if res_json.get("errcode") == 0:
-            print(f"✅ 企业微信消息推送成功！({title})")
-            return True
-        else:
-            print(f"❌ 企业微信消息推送失败: {res_json.get('errmsg')}")
-            return False
-    except Exception as e:
-        print(f"❌ 推送网络异常: {e}")
-        return False
+    
+    session = requests.Session()
+    session.trust_env = False
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            resp = session.post(target_url, json=payload, headers=headers, timeout=15)
+            if resp.status_code == 200:
+                res_json = resp.json()
+                if res_json.get("errcode") == 0:
+                    print(f"✅ 企业微信消息推送成功！({title}) [尝试 {attempt}/{max_retries}]")
+                    return True
+                else:
+                    print(f"⚠️ 企业微信返回错误: {res_json.get('errmsg')}")
+            else:
+                print(f"⚠️ HTTP 响应码异常: {resp.status_code}")
+        except Exception as e:
+            print(f"❌ 推送网络异常 (尝试 {attempt}/{max_retries}): {e}")
+            
+        if attempt < max_retries:
+            time.sleep(2 ** attempt)
+            
+    return False
 
 
 # ==================== 3. 本地状态机管理 ====================

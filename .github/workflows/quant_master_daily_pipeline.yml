@@ -1,0 +1,99 @@
+name: 👑 量化策略全天候全自动执行与企业微信推送总调度 (Master 尾盘总线)
+
+on:
+  # 提前错峰预热：每个交易日北京时间 14:20 (UTC 06:20)
+  schedule:
+    - cron: '20 6 * * 1-5'
+
+  # 支持在 GitHub 网页上一键手动点击触发
+  workflow_dispatch:
+    inputs:
+      skip_wait:
+        description: '是否跳过等待立即全量执行 (true/false)'
+        required: false
+        default: 'false'
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  run-master-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出量化策略仓库代码
+        uses: actions/checkout@v4
+
+      - name: 配置 Python 3.11 运行环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: 'requirements.txt'
+
+      - name: 安装量化核心计算与推送依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # ----------------------------------------------------------------------
+      # 阶段 1: 14:47 准点触发 七星量化动量策略
+      # ----------------------------------------------------------------------
+      - name: ⏳ [阶段 1] 等待至 14:47:00 并执行 七星量化动量策略
+        env:
+          WECOM_WEBHOOK: ${{ secrets.WECOM_WEBHOOK }}
+        run: |
+          if [ "${{ github.event_name == 'schedule' || !inputs.skip_wait }}" = "true" ]; then
+            python precision_scheduler.py --target 14:47
+          fi
+          cd quant_strategies/seven_stars
+          python local_etf_quant_bot.py --now
+
+      # ----------------------------------------------------------------------
+      # 阶段 2: 14:48 准点触发 科创-银行轮动 & 006503 场外基金轮动
+      # ----------------------------------------------------------------------
+      - name: ⏳ [阶段 2] 等待至 14:48:00 并执行 科创-银行与场外公募轮动
+        env:
+          WECOM_WEBHOOK: ${{ secrets.WECOM_WEBHOOK }}
+          CHINEXT_BANK_WEBHOOK: ${{ secrets.CHINEXT_BANK_WEBHOOK }}
+          PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
+          SERVERCHAN_KEY: ${{ secrets.SERVERCHAN_KEY }}
+          DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
+          FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
+        run: |
+          if [ "${{ github.event_name == 'schedule' || !inputs.skip_wait }}" = "true" ]; then
+            python precision_scheduler.py --target 14:48
+          fi
+          python chinext_bank_strategy_notifier.py --push
+          python fund_rotation_notifier.py
+
+      # ----------------------------------------------------------------------
+      # 阶段 3: 14:55 准点触发 五福 5.2 策略 (尾盘黄金决断)
+      # ----------------------------------------------------------------------
+      - name: ⏳ [阶段 3] 等待至 14:55:00 并执行 五福 5.2 动量策略
+        env:
+          WECOM_WEBHOOK: ${{ secrets.WECOM_WEBHOOK }}
+        run: |
+          if [ "${{ github.event_name == 'schedule' || !inputs.skip_wait }}" = "true" ]; then
+            python precision_scheduler.py --target 14:55
+          fi
+          cd quant_strategies/wufu_5_2
+          python wufu_5_2_local_bot.py --force
+
+      # ----------------------------------------------------------------------
+      # 阶段 4: 原子化同步所有策略持仓与状态缓存 (防 Git 冲突)
+      # ----------------------------------------------------------------------
+      - name: 💾 原子化同步并持久化全策略持仓状态
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add quant_strategies/wufu_5_2/portfolio_state.json || true
+          git add quant_strategies/seven_stars/portfolio_state.json || true
+          git add .fund_rotation_state.json || true
+          git add .star_bank_state.json || true
+          git add .chinext_bank_push_cache.json || true
+          git add .wufu_push_cache.json || true
+          git add .qixing_push_cache.json || true
+          git commit -m "chore: auto update all quant strategy states [skip ci]" || true
+          git push || true

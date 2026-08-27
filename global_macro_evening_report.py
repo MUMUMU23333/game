@@ -31,10 +31,7 @@ if sys.platform == 'win32':
     except Exception:
         pass
 
-MACRO_EVENING_WEBHOOK = os.environ.get(
-    'MACRO_EVENING_WEBHOOK',
-    "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=b44d98cc-0707-48e4-aeb6-741340aa671d"
-)
+MACRO_EVENING_WEBHOOK = (os.environ.get('MACRO_EVENING_WEBHOOK') or "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=b44d98cc-0707-48e4-aeb6-741340aa671d")
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 HTML_OUTPUT_PATH = os.path.join(SCRIPT_DIR, "index.html")
