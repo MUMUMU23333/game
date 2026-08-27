@@ -4,7 +4,7 @@
   "holding_shares": 29900,
   "cash": 927.3000000000102,
   "entry_date": "2026-08-24",
-  "is_a_share_weak": false,
+  "is_a_share_weak": true,
   "weak_start_date": null,
   "weak_days_count": 0
 }
