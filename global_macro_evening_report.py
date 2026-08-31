@@ -351,23 +351,41 @@ def collect_macro_dataset() -> dict:
 
     # 0. 动态加载科创-银行轮动状态 (DTB-Omni V5.0 Continuum)
     sb_state_file = os.path.join(SCRIPT_DIR, ".star_bank_state.json")
-    sb_status_str = "弱势防守态 (避险)"
-    sb_holdings_str = "50% 黄金股ETF (517520) + 50% 农业银行 (601288)"
-    sb_weights = {"517520": 50.0, "601288": 50.0}
+    sb_status_str = "🌟 超级顺风主升 (100% 进攻)"
+    sb_holdings_str = "100% 华夏纳指ETF (513100)"
+    sb_weights = {"513100": 100.0}
+    loaded_sb = False
     if os.path.exists(sb_state_file):
         try:
             with open(sb_state_file, "r", encoding="utf-8") as f:
                 sb_state = json.load(f)
-                sb_status_str = sb_state.get("stage_desc", "弱势防守态 (避险)")
                 weights = sb_state.get("target_weights", {})
                 if weights:
                     sb_weights = weights
+                    sb_status_str = sb_state.get("stage_desc", "🌟 超级顺风主升 (100% 进攻)")
                     parts = []
                     for c, w in weights.items():
                         c_clean = str(c).strip()
                         c_name = resolve_etf_name(c_clean)
                         parts.append(f"{w:.0f}% {c_name} ({c_clean})")
                     sb_holdings_str = " + ".join(parts)
+                    loaded_sb = True
+        except Exception:
+            pass
+
+    if not loaded_sb:
+        try:
+            from chinext_bank_strategy_notifier import StarBankOmniV5Notifier
+            sb_res = StarBankOmniV5Notifier().calculate_strategy_signal()
+            if sb_res.get('status') == 'SUCCESS':
+                sb_weights = sb_res.get('target_weights', {'513100': 100.0})
+                sb_status_str = sb_res.get('stage_desc', '🌟 超级顺风主升 (100% 进攻)')
+                parts = []
+                for c, w in sb_weights.items():
+                    c_clean = str(c).strip()
+                    c_name = resolve_etf_name(c_clean)
+                    parts.append(f"{w:.0f}% {c_name} ({c_clean})")
+                sb_holdings_str = " + ".join(parts)
         except Exception:
             pass
 
