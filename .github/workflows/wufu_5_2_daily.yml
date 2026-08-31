@@ -1,10 +1,9 @@
 name: 五福 5.2 策略每日 13:10 & 14:55 自动推送
 
 on:
-  # 提前预热：北京时间 13:00 (UTC 05:00) 与 14:35 (UTC 06:35)
+  # 仅保留午盘 13:00 预热 ➔ 13:10 午盘扫描 (尾盘 14:55 由 Master 总线统一调度)
   schedule:
     - cron: '0 5 * * 1-5'
-    - cron: '35 6 * * 1-5'
   workflow_dispatch:
     inputs:
       skip_wait:

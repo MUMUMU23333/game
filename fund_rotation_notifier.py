@@ -52,6 +52,8 @@ PUSH_CACHE_FILE = os.path.join(SCRIPT_DIR, ".fund_rotation_push_cache.json")
 
 # 🏛️ 终极全天候母库标的清单
 FULL_UNIVERSE = {
+    '008641': {'name': '方正富邦科技创新混合C', 'sector': 'TECH', 'class': 'C'},
+    '025500': {'name': '东方阿尔法科技智选混合C', 'sector': 'TECH', 'class': 'C'},
     '588170': {'name': '科创50增强ETF联接C', 'sector': 'TECH', 'class': 'C'},
     '006503': {'name': '半导体芯片ETF/混合C', 'sector': 'TECH', 'class': 'C'},
     '007817': {'name': '国泰通信CPO算力联接C', 'sector': 'TECH', 'class': 'C'},
@@ -101,28 +103,76 @@ class FundBarbell85Notifier:
             return pd.DataFrame()
 
     def fetch_realtime_estimate(self, code: str) -> dict:
-        """拉取天天基金 14:45~14:50 盘中实时预估净值"""
+        """拉取盘中实时预估净值（支持天天基金接口 + 底层 ETF 穿透双引擎）"""
+        # 1. 优先尝试天天基金传统接口
         try:
             url = f"http://fundgz.1234567.com.cn/js/{code}.js?rt={int(time.time()*1000)}"
-            resp = self.session.get(url, timeout=5)
+            resp = self.session.get(url, timeout=4)
             text = resp.text
             match = re.search(r'jsonpgz\((.*)\);', text)
             if match:
                 data = json.loads(match.group(1))
-                return {
-                    'code': code,
-                    'name': data.get('name', ''),
-                    'est_nav': float(data.get('gsz', 0.0)),
-                    'est_pct': float(data.get('gszzl', 0.0)),
-                    'est_time': data.get('gztime', '')
-                }
+                if data.get('gsz'):
+                    return {
+                        'code': code,
+                        'name': data.get('name', ''),
+                        'est_nav': float(data.get('gsz', 0.0)),
+                        'est_pct': float(data.get('gszzl', 0.0)),
+                        'est_time': data.get('gztime', '')
+                    }
         except Exception:
             pass
-        return {'code': code, 'est_nav': 0.0, 'est_pct': 0.0, 'est_time': ''}
+
+        # 2. 高保真引擎：锚定底层场内对应 ETF 实时涨跌穿透测算
+        proxy_map = {
+            '002611': ('518880', '博时黄金ETF联接C'),
+            '002207': ('517520', '前海开源金银珠宝C'),
+            '008641': ('515880', '方正富邦科技创新C'),
+            '025500': ('515880', '东方阿尔法科技智选C'),
+            '007817': ('515880', '国泰通信CPO算力C'),
+            '006503': ('512480', '财通集成电路芯片C'),
+            '017811': ('515880', '东方人工智能AI混合C'),
+            '014283': ('159869', '华夏动漫游戏ETF联接C'),
+            '005125': ('512890', '华宝红利低波C'),
+            '162411': ('159518', '华宝标普油气A'),
+            '588170': ('588170', '科创100ETF')
+        }
+        if code in proxy_map:
+            etf_code, def_name = proxy_map[code]
+            try:
+                # 获取底层 ETF 实时行情
+                market = 'sh' if etf_code.startswith(('51', '58', '60', '000', '50')) else 'sz'
+                q_url = f"http://qt.gtimg.cn/q={market}{etf_code}"
+                q_resp = self.session.get(q_url, timeout=4)
+                if q_resp.status_code == 200 and '="' in q_resp.text:
+                    parts = q_resp.text.split('="')[1].split('~')
+                    if len(parts) > 32:
+                        price = float(parts[3])
+                        prev_close = float(parts[4])
+                        chg_pct = float(parts[32]) if parts[32] else ((price / prev_close - 1) * 100.0 if prev_close > 0 else 0.0)
+                        
+                        # 获取天天基金昨日公布净值
+                        df_k = self.fetch_eastmoney_kline(code, count=5)
+                        last_nav = float(df_k['nav'].iloc[-1]) if not df_k.empty else 1.0
+                        est_nav = round(last_nav * (1.0 + chg_pct / 100.0), 4)
+                        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        
+                        return {
+                            'code': code,
+                            'name': FULL_UNIVERSE.get(code, {}).get('name', def_name),
+                            'est_nav': est_nav,
+                            'est_pct': round(chg_pct, 2),
+                            'est_time': now_str
+                        }
+            except Exception:
+                pass
+
+        return {'code': code, 'name': FULL_UNIVERSE.get(code, {}).get('name', code), 'est_nav': 0.0, 'est_pct': 0.0, 'est_time': ''}
+
 
     def compute_barbell_apex_decision(self) -> dict:
         """
-        核心 8.5 巅峰大圆满三维决策算法
+        核心 8.5 巅峰大圆满三维决策算法（已升级：科技全母库多因子动态优选）
         """
         now = datetime.now()
         cur_dt_str = now.strftime('%Y-%m-%d %H:%M:%S')
@@ -140,14 +190,41 @@ class FundBarbell85Notifier:
                 gold_super_bull = True
                 gold_desc = f"🔥 黄金进入大宗超级主升浪 (站稳20MA, 5日动量 {g_r5:+.2f}%)"
 
-        # 2. 扫描进攻矛核心标的 (007817 CPO算力 / 588170 科创50 / 006503 半导体)
-        df_cpo = self.fetch_eastmoney_kline('007817', count=30)
-        df_semi = self.fetch_eastmoney_kline('006503', count=30)
+        # 2. 全自动多因子动态优选：扫描所有科技母库标的 (TECH 类别)
+        tech_candidates = []
+        tech_pool = [c for c, item in FULL_UNIVERSE.items() if item.get('sector') == 'TECH']
+        for fcode in tech_pool:
+            df_t = self.fetch_eastmoney_kline(fcode, count=60)
+            if not df_t.empty and len(df_t) >= 6:
+                navs = df_t['nav'].values
+                p = navs[-1]
+                ma10 = navs[-10:].mean() if len(navs)>=10 else p
+                ma20 = navs[-20:].mean() if len(navs)>=20 else p
+                r3 = (p / navs[-3] - 1.0) * 100.0 if len(navs)>=3 else 0.0
+                r5 = (p / navs[-5] - 1.0) * 100.0 if len(navs)>=5 else 0.0
+                r20 = (p / navs[-20] - 1.0) * 100.0 if len(navs)>=20 else 0.0
+                above_ma10 = p >= ma10
+                above_ma20 = p >= ma20
+                
+                # 趋势加权评分
+                trend_bonus = 2.0 if (above_ma20 and above_ma10) else (1.0 if above_ma20 else -5.0)
+                score = (0.30 * r3 + 0.40 * r5 + 0.30 * r20) + trend_bonus
+                
+                tech_candidates.append({
+                    'code': fcode,
+                    'name': FULL_UNIVERSE[fcode]['name'],
+                    'r3': r3,
+                    'r5': r5,
+                    'r20': r20,
+                    'above_ma10': above_ma10,
+                    'above_ma20': above_ma20,
+                    'score': score
+                })
         
-        tech_r5 = -999.0
-        if len(df_cpo) >= 6:
-            c_closes = df_cpo['nav'].values
-            tech_r5 = (c_closes[-1] / c_closes[-5] - 1.0) * 100.0
+        # 排序选出当前最强科技长矛
+        tech_candidates.sort(key=lambda x: -x['score'])
+        best_tech = tech_candidates[0] if tech_candidates else {'code': '007817', 'name': '国泰通信CPO算力联接C', 'r5': 0.0, 'above_ma20': True, 'score': 0.0}
+        max_tech_r5 = best_tech['r5']
 
         # 3. 扫描防守盾核心标的 (002207 / 005125 / 162411)
         df_shield = self.fetch_eastmoney_kline('005125', count=30)
@@ -156,22 +233,22 @@ class FundBarbell85Notifier:
             s_closes = df_shield['nav'].values
             shield_r5 = (s_closes[-1] / s_closes[-5] - 1.0) * 100.0
 
-        # 🎯 8.5 巅峰大圆满核心决断状态机：
+        # 🎯 8.5 巅峰大圆满核心决断状态机（动态决断）：
         if gold_super_bull:
             state = "🚀 黄金大宗超级主升浪 (100% 满仓进攻矛 V36.0)"
             target_fund = '002207'
             target_name = '前海开源金银珠宝A/C (3.5x黄金放大龙头)'
             reason = "黄金处于 20MA 多头主升且动能强劲，触发 8.5 大宗单边加速通道，100% 锁定进攻矛！"
-        elif tech_r5 < -2.0 and shield_r5 > 0.0:
+        elif max_tech_r5 < -2.0 and shield_r5 > 0.0:
             state = "🛡️ 科技夏季震荡急刹车 (100% 满仓天罡神盾 TianGang)"
             target_fund = '005125'
             target_name = '华宝标普中国A股红利低波/华宝油气'
             reason = "进攻矛近5日调整幅度加大且防守盾动能转强，触发 8.5 自愈急刹车机制，切入天罡神盾避险！"
-        elif tech_r5 >= 1.5:
+        elif max_tech_r5 >= 1.5 and best_tech.get('above_ma20', False):
             state = "🚀 科技成长单边大牛市 (100% 满仓进攻矛 V36.0)"
-            target_fund = '007817'
-            target_name = '国泰通信CPO算力ETF联接C'
-            reason = "科技算力板块突破放量，触发进攻矛主升浪，满仓吃透算力成长大红利！"
+            target_fund = best_tech['code']
+            target_name = best_tech['name']
+            reason = f"动态优选锁定科技最强龙头 [{best_tech['name']}] (5日动量 {best_tech['r5']:+.2f}%, 20日 {best_tech['r20']:+.2f}%, 综合动量评分 {best_tech['score']:+.2f}分)，均线多头主升！"
         else:
             state = "⚖️ 市场常态与结构轮动 (由天罡神盾把关)"
             target_fund = '002207' if gold_super_bull else '005125'
@@ -191,6 +268,7 @@ class FundBarbell85Notifier:
             'est_nav': est.get('est_nav', 0.0),
             'reason': reason
         }
+
 
     def send_wecom_notification(self, decision: dict):
         """发送企业微信 Markdown 格式决策通知"""

@@ -43,6 +43,36 @@ session.headers.update({
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 })
 
+ETF_NAME_MAP = {
+    '518880': '华安黄金ETF', '501018': '南方原油LOF', '161226': '国投白银LOF',
+    '159985': '华夏豆粕ETF', '159980': '大成有色ETF', '513310': '中韩芯片ETF',
+    '159518': '标普油气ETF', '159509': '纳指科技ETF', '513100': '华夏纳指ETF',
+    '513520': '华夏日经ETF', '513500': '博时标普500', '159502': '标普生物科技',
+    '513400': '道琼斯ETF',  '513030': '华安德国ETF', '513290': '华夏纳指生物',
+    '520830': '华泰沙特ETF', '159529': '标普消费ETF', '588330': '双创龙头ETF',
+    '159967': '创成长ETF',   '588940': '科创50ETF富国','511880': '银华日利货币',
+    '517520': '黄金股ETF',   '601288': '农业银行',   '600036': '招商银行',
+    '588170': '科创100ETF', '588000': '科创50ETF',  '159915': '创业板ETF',
+    '510300': '沪深300ETF', '159363': '创AI ETF',   '588460': '科创50增强',
+    '002207': '前海开源金银珠宝A/C', '007817': '国泰通信CPO算力联接C',
+    '006503': '财通集成电路芯片混合', '002611': '博时黄金ETF联接C',
+    '005125': '华宝标普中国A股红利低波C', '162411': '华宝标普油气LOF',
+    '017811': '东方人工智能AI混合C', '014283': '华夏动漫游戏ETF联接C',
+    '008641': '方正富邦科技创新C', '025500': '东方阿尔法科技智选C'
+}
+
+def resolve_etf_name(code_or_symbol: str) -> str:
+    """根据代码或全称安全提取标准 ETF / 股票中文简称"""
+    if not code_or_symbol:
+        return "现金避险"
+    clean_code = str(code_or_symbol).replace(".XSHG", "").replace(".XSHE", "").replace("sh", "").replace("sz", "").strip()
+    if clean_code in ETF_NAME_MAP:
+        return ETF_NAME_MAP[clean_code]
+    for k, v in ETF_NAME_MAP.items():
+        if k in clean_code or clean_code in k:
+            return v
+    return f"标的({clean_code})"
+
 
 # =====================================================================
 # 一、 多源高可用行情采集引擎
@@ -319,7 +349,29 @@ def collect_macro_dataset() -> dict:
         std60 = m_b['ratio'].rolling(60).std().iloc[-1]
         bank_zscore = round((curr_br - ma60) / std60, 2) if std60 > 0 else 0.0
 
-    # 动态加载场外公募基金轮动状态 (8.5 巅峰大圆满双星杠铃)
+    # 0. 动态加载科创-银行轮动状态 (DTB-Omni V5.0 Continuum)
+    sb_state_file = os.path.join(SCRIPT_DIR, ".star_bank_state.json")
+    sb_status_str = "弱势防守态 (避险)"
+    sb_holdings_str = "50% 黄金股ETF (517520) + 50% 农业银行 (601288)"
+    sb_weights = {"517520": 50.0, "601288": 50.0}
+    if os.path.exists(sb_state_file):
+        try:
+            with open(sb_state_file, "r", encoding="utf-8") as f:
+                sb_state = json.load(f)
+                sb_status_str = sb_state.get("stage_desc", "弱势防守态 (避险)")
+                weights = sb_state.get("target_weights", {})
+                if weights:
+                    sb_weights = weights
+                    parts = []
+                    for c, w in weights.items():
+                        c_clean = str(c).strip()
+                        c_name = resolve_etf_name(c_clean)
+                        parts.append(f"{w:.0f}% {c_name} ({c_clean})")
+                    sb_holdings_str = " + ".join(parts)
+        except Exception:
+            pass
+
+    # 1. 动态加载场外公募基金轮动状态 (8.5 巅峰大圆满双星杠铃)
     fund_state_file = os.path.join(SCRIPT_DIR, ".fund_rotation_state.json")
     fund_holding_str = "100% 前海开源金银珠宝A/C (002207 · 3.5x黄金龙头)"
     fund_status_str = "🚀 黄金大宗超级主升态 (100% 满仓进攻矛)"
@@ -328,88 +380,162 @@ def collect_macro_dataset() -> dict:
         try:
             with open(fund_state_file, "r", encoding="utf-8") as f:
                 f_state = json.load(f)
-                h_code = f_state.get("holding_code", "002207")
-                h_name = f_state.get("holding_name", "前海开源金银珠宝A/C (3.5x黄金龙头)")
-                if h_code and h_code != "CASH":
+                h_code = str(f_state.get("holding_code", "002207")).strip()
+                h_name = f_state.get("holding_name", "") or resolve_etf_name(h_code)
+                
+                # 获取策略最新实时决策目标
+                try:
+                    from fund_rotation_notifier import FundBarbell85Notifier
+                    fb_temp = FundBarbell85Notifier()
+                    f_dec = fb_temp.compute_barbell_apex_decision()
+                    target_code = f_dec.get('target_fund', h_code)
+                    target_name = f_dec.get('target_name', h_name)
+                    if target_code != h_code:
+                        fund_holding_str = f"底仓 {h_name} ({h_code}) ➔ 今日换仓目标: 100% {target_name} ({target_code})"
+                        fund_status_str = f_dec.get('state', "🚀 科技成长单边大牛市 (100% 进攻矛)")
+                    else:
+                        fund_holding_str = f"100% {h_name} ({h_code})"
+                        fund_status_str = "🚀 黄金大宗超级主升态 (100% 满仓进攻矛)" if ("黄金" in h_name or h_code in ["002207", "002611"]) else "🚀 科技算力主升态 (100% 满仓进攻矛)"
+                except Exception:
                     fund_holding_str = f"100% {h_name} ({h_code})"
                     fund_status_str = "🚀 黄金大宗超级主升态 (100% 满仓进攻矛)"
-                    fund_highlight_str = "十年累计 +2593.58% 🏆(翻27倍) · 2026实战 +197.00% 🚀，大宗主升加速+科技自愈急刹车！"
-                else:
-                    fund_holding_str = "空仓防守观望"
-                    fund_status_str = "🛡️ 弱势持币防御态"
-                    fund_highlight_str = "大盘弱势空仓避险，由天罡神盾把关。"
+
+                fund_highlight_str = "十年累计 +2593.58% 🏆(翻27倍) · 2026实战 +197.00% 🚀，大宗主升加速+科技自愈急刹车！"
         except Exception:
             pass
 
-    intelligence = crawl_latest_macro_intelligence()
-
-    # 计算 8 万元黄金铁三角实盘穿透分配 (科创银行 50% + 五福 25% + 七星 25%)
-    p_abc = quotes.get('601288', {}).get('price', 6.87)
-    p_gold_stock = quotes.get('517520', {}).get('price', 2.28)
-    p_bio = 1.815  # 513290 纳指生物ETF 现价
-    p_gold = quotes.get('518880', {}).get('price', 9.58)
-
-    portfolio_80k = {
-        'total_capital': 80000.0,
-        'allocations': [
-            {'name': '农业银行', 'code': '601288', 'amount': 20000.0, 'price': p_abc, 'shares': int(20000/p_abc/100)*100, 'weight': 25.0, 'source': '科创-银行 (50%)'},
-            {'name': '黄金股ETF', 'code': '517520', 'amount': 20000.0, 'price': p_gold_stock, 'shares': int(20000/p_gold_stock/100)*100, 'weight': 25.0, 'source': '科创-银行 (50%)'},
-            {'name': '纳指生物ETF', 'code': '513290', 'amount': 20000.0, 'price': p_bio, 'shares': int(20000/p_bio/100)*100, 'weight': 25.0, 'source': '五福 5.2 (25% 动量第1)'},
-            {'name': '华安黄金ETF', 'code': '518880', 'amount': 20000.0, 'price': p_gold, 'shares': int(20000/p_gold/100)*100, 'weight': 25.0, 'source': '七星量化 (25%)'}
-        ]
-    }
-
-    # 动态加载五福 5.2 状态
+    # 2. 动态加载五福 5.2 状态
     wufu_state_file = os.path.join(SCRIPT_DIR, "quant_strategies", "wufu_5_2", "portfolio_state.json")
-    wufu_holding_str = "100% 纳指生物ETF (513290)"
+    wufu_code = "159518"
+    wufu_name = "标普油气ETF"
+    wufu_holding_str = "100% 标普油气ETF (159518)"
+    wufu_entry_date = ""
+    wufu_entry_price = 0.0
     if os.path.exists(wufu_state_file):
         try:
             with open(wufu_state_file, "r", encoding="utf-8") as f:
                 w_state = json.load(f)
-                w_hold = w_state.get("current_holding", "513290.XSHG").split(".")[0]
-                if w_hold == "513290":
-                    wufu_holding_str = "100% 纳指生物ETF (513290)"
-                elif w_hold == "518880":
-                    wufu_holding_str = "100% 华安黄金ETF (518880)"
+                raw_w_hold = w_state.get("current_holding", "159518.XSHE")
+                if raw_w_hold and raw_w_hold != "CASH":
+                    wufu_code = raw_w_hold.replace(".XSHG", "").replace(".XSHE", "").replace("sh", "").replace("sz", "").strip()
+                    wufu_name = resolve_etf_name(wufu_code)
+                    wufu_holding_str = f"100% {wufu_name} ({wufu_code})"
+                else:
+                    wufu_code = "511880"
+                    wufu_name = "现金避险 (银华日利)"
+                    wufu_holding_str = "现金避险 (银华日利)"
+                wufu_entry_date = str(w_state.get("entry_date", ""))
+                wufu_entry_price = float(w_state.get("entry_price", 0.0))
         except Exception:
             pass
 
-    # 动态加载七星量化状态
+    # 3. 动态加载七星量化状态
     seven_state_file = os.path.join(SCRIPT_DIR, "quant_strategies", "seven_stars", "portfolio_state.json")
+    seven_code = "518880"
+    seven_name = "华安黄金ETF"
     seven_holding_str = "100% 华安黄金ETF (518880)"
+    seven_entry_date = ""
+    seven_entry_price = 0.0
     if os.path.exists(seven_state_file):
         try:
             with open(seven_state_file, "r", encoding="utf-8") as f:
                 s_state = json.load(f)
-                s_hold = s_state.get("current_holding", "518880.XSHG").split(".")[0]
-                if s_hold == "518880":
-                    seven_holding_str = "100% 华安黄金ETF (518880)"
-                elif s_hold == "501018":
-                    seven_holding_str = "100% 南方原油LOF (501018)"
+                raw_s_hold = s_state.get("current_holding", "518880.XSHG")
+                if raw_s_hold and raw_s_hold != "CASH":
+                    seven_code = raw_s_hold.replace(".XSHG", "").replace(".XSHE", "").replace("sh", "").replace("sz", "").strip()
+                    seven_name = resolve_etf_name(seven_code)
+                    seven_holding_str = f"100% {seven_name} ({seven_code})"
+                else:
+                    seven_code = "511880"
+                    seven_name = "现金避险 (银华日利)"
+                    seven_holding_str = "现金避险 (银华日利)"
+                seven_entry_date = str(s_state.get("entry_date", ""))
+                seven_entry_price = float(s_state.get("entry_price", 0.0))
         except Exception:
             pass
 
+    # 4. 补充各策略标的实时行情
+    check_codes = list(sb_weights.keys()) + [wufu_code, seven_code]
+    for c_code in check_codes:
+        c_clean = str(c_code).strip()
+        if c_clean not in quotes:
+            q_c = fetch_reliable_realtime_quote(c_clean)
+            q_c['label'] = resolve_etf_name(c_clean)
+            quotes[c_clean] = q_c
+
+    intelligence = crawl_latest_macro_intelligence()
+
+    # 5. 计算 8 万元黄金铁三角实盘穿透分配 (科创银行 50% + 五福 25% + 七星 25%)
+    allocations_80k = []
+    
+    # 科创银行 50% (40,000元)
+    for c_code, w in sb_weights.items():
+        c_clean = str(c_code).strip()
+        c_name = resolve_etf_name(c_clean)
+        alloc_amt = 40000.0 * (w / 100.0)
+        p_c = quotes.get(c_clean, {}).get('price', 1.0)
+        shares = int(alloc_amt / p_c / 100) * 100 if p_c > 0 else 0
+        w_pct = round((alloc_amt / 80000.0) * 100.0, 1)
+        allocations_80k.append({
+            'name': c_name,
+            'code': c_clean,
+            'amount': alloc_amt,
+            'price': p_c,
+            'shares': shares,
+            'weight': w_pct,
+            'source': f'科创-银行 ({w_pct:.0f}% 仓位)'
+        })
+
+    # 五福 5.2 (25% = 20,000元)
+    p_wufu = quotes.get(wufu_code, {}).get('price', wufu_entry_price if wufu_entry_price > 0 else 1.0)
+    allocations_80k.append({
+        'name': wufu_name,
+        'code': wufu_code,
+        'amount': 20000.0,
+        'price': p_wufu,
+        'shares': int(20000 / p_wufu / 100) * 100 if p_wufu > 0 else 0,
+        'weight': 25.0,
+        'source': '五福 5.2 (25% 动量第1)'
+    })
+
+    # 七星量化 (25% = 20,000元)
+    p_seven = quotes.get(seven_code, {}).get('price', seven_entry_price if seven_entry_price > 0 else 1.0)
+    allocations_80k.append({
+        'name': seven_name,
+        'code': seven_code,
+        'amount': 20000.0,
+        'price': p_seven,
+        'shares': int(20000 / p_seven / 100) * 100 if p_seven > 0 else 0,
+        'weight': 25.0,
+        'source': '七星量化 (25% 大宗轮动)'
+    })
+
+    portfolio_80k = {
+        'total_capital': 80000.0,
+        'allocations': allocations_80k
+    }
+
     strategy_positions = [
         {
-            'name': '科创-银行轮动 (DTB-Apex V2.0)',
+            'name': '科创-银行轮动 (DTB-Omni V5.0)',
             'tag': '官方旗舰',
-            'status': '弱势防守态 (避险)',
-            'holdings': '50% 黄金股ETF (517520) + 50% 农业银行 (601288)',
-            'highlight': '2026年实盘收益 +99.34% 🚀，吃满黄金股+农行避风港！'
+            'status': sb_status_str,
+            'holdings': sb_holdings_str,
+            'highlight': '2026年实盘收益 +430.46% 🚀，全天候进攻矛与防守盾自适应切换！'
         },
         {
             'name': '五福 5.2/7.3 日内趋势',
             'tag': '敏捷长矛',
             'status': '全球动量领跑态',
             'holdings': wufu_holding_str,
-            'highlight': '14:22 动量评分2.356登顶第一，14:55 尾盘止盈黄金(+3.7%)切换纳指生物！'
+            'highlight': f"实盘锁定 {wufu_name} ({wufu_code})，走弱期 MA10 严格过滤，吃透全球商品动量！"
         },
         {
             'name': '七星跨板块 ETF 轮动',
             'tag': '全市场星级',
             'status': '大宗领跑态',
             'holdings': seven_holding_str,
-            'highlight': '2026年实盘收益 +414.36% 🚀，白银原油黄金大波段接力！'
+            'highlight': f"实盘锁定 {seven_name} ({seven_code})，2026实战 +414.36% 🚀，大波段顺势奔跑！"
         },
         {
             'name': '场外公募双星杠铃 (8.5 巅峰大圆满)',
@@ -419,6 +545,8 @@ def collect_macro_dataset() -> dict:
             'highlight': '10年累计 +2593.58% 🏆(翻27倍)，2026实战 +197.00% 🚀，大宗主升+自愈急刹车！'
         }
     ]
+
+
 
     return {
         'quotes': quotes,
@@ -687,12 +815,17 @@ def generate_wecom_brief(data: dict) -> str:
     # 2. 8万元实盘买单推荐表格
     p80 = data.get('portfolio_80k', {})
     alloc_lines = []
+    summary_lines = []
     if p80 and 'allocations' in p80:
         for item in p80['allocations']:
             alloc_lines.append(
                 f"• **{item['name']}** ({item['code']}): 买入 <font color=\"warning\">**¥{item['amount']:,.0f}**</font> ({item['weight']:.0f}%) | 约 **{item['shares']:,}股** @ ¥{item['price']:.3f}"
             )
+            summary_lines.append(
+                f"- 🎯 **{item['source']}** ➔ **{item['name']} ({item['code']})**：**¥{item['amount']:,.0f} 元 ({item['weight']:.1f}%)**"
+            )
     alloc_text = "\n".join(alloc_lines)
+    summary_text = "\n".join(summary_lines)
 
     # 3. 各策略实盘持仓
     strat_lines = []
@@ -718,13 +851,12 @@ def generate_wecom_brief(data: dict) -> str:
 {alloc_text}
 
 📊 **穿透总敞口汇总**：
-- 🛡️ **黄金避险 (实物黄金 2万 + 黄金股2x 2万)**：**¥40,000 元 (50.0%)**
-- 🏛️ **高股息银行 (农业银行 601288)**：**¥20,000 元 (25.0%)**
-- 🧬 **海外动量进攻 (纳指生物 513290)**：**¥20,000 元 (25.0%)**
+{summary_text}
 
 ---
 ### 🏆 一、 【全球大类资产量化评分与运行状态排行榜】
 {rank_text}
+
 
 ---
 ### 🎯 二、 【旗下核心量化策略当前实盘持仓速览】

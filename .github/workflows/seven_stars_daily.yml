@@ -1,9 +1,9 @@
 name: 七星量化策略每日 14:47 自动推送与双策略收盘汇总
 
 on:
-  # 提前至北京时间 14:25 (UTC 06:25) 预热虚拟机，避开 14:45~15:00 的全球排队高峰
-  schedule:
-    - cron: '25 6 * * 1-5'
+  # 定时由 quant_master_daily_pipeline.yml 总线统一调度，本文件仅保留手动触发
+  # schedule:
+  #   - cron: '25 6 * * 1-5'
   workflow_dispatch:
     inputs:
       skip_wait:
