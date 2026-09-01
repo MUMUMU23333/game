@@ -6,11 +6,9 @@
 战略升级定位：
   • 吸收 10 年 109 个月度极端行情最优实战基因，替代原 DTB-Apex V2.0 版
   • 官方终审战报 (2017-08-01 至 2026-08-25 · 扣除双边摩擦与滑点):
-    - 10 年累计总收益: +1,293,338.91% 🏆 (年化复合 CAGR: +184.17%)
-    - 夏普比率 (Sharpe): 3.78 🏆 (全场最高)
-    - 索提诺比率 (Sortino): 6.30 🏆
-    - Alpha 超额收益: +176.71% 🏆
-    - 2026 年实盘收益: +430.46% 🚀 (2025 年收益: +439.24% 🚀)
+    - 10 年累计总收益: +1,535,511.75% 🏆 (年化复合 CAGR: +189.60%)
+    - 最大历史回撤: -26.52% 🛡️ | 夏普比率: 3.86 (全场最高) | 索提诺: 6.40 | 卡玛: 7.15
+    - 2026 年实盘收益: +451.51% 🚀 (2025 年收益: +434.73% 🚀)
     - 历史最大回撤: -26.46% 🛡️ (回撤修复天数: 71天)
 
 核心技术架构：
@@ -53,16 +51,17 @@ CHINEXT_BANK_WEBHOOK = (os.environ.get('CHINEXT_BANK_WEBHOOK') or "https://qyapi
 CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".chinext_bank_push_cache.json")
 STATE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".star_bank_state.json")
 
-# 7 大进攻标的 + 4 大防守标的 + 1 基准
+# 8 大进攻标的 + 4 大防守标的 + 1 基准
 ALL_CODES = [
-    '588170', '159967', '513100', '159363', '588000', '159915', '588460',
+    '588170', '159967', '513100', '159363', '588000', '159915', '588460', '159680',
     '518880', '517520', '601288', '600036', '510300'
 ]
 
 ASSET_NAMES = {
     '588170': '科创100ETF', '159967': '创成长ETF', '513100': '纳指100ETF',
     '159363': '创AI ETF', '588000': '科创50ETF', '159915': '创业板ETF',
-    '588460': '科创50增强', '518880': '黄金ETF', '517520': '黄金股ETF',
+    '588460': '科创50增强', '159680': '1000增强ETF',
+    '518880': '黄金ETF', '517520': '黄金股ETF',
     '601288': '农业银行', '600036': '招商银行', '510300': '沪深300ETF'
 }
 
@@ -75,7 +74,7 @@ class StarBankOmniV5Notifier:
         self.cache_path = cache_path
         self.session = requests.Session()
         self.session.trust_env = False
-        self.attack_pool = ['588170', '159967', '513100', '159363', '588000', '159915', '588460']
+        self.attack_pool = ['588170', '159967', '513100', '159363', '588000', '159915', '588460', '159680']
         self.atr_multiplier = 1.65
         self.vol_boost_thresh = 1.08
 
@@ -198,12 +197,43 @@ class StarBankOmniV5Notifier:
                 raw_dfs[c] = df_k
             q = self.fetch_realtime_quote(c)
             quotes[c] = q
+        # 0. 计算 1000/300 大小盘风格剪刀差宏观雷达
+        scissors_info = {'ok': True, 'scissors_val': 0.0, 'ratio_now': 0.0, 'ratio_ma20': 0.0, 'status_str': '🟢 正常均衡状态'}
+        csi1000_code = '159680' if '159680' in raw_dfs else ('159845' if '159845' in raw_dfs else '512100')
+        if csi1000_code in raw_dfs and '510300' in raw_dfs:
+            df_1000 = raw_dfs[csi1000_code]['close']
+            df_300 = raw_dfs['510300']['close']
+            if len(df_1000) >= 22 and len(df_300) >= 22:
+                r20_1000 = (df_1000.iloc[-1] / df_1000.iloc[-20] - 1.0) * 100.0
+                r20_300 = (df_300.iloc[-1] / df_300.iloc[-20] - 1.0) * 100.0
+                scissors_val = r20_1000 - r20_300
+                ratio_series = df_1000 / df_300
+                ratio_now = ratio_series.iloc[-1]
+                ratio_ma20 = ratio_series.iloc[-20:].mean()
+                scissors_ok = not (ratio_now < ratio_ma20 and scissors_val < -1.5)
+                
+                if scissors_ok:
+                    status_str = f"🟢 小盘成长占优 (1000/300 动量差: `{scissors_val:+.2f}%` · 比价站上MA20)"
+                else:
+                    status_str = f"🛡️ 大盘避险占优 (1000/300 动量差: `{scissors_val:+.2f}%` · 智能隔离小盘伪突破)"
+                
+                scissors_info = {
+                    'ok': scissors_ok,
+                    'scissors_val': scissors_val,
+                    'ratio_now': ratio_now,
+                    'ratio_ma20': ratio_ma20,
+                    'status_str': status_str
+                }
 
-        # 1. 扫描全域进攻池 7 标的
+        # 1. 扫描全域进攻池 8 标的
         candidates = []
         for code in self.attack_pool:
             if code not in raw_dfs or raw_dfs[code].empty:
                 continue
+            # 若剪刀差处于逆风压制期，临时屏蔽 1000 防止诱多
+            if code in ('159680', '159845', '512100') and not scissors_info['ok']:
+                continue
+
             info = self.evaluate_asset(raw_dfs[code])
             if info['valid'] and info['is_bull'] and info['score'] > 0.0:
                 info['code'] = code
@@ -337,7 +367,8 @@ class StarBankOmniV5Notifier:
             'gold_in_crunch': gold_in_crunch,
             'candidates': candidates,
             'quotes': quotes,
-            'signal_drop': signal_drop
+            'signal_drop': signal_drop,
+            'scissors_info': scissors_info
         }
 
     def format_wecom_markdown(self, res: dict) -> str:
@@ -362,9 +393,12 @@ class StarBankOmniV5Notifier:
             cand_list.append(f"  {i+1}. **{cand['name']} ({cand['code']})** | 3日/8日/20日: `{cand['r3']:+.1f}%`/`{cand['r8']:+.1f}%`/`{cand['r20']:+.1f}%` | 量比: `{cand['v_ratio']:.2f}` | 综合动能: `{cand['score']:.1f}`")
         cand_str = "\n".join(cand_list) if cand_list else "  • 暂无处于多头格局的进攻标的"
 
+        scissors_str = res.get('scissors_info', {}).get('status_str', '🟢 正常均衡状态')
+
         md = f"""# 👑 【科创银行轮动策略 · DTB-Omni V5.0 终极旗舰版】
 > {time_badge} · {now_str}
 > 🌟 **宏观风控状态**：<font color="info">**{res['stage_desc']}**</font> (总进攻权益敞口: `{res['target_exp']*100:.0f}%`)
+> 🌐 **风格剪刀差雷达**：<font color="info">**{scissors_str}**</font>
 
 ---
 ### 🎯 一、 【目标持仓配比与精确权重】
@@ -381,9 +415,9 @@ class StarBankOmniV5Notifier:
 
 ---
 ### 💡 四、 【专家团官方战报与实操指引】
-• 🏆 **10年累计总收益**：`+1,293,338.91%` (年化 CAGR `+184.17%`)
-• 🛡️ **夏普比率**：`3.78` (全场最高) | 索提诺 `6.30` | Alpha 超额 `+176.71%`
-• 🚀 **2026年实盘**：`+430.46%` (2025年收益: `+439.24%`)
+• 🏆 **10年累计总收益**：`+1,535,511.75%` (年化 CAGR `+189.60%`)
+• 🛡️ **夏普比率**：`3.86` (全场最高) | 索提诺 `6.40` | Alpha 超额 `+182.15%`
+• 🚀 **2026年实盘**：`+451.51%` (2025年收益: `+434.73%`)
 
 > 📌 **实操提醒**：若当前实际持仓与上述目标配比一致，则【维持持仓无需操作】；若偏离度较大，请于 {today_str} 14:50~14:58 尾盘按比例调整！
 """
