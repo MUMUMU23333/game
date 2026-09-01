@@ -1,6 +1,8 @@
 {
-  "current_holding": "518880.XSHG",
-  "entry_price": 8.95,
-  "entry_date": "2026-08-19",
-  "stop_loss_blacklist": {}
+  "current_holding": "159985.XSHE",
+  "entry_price": 2.355,
+  "entry_date": "2026-09-01",
+  "stop_loss_blacklist": {},
+  "holding_shares": 21300,
+  "cash": 773.4999999999927
 }
