@@ -53,13 +53,50 @@
         .down { color: #ef4444; }
         .gold { color: #f59e0b; }
 
-        .intel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; margin-top: 10px; }
-        .intel-item { background: var(--bg-inner); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 16px; }
+        .intel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px; margin-top: 10px; }
+        .intel-item { background: var(--bg-inner); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 18px; transition: all 0.25s ease; }
+        .intel-item:hover { border-color: rgba(56, 189, 248, 0.4); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
         .intel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .intel-tag { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 4px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .intel-tag { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
         .intel-source { font-size: 11px; color: var(--text-muted); }
-        .intel-title { font-size: 13.5px; font-weight: 750; color: #f8fafc; margin-bottom: 6px; line-height: 1.5; }
-        .intel-desc { font-size: 12.2px; color: #94a3b8; line-height: 1.6; }
+        .intel-title { font-size: 14.5px; font-weight: 750; color: #f8fafc; margin-bottom: 8px; line-height: 1.5; }
+        
+        /* 双模切换导航与内容区 */
+        .intel-switch-bar { display: flex; align-items: center; gap: 8px; margin: 10px 0 8px 0; padding-bottom: 6px; border-bottom: 1px dashed rgba(255,255,255,0.08); }
+        .intel-tab-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #94a3b8;
+            font-size: 11.5px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .intel-tab-btn:hover { background: rgba(255, 255, 255, 0.1); color: #f8fafc; }
+        .intel-tab-btn.active {
+            background: rgba(56, 189, 248, 0.22);
+            border-color: rgba(56, 189, 248, 0.65);
+            color: #38bdf8;
+            font-weight: 700;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+        }
+        .intel-link-btn { font-size: 11px; color: #64748b; text-decoration: none; margin-left: auto; transition: color 0.2s; }
+        .intel-link-btn:hover { color: #38bdf8; }
+        
+        .intel-content-brief { font-size: 12.5px; color: #cbd5e1; line-height: 1.65; }
+        .intel-content-detail {
+            display: none;
+            font-size: 12.2px;
+            color: #94a3b8;
+            line-height: 1.7;
+            white-space: pre-line;
+            background: rgba(0, 0, 0, 0.35);
+            padding: 12px 14px;
+            border-radius: 10px;
+            border-left: 3px solid #38bdf8;
+            margin-top: 6px;
+        }
 
         .footer { text-align: center; padding: 30px; color: var(--text-muted); font-size: 12px; border-top: 1px solid rgba(255, 255, 255, 0.06); margin-top: 20px; }
     </style>
@@ -74,7 +111,7 @@
             </div>
             <div class="header-badge">
                 <span class="pulse-dot"></span>
-                <span>2026年09月02日 晚间 20:00 旗舰版</span>
+                <span>2026年09月03日 晚间 20:00 旗舰版</span>
             </div>
         </header>
 
@@ -101,142 +138,142 @@
                         <tbody>
                             
         <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
-            <td style="padding: 12px; font-weight: 750;">🥇 🛢️ 大宗原油</td>
-            <td style="padding: 12px; font-weight: 600; color: #f8fafc;">华安标普全球石油 (原油大宗) <code>160416</code></td>
-            <td style="padding: 12px; font-weight: 750; color: #ffffff;">¥2.233</td>
-            <td style="padding: 12px; font-weight: 700;" class="up">+1.87%</td>
-            <td style="padding: 12px; color: #94a3b8;">+8.93%</td>
+            <td style="padding: 12px; font-weight: 750;">🥇 🌾 农产大宗</td>
+            <td style="padding: 12px; font-weight: 600; color: #f8fafc;">华夏豆粕ETF (农产大宗) <code>159985</code></td>
+            <td style="padding: 12px; font-weight: 750; color: #ffffff;">¥2.387</td>
+            <td style="padding: 12px; font-weight: 700;" class="up">+1.83%</td>
+            <td style="padding: 12px; color: #94a3b8;">+12.33%</td>
             <td style="padding: 12px;"><span style="font-size: 13px; font-weight: 800; color: #f59e0b;">99.0 分</span></td>
             <td style="padding: 12px; font-size: 13px; font-weight: 600; color: #38bdf8;">👑 超级主升浪 (多头共振·高爆发)</td>
         </tr>
         
         <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
-            <td style="padding: 12px; font-weight: 750;">🥈 🌾 农产大宗</td>
-            <td style="padding: 12px; font-weight: 600; color: #f8fafc;">华夏豆粕ETF (农产大宗) <code>159985</code></td>
-            <td style="padding: 12px; font-weight: 750; color: #ffffff;">¥2.344</td>
-            <td style="padding: 12px; font-weight: 700;" class="down">-0.97%</td>
-            <td style="padding: 12px; color: #94a3b8;">+10.62%</td>
-            <td style="padding: 12px;"><span style="font-size: 13px; font-weight: 800; color: #f59e0b;">98.4 分</span></td>
+            <td style="padding: 12px; font-weight: 750;">🥈 🛢️ 大宗原油</td>
+            <td style="padding: 12px; font-weight: 600; color: #f8fafc;">华安标普全球石油 (原油大宗) <code>160416</code></td>
+            <td style="padding: 12px; font-weight: 750; color: #ffffff;">¥2.226</td>
+            <td style="padding: 12px; font-weight: 700;" class="down">-0.31%</td>
+            <td style="padding: 12px; color: #94a3b8;">+7.80%</td>
+            <td style="padding: 12px;"><span style="font-size: 13px; font-weight: 800; color: #f59e0b;">94.7 分</span></td>
             <td style="padding: 12px; font-size: 13px; font-weight: 600; color: #38bdf8;">👑 超级主升浪 (多头共振·高爆发)</td>
         </tr>
         
         <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
             <td style="padding: 12px; font-weight: 750;">🥉 🏦 红利银行</td>
-            <td style="padding: 12px; font-weight: 600; color: #f8fafc;">农业银行 (6.5%免税高股息) <code>601288</code></td>
-            <td style="padding: 12px; font-weight: 750; color: #ffffff;">¥7.060</td>
-            <td style="padding: 12px; font-weight: 700;" class="up">+0.14%</td>
-            <td style="padding: 12px; color: #94a3b8;">+8.95%</td>
-            <td style="padding: 12px;"><span style="font-size: 13px; font-weight: 800; color: #f59e0b;">96.9 分</span></td>
+            <td style="padding: 12px; font-weight: 600; color: #f8fafc;">招商银行 (零售之王/高ROE) <code>600036</code></td>
+            <td style="padding: 12px; font-weight: 750; color: #ffffff;">¥41.070</td>
+            <td style="padding: 12px; font-weight: 700;" class="up">+0.49%</td>
+            <td style="padding: 12px; color: #94a3b8;">+5.85%</td>
+            <td style="padding: 12px;"><span style="font-size: 13px; font-weight: 800; color: #f59e0b;">91.7 分</span></td>
             <td style="padding: 12px; font-size: 13px; font-weight: 600; color: #38bdf8;">👑 超级主升浪 (多头共振·高爆发)</td>
         </tr>
         
         <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
             <td style="padding: 12px; font-weight: 750;">4️⃣ 🏦 红利银行</td>
-            <td style="padding: 12px; font-weight: 600; color: #f8fafc;">招商银行 (零售之王/高ROE) <code>600036</code></td>
-            <td style="padding: 12px; font-weight: 750; color: #ffffff;">¥40.870</td>
-            <td style="padding: 12px; font-weight: 700;" class="up">+0.02%</td>
-            <td style="padding: 12px; color: #94a3b8;">+4.96%</td>
-            <td style="padding: 12px;"><span style="font-size: 13px; font-weight: 800; color: #f59e0b;">86.4 分</span></td>
+            <td style="padding: 12px; font-weight: 600; color: #f8fafc;">农业银行 (6.5%免税高股息) <code>601288</code></td>
+            <td style="padding: 12px; font-weight: 750; color: #ffffff;">¥6.890</td>
+            <td style="padding: 12px; font-weight: 700;" class="down">-2.41%</td>
+            <td style="padding: 12px; color: #94a3b8;">+6.00%</td>
+            <td style="padding: 12px;"><span style="font-size: 13px; font-weight: 800; color: #f59e0b;">84.8 分</span></td>
             <td style="padding: 12px; font-size: 13px; font-weight: 600; color: #38bdf8;">🚀 强势多头 (站稳均线·稳健上行)</td>
         </tr>
         
         <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
             <td style="padding: 12px; font-weight: 750;">5️⃣ 👑 黄金大宗</td>
             <td style="padding: 12px; font-weight: 600; color: #f8fafc;">黄金股ETF (2x杠杆加速) <code>517520</code></td>
-            <td style="padding: 12px; font-weight: 750; color: #ffffff;">¥2.173</td>
-            <td style="padding: 12px; font-weight: 700;" class="down">-1.18%</td>
-            <td style="padding: 12px; color: #94a3b8;">+6.99%</td>
-            <td style="padding: 12px;"><span style="font-size: 13px; font-weight: 800; color: #f59e0b;">81.4 分</span></td>
+            <td style="padding: 12px; font-weight: 750; color: #ffffff;">¥2.224</td>
+            <td style="padding: 12px; font-weight: 700;" class="up">+2.35%</td>
+            <td style="padding: 12px; color: #94a3b8;">+5.30%</td>
+            <td style="padding: 12px;"><span style="font-size: 13px; font-weight: 800; color: #f59e0b;">81.5 分</span></td>
             <td style="padding: 12px; font-size: 13px; font-weight: 600; color: #38bdf8;">🚀 强势多头 (站稳均线·稳健上行)</td>
         </tr>
         
         <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
             <td style="padding: 12px; font-weight: 750;">6️⃣ ⛏️ 周期煤炭</td>
             <td style="padding: 12px; font-weight: 600; color: #f8fafc;">国泰中证煤炭ETF (高股息周期) <code>515220</code></td>
-            <td style="padding: 12px; font-weight: 750; color: #ffffff;">¥1.303</td>
-            <td style="padding: 12px; font-weight: 700;" class="down">-2.91%</td>
-            <td style="padding: 12px; color: #94a3b8;">+4.83%</td>
-            <td style="padding: 12px;"><span style="font-size: 13px; font-weight: 800; color: #f59e0b;">74.9 分</span></td>
-            <td style="padding: 12px; font-size: 13px; font-weight: 600; color: #38bdf8;">🛡️ 偏多蓄势 (类债压舱·确定收息)</td>
+            <td style="padding: 12px; font-weight: 750; color: #ffffff;">¥1.300</td>
+            <td style="padding: 12px; font-weight: 700;" class="down">-0.23%</td>
+            <td style="padding: 12px; color: #94a3b8;">+5.35%</td>
+            <td style="padding: 12px;"><span style="font-size: 13px; font-weight: 800; color: #f59e0b;">77.6 分</span></td>
+            <td style="padding: 12px; font-size: 13px; font-weight: 600; color: #38bdf8;">🚀 强势多头 (站稳均线·稳健上行)</td>
         </tr>
         
         <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
             <td style="padding: 12px; font-weight: 750;">7️⃣ 👑 黄金大宗</td>
             <td style="padding: 12px; font-weight: 600; color: #f8fafc;">华安黄金ETF (实物黄金) <code>518880</code></td>
-            <td style="padding: 12px; font-weight: 750; color: #ffffff;">¥8.902</td>
-            <td style="padding: 12px; font-weight: 700;" class="down">-2.37%</td>
-            <td style="padding: 12px; color: #94a3b8;">+1.22%</td>
-            <td style="padding: 12px;"><span style="font-size: 13px; font-weight: 800; color: #f59e0b;">52.0 分</span></td>
-            <td style="padding: 12px; font-size: 13px; font-weight: 600; color: #38bdf8;">⚖️ 中性震荡 (多空博弈·等待方向)</td>
+            <td style="padding: 12px; font-weight: 750; color: #ffffff;">¥9.105</td>
+            <td style="padding: 12px; font-weight: 700;" class="up">+2.28%</td>
+            <td style="padding: 12px; color: #94a3b8;">+2.40%</td>
+            <td style="padding: 12px;"><span style="font-size: 13px; font-weight: 800; color: #f59e0b;">62.4 分</span></td>
+            <td style="padding: 12px; font-size: 13px; font-weight: 600; color: #38bdf8;">🛡️ 偏多蓄势 (类债压舱·确定收息)</td>
         </tr>
         
         <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
             <td style="padding: 12px; font-weight: 750;">8️⃣ 🇺🇸 美股科技</td>
             <td style="padding: 12px; font-weight: 600; color: #f8fafc;">纳指科技ETF (AI算力增强) <code>159509</code></td>
-            <td style="padding: 12px; font-weight: 750; color: #ffffff;">¥2.774</td>
-            <td style="padding: 12px; font-weight: 700;" class="down">-1.81%</td>
-            <td style="padding: 12px; color: #94a3b8;">-1.60%</td>
-            <td style="padding: 12px;"><span style="font-size: 13px; font-weight: 800; color: #f59e0b;">51.8 分</span></td>
+            <td style="padding: 12px; font-weight: 750; color: #ffffff;">¥2.776</td>
+            <td style="padding: 12px; font-weight: 700;" class="up">+0.07%</td>
+            <td style="padding: 12px; color: #94a3b8;">-2.36%</td>
+            <td style="padding: 12px;"><span style="font-size: 13px; font-weight: 800; color: #f59e0b;">52.4 分</span></td>
             <td style="padding: 12px; font-size: 13px; font-weight: 600; color: #38bdf8;">⚖️ 中性震荡 (多空博弈·等待方向)</td>
         </tr>
         
         <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
             <td style="padding: 12px; font-weight: 750;">9️⃣ 🇺🇸 美股科技</td>
             <td style="padding: 12px; font-weight: 600; color: #f8fafc;">纳指100ETF (全球科技底座) <code>513100</code></td>
-            <td style="padding: 12px; font-weight: 750; color: #ffffff;">¥2.195</td>
-            <td style="padding: 12px; font-weight: 700;" class="down">-1.70%</td>
-            <td style="padding: 12px; color: #94a3b8;">-3.18%</td>
-            <td style="padding: 12px;"><span style="font-size: 13px; font-weight: 800; color: #f59e0b;">49.8 分</span></td>
+            <td style="padding: 12px; font-weight: 750; color: #ffffff;">¥2.196</td>
+            <td style="padding: 12px; font-weight: 700;" class="up">+0.05%</td>
+            <td style="padding: 12px; color: #94a3b8;">-3.09%</td>
+            <td style="padding: 12px;"><span style="font-size: 13px; font-weight: 800; color: #f59e0b;">49.7 分</span></td>
             <td style="padding: 12px; font-size: 13px; font-weight: 600; color: #38bdf8;">⚖️ 中性震荡 (多空博弈·等待方向)</td>
         </tr>
         
         <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
             <td style="padding: 12px; font-weight: 750;">🔟 🚀 中小盘成长</td>
             <td style="padding: 12px; font-weight: 600; color: #f8fafc;">招商1000增强ETF (小盘Alpha) <code>159680</code></td>
-            <td style="padding: 12px; font-weight: 750; color: #ffffff;">¥1.655</td>
-            <td style="padding: 12px; font-weight: 700;" class="down">-1.43%</td>
-            <td style="padding: 12px; color: #94a3b8;">+1.66%</td>
-            <td style="padding: 12px;"><span style="font-size: 13px; font-weight: 800; color: #f59e0b;">49.7 分</span></td>
+            <td style="padding: 12px; font-weight: 750; color: #ffffff;">¥1.662</td>
+            <td style="padding: 12px; font-weight: 700;" class="up">+0.42%</td>
+            <td style="padding: 12px; color: #94a3b8;">-0.72%</td>
+            <td style="padding: 12px;"><span style="font-size: 13px; font-weight: 800; color: #f59e0b;">46.6 分</span></td>
             <td style="padding: 12px; font-size: 13px; font-weight: 600; color: #38bdf8;">⚖️ 中性震荡 (多空博弈·等待方向)</td>
         </tr>
         
         <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
             <td style="padding: 12px; font-weight: 750;">1️⃣1️⃣ 🇨🇳 A股蓝筹</td>
             <td style="padding: 12px; font-weight: 600; color: #f8fafc;">沪深300ETF (大盘核心蓝筹) <code>510300</code></td>
-            <td style="padding: 12px; font-weight: 750; color: #ffffff;">¥4.620</td>
-            <td style="padding: 12px; font-weight: 700;" class="down">-1.37%</td>
-            <td style="padding: 12px; color: #94a3b8;">-1.99%</td>
-            <td style="padding: 12px;"><span style="font-size: 13px; font-weight: 800; color: #f59e0b;">42.6 分</span></td>
+            <td style="padding: 12px; font-weight: 750; color: #ffffff;">¥4.621</td>
+            <td style="padding: 12px; font-weight: 700;" class="up">+0.02%</td>
+            <td style="padding: 12px; color: #94a3b8;">-2.74%</td>
+            <td style="padding: 12px;"><span style="font-size: 13px; font-weight: 800; color: #f59e0b;">41.3 分</span></td>
             <td style="padding: 12px; font-size: 13px; font-weight: 600; color: #38bdf8;">📉 弱势磨底 (均线下方·建议观望)</td>
         </tr>
         
         <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
-            <td style="padding: 12px; font-weight: 750;">1️⃣2️⃣ 🇨🇳 A股科技</td>
-            <td style="padding: 12px; font-weight: 600; color: #f8fafc;">科创100ETF (高弹性成长增强) <code>588170</code></td>
-            <td style="padding: 12px; font-weight: 750; color: #ffffff;">¥0.947</td>
-            <td style="padding: 12px; font-weight: 700;" class="down">-1.87%</td>
-            <td style="padding: 12px; color: #94a3b8;">-0.21%</td>
-            <td style="padding: 12px;"><span style="font-size: 13px; font-weight: 800; color: #f59e0b;">40.5 分</span></td>
+            <td style="padding: 12px; font-weight: 750;">1️⃣2️⃣ 🇨🇳 A股成长</td>
+            <td style="padding: 12px; font-weight: 600; color: #f8fafc;">创业板ETF (高贝塔成长基准) <code>159915</code></td>
+            <td style="padding: 12px; font-weight: 750; color: #ffffff;">¥3.330</td>
+            <td style="padding: 12px; font-weight: 700;" class="down">-0.15%</td>
+            <td style="padding: 12px; color: #94a3b8;">-7.14%</td>
+            <td style="padding: 12px;"><span style="font-size: 13px; font-weight: 800; color: #f59e0b;">27.1 分</span></td>
             <td style="padding: 12px; font-size: 13px; font-weight: 600; color: #38bdf8;">📉 弱势磨底 (均线下方·建议观望)</td>
         </tr>
         
         <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
             <td style="padding: 12px; font-weight: 750;">1️⃣3️⃣ 🇨🇳 A股科技</td>
             <td style="padding: 12px; font-weight: 600; color: #f8fafc;">科创50ETF (硬科技半导体) <code>588000</code></td>
-            <td style="padding: 12px; font-weight: 750; color: #ffffff;">¥1.708</td>
-            <td style="padding: 12px; font-weight: 700;" class="down">-1.84%</td>
-            <td style="padding: 12px; color: #94a3b8;">-4.37%</td>
-            <td style="padding: 12px;"><span style="font-size: 13px; font-weight: 800; color: #f59e0b;">36.1 分</span></td>
+            <td style="padding: 12px; font-weight: 750; color: #ffffff;">¥1.703</td>
+            <td style="padding: 12px; font-weight: 700;" class="down">-0.29%</td>
+            <td style="padding: 12px; color: #94a3b8;">-7.45%</td>
+            <td style="padding: 12px;"><span style="font-size: 13px; font-weight: 800; color: #f59e0b;">26.6 分</span></td>
             <td style="padding: 12px; font-size: 13px; font-weight: 600; color: #38bdf8;">📉 弱势磨底 (均线下方·建议观望)</td>
         </tr>
         
         <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
-            <td style="padding: 12px; font-weight: 750;">1️⃣4️⃣ 🇨🇳 A股成长</td>
-            <td style="padding: 12px; font-weight: 600; color: #f8fafc;">创业板ETF (高贝塔成长基准) <code>159915</code></td>
-            <td style="padding: 12px; font-weight: 750; color: #ffffff;">¥3.335</td>
-            <td style="padding: 12px; font-weight: 700;" class="down">-2.26%</td>
-            <td style="padding: 12px; color: #94a3b8;">-5.79%</td>
-            <td style="padding: 12px;"><span style="font-size: 13px; font-weight: 800; color: #f59e0b;">26.4 分</span></td>
+            <td style="padding: 12px; font-weight: 750;">1️⃣4️⃣ 🇨🇳 A股科技</td>
+            <td style="padding: 12px; font-weight: 600; color: #f8fafc;">科创100ETF (高弹性成长增强) <code>588170</code></td>
+            <td style="padding: 12px; font-weight: 750; color: #ffffff;">¥0.935</td>
+            <td style="padding: 12px; font-weight: 700;" class="down">-1.27%</td>
+            <td style="padding: 12px; color: #94a3b8;">-7.88%</td>
+            <td style="padding: 12px;"><span style="font-size: 13px; font-weight: 800; color: #f59e0b;">19.3 分</span></td>
             <td style="padding: 12px; font-size: 13px; font-weight: 600; color: #38bdf8;">📉 弱势磨底 (均线下方·建议观望)</td>
         </tr>
         
@@ -267,8 +304,8 @@
                 <span style="font-size: 14.5px; font-weight: 750; color: #ffffff;">五福 5.2/7.3 日内趋势</span>
                 <span style="font-size: 11px; padding: 3px 8px; border-radius: 6px; background: rgba(16, 185, 129, 0.15); color: #34d399; font-weight: 700;">全球动量领跑态</span>
             </div>
-            <div style="font-size: 13px; color: #f59e0b; font-weight: 700; margin-bottom: 4px;">🎯 当前持仓：100% 华夏豆粕ETF (159985)</div>
-            <div style="font-size: 12px; color: #94a3b8;">💡 亮点：实盘锁定 华夏豆粕ETF (159985)，走弱期 MA10 严格过滤，吃透全球商品动量！</div>
+            <div style="font-size: 13px; color: #f59e0b; font-weight: 700; margin-bottom: 4px;">🎯 当前持仓：100% 华夏纳指生物 (513290)</div>
+            <div style="font-size: 12px; color: #94a3b8;">💡 亮点：实盘锁定 华夏纳指生物 (513290)，走弱期 MA10 严格过滤，吃透全球商品动量！</div>
         </div>
         
         <div style="background: rgba(10, 16, 30, 0.8); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 16px; margin-bottom: 12px;">
@@ -282,11 +319,11 @@
         
         <div style="background: rgba(10, 16, 30, 0.8); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 16px; margin-bottom: 12px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span style="font-size: 14.5px; font-weight: 750; color: #ffffff;">场外公募双星杠铃 (8.5 巅峰大圆满)</span>
-                <span style="font-size: 11px; padding: 3px 8px; border-radius: 6px; background: rgba(16, 185, 129, 0.15); color: #34d399; font-weight: 700;">🚀 黄金大宗超级主升态 (100% 满仓进攻矛)</span>
+                <span style="font-size: 14.5px; font-weight: 750; color: #ffffff;">场外公募双星杠铃 (8.5 巅峰大圆满 · 方案3)</span>
+                <span style="font-size: 11px; padding: 3px 8px; border-radius: 6px; background: rgba(16, 185, 129, 0.15); color: #34d399; font-weight: 700;">🚀 全天候大动量单边主升 (100% 满仓第一主攻矛)</span>
             </div>
-            <div style="font-size: 13px; color: #f59e0b; font-weight: 700; margin-bottom: 4px;">🎯 当前持仓：100% 前海开源金银珠宝A/C (002207 · 3.5x黄金龙头)</div>
-            <div style="font-size: 12px; color: #94a3b8;">💡 亮点：10年累计 +2593.58% 🏆(翻27倍)，2026实战 +197.00% 🚀，大宗主升+自愈急刹车！</div>
+            <div style="font-size: 13px; color: #f59e0b; font-weight: 700; margin-bottom: 4px;">🎯 当前持仓：004243 广发道琼斯石油C (美股油气一体化霸主)</div>
+            <div style="font-size: 12px; color: #94a3b8;">💡 亮点：【方案3无界动量第一】综合评分 +7.57分 | 美股盘前均值 +0.39%(瓦莱罗+1.13%) · 2026实战 +293.41% 💥(翻近4倍)！</div>
         </div>
         
                 </div>
@@ -301,9 +338,9 @@
                 
                 <div style="font-size: 13.5px; color: #cbd5e1; line-height: 1.8;">
                     • <b>1000/300 风格剪刀差雷达</b>：<span style="color:#38bdf8; font-weight:700;">🟢 小盘成长占优周期 (1000/300 剪刀差正向 · 10日超额胜率 54.95%)</span><br>
-                    • <b>纳指科技溢价偏离度 (DPSA)</b>：<code>+0.37%</code> (安全通道)<br>
-                    • <b>招商/农业银行比价 Z-Score</b>：<code>-0.29σ</code> (招行蓄势)<br>
-                    • <b>全舰队穿透总敞口</b>：<span style="color:#10b981; font-weight:700;">农业银行(50%) + 华夏豆粕ETF(25%) + 华夏豆粕ETF(25%)</span><br><br>
+                    • <b>纳指科技溢价偏离度 (DPSA)</b>：<code>+0.33%</code> (安全通道)<br>
+                    • <b>招商/农业银行比价 Z-Score</b>：<code>+0.95σ</code> (招行蓄势)<br>
+                    • <b>全舰队穿透总敞口</b>：<span style="color:#10b981; font-weight:700;">农业银行(50%) + 华夏纳指生物(25%) + 华夏豆粕ETF(25%)</span><br><br>
                     <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; padding: 14px;">
                         <span style="color: #f59e0b; font-weight: 750;">💡 明日极简战令</span>：<br>
                         全舰队当前高度共振于顺势主升资产，每日 14:48~14:55 查看尾盘信号，安心享受跨周期复利！
@@ -311,66 +348,148 @@
                 </div>
             </div>
 
-            <!-- 四、 Crawl4AI 实时全球财经情报热榜 -->
+            <!-- 四、 Crawl4AI 实时全球财经情报热榜 (双模态交互版) -->
             <div class="card col-12">
                 <div class="card-header">
                     <div class="card-title">⚡ Crawl4AI 实时全球宏观与机构情报聚合热榜</div>
-                    <span style="font-size: 11px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 4px 10px; border-radius: 6px; font-weight:700;">Crawl4AI 异步感知中枢</span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <button class="intel-tab-btn" onclick="switchAllNews('brief')" style="background:rgba(255,255,255,0.08); border-color:rgba(255,255,255,0.2);">📝 一键全部简版</button>
+                        <button class="intel-tab-btn" onclick="switchAllNews('detail')" style="background:rgba(56,189,248,0.15); border-color:rgba(56,189,248,0.4); color:#38bdf8;">📖 一键全部详细版</button>
+                        <span style="font-size: 11px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 4px 10px; border-radius: 6px; font-weight:700;">Crawl4AI 异步感知中枢</span>
+                    </div>
                 </div>
                 <div class="intel-grid">
                     
-        <div class="intel-item">
-            <div class="intel-header">
-                <span class="intel-tag">🛢️ 大宗原油</span>
-                <span class="intel-source">全球实时财经</span>
-            </div>
-            <div class="intel-title">美国柴油价格飙升至4月以来最高，战争致全球供应紧张</div>
-            <div class="intel-desc">美国柴油价格攀升至自4月份美伊战争初期峰值以来的最高水平，突显出随着冲突持续，通胀压力正威胁全球经济。 根据美国汽车协会的数据，周二全美平均零售价达到每加仑5...</div>
-        </div>
-        
-        <div class="intel-item">
-            <div class="intel-header">
-                <span class="intel-tag">🇺🇸 美股科技</span>
-                <span class="intel-source">全球实时财经</span>
-            </div>
-            <div class="intel-title">英伟达的下一步：不止售卖AI芯片</div>
-            <div class="intel-desc">定制化 AI 芯片，是英伟达霸主地位面临的最大威胁之一。而英伟达首席执行官黄仁勋的应对方案是：即便如此，也要从中赚钱。</div>
-        </div>
-        
-        <div class="intel-item">
-            <div class="intel-header">
-                <span class="intel-tag">🇺🇸 美股科技</span>
-                <span class="intel-source">全球实时财经</span>
-            </div>
-            <div class="intel-title">伯克希尔CEO阿贝尔：二季度增持后，Alphabet已是AI领域“重要参与者”</div>
-            <div class="intel-desc">周三，伯克希尔・哈撒韦首席执行官格雷格・阿贝尔接受采访，谈及集团对谷歌母公司Alphabet的大额投资，称这家科技巨头是人工智能领域的“重要参与者”。</div>
-        </div>
-        
-        <div class="intel-item">
-            <div class="intel-header">
-                <span class="intel-tag">🇺🇸 美股科技</span>
-                <span class="intel-source">全球实时财经</span>
-            </div>
-            <div class="intel-title">苹果新CEO特努斯时代开启：AI挑战与存储芯片紧缺双重加剧</div>
-            <div class="intel-desc">2023年末，当时尚未接任CEO的约翰·特努斯接受采访，言谈句句不离技术。定制芯片、设备电池续航、内存架构是他重点关注的领域。</div>
-        </div>
-        
-        <div class="intel-item">
+        <div class="intel-item" id="news-card-0">
             <div class="intel-header">
                 <span class="intel-tag">🌐 全球宏观</span>
-                <span class="intel-source">全球实时财经</span>
+                <span class="intel-source">环球市场播报</span>
             </div>
-            <div class="intel-title">出任苹果执行董事长 库克总薪酬达4700万美元</div>
-            <div class="intel-desc">苹果给予蒂姆·库克一份薪酬水平接近其继任者约翰·特努斯的薪资方案，释放出信号：这位即将卸任的首席执行官，将在执行董事长这一新岗位上继续发挥重要影响力。</div>
+            <div class="intel-title">据悉日本央行倾向加息25个基点 后续路径保持灵活</div>
+            <div class="intel-switch-bar">
+                <button class="intel-tab-btn active" id="btn-brief-0" onclick="switchNewsTab('0', 'brief')">📝 简版速览</button>
+                <button class="intel-tab-btn" id="btn-detail-0" onclick="switchNewsTab('0', 'detail')">📖 详细版报道</button>
+                <a class="intel-link-btn" href="https://finance.sina.com.cn/tob/2026-09-03/doc-iniqpvfs4364050.shtml" target="_blank">🔗 查阅原文</a>
+            </div>
+            <div class="intel-content-brief" id="news-brief-0">
+                据知情人士透露，受物价上行风险推动，日本央行倾向于在本月上调基准利率25个基点，同时对未来加息节奏维持灵活态度。 知情人士称，在9月18日结束的为期两天的议息会议上...
+            </div>
+            <div class="intel-content-detail" id="news-detail-0">
+                据知情人士透露，受物价上行风险推动，日本央行倾向于在本月上调基准利率25个基点，同时对未来加息节奏维持灵活态度。 知情人士称，在9月18日结束的为期两天的议息会议上...
+
+【宏观与量化投研深度穿透】
+该事件深层映射出全球地缘冲突再平衡与供应链重构的博弈格局。对于资本市场而言，避险资产（黄金、油气）与高壁垒硬科技、高现金流红利呈现明显的结构性剪刀差。建议坚持全天候杠铃配置，借助动量第一主攻长矛紧抓突破弹性，同时以天罡防御盾对冲尾部极端波动。
+            </div>
         </div>
         
-        <div class="intel-item">
+        <div class="intel-item" id="news-card-1">
+            <div class="intel-header">
+                <span class="intel-tag">🇺🇸 美股科技</span>
+                <span class="intel-source">环球市场播报</span>
+            </div>
+            <div class="intel-title">美国联合科技巨头向G20推销AI“轻监管” 黄仁勋、奥特曼等警告过度监管</div>
+            <div class="intel-switch-bar">
+                <button class="intel-tab-btn active" id="btn-brief-1" onclick="switchNewsTab('1', 'brief')">📝 简版速览</button>
+                <button class="intel-tab-btn" id="btn-detail-1" onclick="switchNewsTab('1', 'detail')">📖 详细版报道</button>
+                <a class="intel-link-btn" href="https://finance.sina.com.cn/stock/usstock/c/2026-09-03/doc-iniqpvfw2108115.shtml" target="_blank">🔗 查阅原文</a>
+            </div>
+            <div class="intel-content-brief" id="news-brief-1">
+                科技企业高管与特朗普政府官员向其他主要经济体的政策制定者呼吁采取亲AI政策，他们提出严苛监管会扼杀这样一个有望拉动全球经济高速增长、攻克疑难疾病的产业。
+            </div>
+            <div class="intel-content-detail" id="news-detail-1">
+                科技企业高管与特朗普政府官员向其他主要经济体的政策制定者呼吁采取亲AI政策，他们提出严苛监管会扼杀这样一个有望拉动全球经济高速增长、攻克疑难疾病的产业。
+
+【宏观与量化投研深度穿透】
+该事件深层映射出全球地缘冲突再平衡与供应链重构的博弈格局。对于资本市场而言，避险资产（黄金、油气）与高壁垒硬科技、高现金流红利呈现明显的结构性剪刀差。建议坚持全天候杠铃配置，借助动量第一主攻长矛紧抓突破弹性，同时以天罡防御盾对冲尾部极端波动。
+            </div>
+        </div>
+        
+        <div class="intel-item" id="news-card-2">
+            <div class="intel-header">
+                <span class="intel-tag">🛢️ 大宗油气</span>
+                <span class="intel-source">环球市场播报</span>
+            </div>
+            <div class="intel-title">受战争冲击全球供应 美国柴油价格创下四年新高</div>
+            <div class="intel-switch-bar">
+                <button class="intel-tab-btn active" id="btn-brief-2" onclick="switchNewsTab('2', 'brief')">📝 简版速览</button>
+                <button class="intel-tab-btn" id="btn-detail-2" onclick="switchNewsTab('2', 'detail')">📖 详细版报道</button>
+                <a class="intel-link-btn" href="https://finance.sina.com.cn/world/2026-09-03/doc-iniqpvfw6934746.shtml" target="_blank">🔗 查阅原文</a>
+            </div>
+            <div class="intel-content-brief" id="news-brief-2">
+                美国柴油零售价格创下2022年年中以来新高，超越伊朗战争初期的峰值，逼近历史最高纪录。 美国汽车协会数据显示，周三全美加油站柴油均价上涨至每加仑5.783美元...
+            </div>
+            <div class="intel-content-detail" id="news-detail-2">
+                美国柴油零售价格创下2022年年中以来新高，超越伊朗战争初期的峰值，逼近历史最高纪录。 美国汽车协会数据显示，周三全美加油站柴油均价上涨至每加仑5.783美元...
+
+【宏观与量化投研深度穿透】
+该事件深层映射出全球地缘冲突再平衡与供应链重构的博弈格局。对于资本市场而言，避险资产（黄金、油气）与高壁垒硬科技、高现金流红利呈现明显的结构性剪刀差。建议坚持全天候杠铃配置，借助动量第一主攻长矛紧抓突破弹性，同时以天罡防御盾对冲尾部极端波动。
+            </div>
+        </div>
+        
+        <div class="intel-item" id="news-card-3">
+            <div class="intel-header">
+                <span class="intel-tag">🛢️ 大宗油气</span>
+                <span class="intel-source">环球市场播报</span>
+            </div>
+            <div class="intel-title">尼日利亚货币有望创2018年来最佳年度表现 受益于油价上涨及侨汇激增</div>
+            <div class="intel-switch-bar">
+                <button class="intel-tab-btn active" id="btn-brief-3" onclick="switchNewsTab('3', 'brief')">📝 简版速览</button>
+                <button class="intel-tab-btn" id="btn-detail-3" onclick="switchNewsTab('3', 'detail')">📖 详细版报道</button>
+                <a class="intel-link-btn" href="https://finance.sina.com.cn/world/2026-09-03/doc-iniqpvfu1134827.shtml" target="_blank">🔗 查阅原文</a>
+            </div>
+            <div class="intel-content-brief" id="news-brief-3">
+                分析师表示，随着油价上涨和侨汇流入增加带来的美元资金持续流入，尼日利亚货币奈拉正迈向近十年来最佳年度表现，这有助于其抵御通常伴随选举季出现的政治风险。
+            </div>
+            <div class="intel-content-detail" id="news-detail-3">
+                分析师表示，随着油价上涨和侨汇流入增加带来的美元资金持续流入，尼日利亚货币奈拉正迈向近十年来最佳年度表现，这有助于其抵御通常伴随选举季出现的政治风险。
+
+【宏观与量化投研深度穿透】
+该事件深层映射出全球地缘冲突再平衡与供应链重构的博弈格局。对于资本市场而言，避险资产（黄金、油气）与高壁垒硬科技、高现金流红利呈现明显的结构性剪刀差。建议坚持全天候杠铃配置，借助动量第一主攻长矛紧抓突破弹性，同时以天罡防御盾对冲尾部极端波动。
+            </div>
+        </div>
+        
+        <div class="intel-item" id="news-card-4">
+            <div class="intel-header">
+                <span class="intel-tag">🇺🇸 美股科技</span>
+                <span class="intel-source">环球市场播报</span>
+            </div>
+            <div class="intel-title">Meta发布全新AI模型，加速追赶竞争对手</div>
+            <div class="intel-switch-bar">
+                <button class="intel-tab-btn active" id="btn-brief-4" onclick="switchNewsTab('4', 'brief')">📝 简版速览</button>
+                <button class="intel-tab-btn" id="btn-detail-4" onclick="switchNewsTab('4', 'detail')">📖 详细版报道</button>
+                <a class="intel-link-btn" href="https://finance.sina.com.cn/stock/usstock/c/2026-09-03/doc-iniqpvfs4361764.shtml" target="_blank">🔗 查阅原文</a>
+            </div>
+            <div class="intel-content-brief" id="news-brief-4">
+                公司称 Muse Spark 1.3 模型的代码生成与智能体能力更强，同时相比上一代模型，token 消耗量降低 25%。 Meta 平台周三宣布推出新一代 AI 模型 ...
+            </div>
+            <div class="intel-content-detail" id="news-detail-4">
+                公司称 Muse Spark 1.3 模型的代码生成与智能体能力更强，同时相比上一代模型，token 消耗量降低 25%。 Meta 平台周三宣布推出新一代 AI 模型 Muse Spark 1.3。
+
+【宏观与量化投研深度穿透】
+该事件深层映射出全球地缘冲突再平衡与供应链重构的博弈格局。对于资本市场而言，避险资产（黄金、油气）与高壁垒硬科技、高现金流红利呈现明显的结构性剪刀差。建议坚持全天候杠铃配置，借助动量第一主攻长矛紧抓突破弹性，同时以天罡防御盾对冲尾部极端波动。
+            </div>
+        </div>
+        
+        <div class="intel-item" id="news-card-5">
             <div class="intel-header">
                 <span class="intel-tag">🌐 全球宏观</span>
-                <span class="intel-source">全球实时财经</span>
+                <span class="intel-source">环球市场播报</span>
             </div>
-            <div class="intel-title">特朗普敦促大型石油企业新建炼油厂 但此事推行阻力重重</div>
-            <div class="intel-desc">美东时间周二，美国总统特朗普在白宫召集石油行业高管开会，敦促企业新建更多炼油厂，提升成品油产出。这是他为11月中期选举前压低汽油价格所做举措的一部分。</div>
+            <div class="intel-title">日元大幅上涨 交易员看向8月高点</div>
+            <div class="intel-switch-bar">
+                <button class="intel-tab-btn active" id="btn-brief-5" onclick="switchNewsTab('5', 'brief')">📝 简版速览</button>
+                <button class="intel-tab-btn" id="btn-detail-5" onclick="switchNewsTab('5', 'detail')">📖 详细版报道</button>
+                <a class="intel-link-btn" href="https://finance.sina.com.cn/world/2026-09-03/doc-iniqpvfu1133220.shtml" target="_blank">🔗 查阅原文</a>
+            </div>
+            <div class="intel-content-brief" id="news-brief-5">
+                日元再度大幅拉升，推动波动率定价飙升，交易员已做好准备，迎接汇率进一步上行，看向1美元兑155日元。 美元兑日元的隔夜波动率现已飙升至17%，这与日元有望上行至155.....
+            </div>
+            <div class="intel-content-detail" id="news-detail-5">
+                日元再度大幅拉升，推动波动率定价飙升，交易员已做好准备，迎接汇率进一步上行，看向1美元兑155日元。 美元兑日元的隔夜波动率现已飙升至17%，这与日元有望上行至155...
+
+【宏观与量化投研深度穿透】
+该事件深层映射出全球地缘冲突再平衡与供应链重构的博弈格局。对于资本市场而言，避险资产（黄金、油气）与高壁垒硬科技、高现金流红利呈现明显的结构性剪刀差。建议坚持全天候杠铃配置，借助动量第一主攻长矛紧抓突破弹性，同时以天罡防御盾对冲尾部极端波动。
+            </div>
         </div>
         
                 </div>
@@ -378,8 +497,36 @@
         </div>
 
         <footer class="footer">
-            <p>👑 量化策略大联合舰队 · Crawl4AI + FinRobot 智能体宏观大势战略研报系统 · 自动化生成于 2026-09-02 12:00:22</p>
+            <p>👑 量化策略大联合舰队 · Crawl4AI + FinRobot 智能体宏观大势战略研报系统 · 自动化生成于 2026-09-03 17:19:57</p>
         </footer>
     </div>
+
+    <script>
+        function switchNewsTab(idx, mode) {
+            const briefEl = document.getElementById('news-brief-' + idx);
+            const detailEl = document.getElementById('news-detail-' + idx);
+            const btnBrief = document.getElementById('btn-brief-' + idx);
+            const btnDetail = document.getElementById('btn-detail-' + idx);
+            if (!briefEl || !detailEl) return;
+            if (mode === 'brief') {
+                briefEl.style.display = 'block';
+                detailEl.style.display = 'none';
+                btnBrief.classList.add('active');
+                btnDetail.classList.remove('active');
+            } else {
+                briefEl.style.display = 'none';
+                detailEl.style.display = 'block';
+                btnBrief.classList.remove('active');
+                btnDetail.classList.add('active');
+            }
+        }
+
+        function switchAllNews(mode) {
+            const cards = document.querySelectorAll('.intel-item');
+            cards.forEach((card, idx) => {
+                switchNewsTab(idx, mode);
+            });
+        }
+    </script>
 </body>
 </html>
