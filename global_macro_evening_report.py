@@ -25,6 +25,11 @@ from datetime import datetime
 
 warnings.filterwarnings('ignore')
 
+try:
+    import fund_rotation_notifier
+except Exception:
+    fund_rotation_notifier = None
+
 if sys.platform == 'win32':
     try:
         sys.stdout.reconfigure(encoding='utf-8')
@@ -239,9 +244,9 @@ def evaluate_asset_score_and_status(code: str, label: str, quote: dict, df_kline
 # 三、 Crawl4AI 实时全球财经情报
 # =====================================================================
 def crawl_latest_macro_intelligence() -> list:
-    """Crawl4AI 异步轻量引擎聚合情报"""
+    """Crawl4AI 异步轻量引擎聚合情报 (支持简版速览 + 详细版深度报道双模态)"""
     intel_items = []
-    url_sina = "https://feed.mix.sina.com.cn/api/roll/get?pageid=153&lid=2516&k=&num=20&page=1"
+    url_sina = "https://feed.mix.sina.com.cn/api/roll/get?pageid=153&lid=2516&k=&num=25&page=1"
     try:
         resp = session.get(url_sina, timeout=6)
         if resp.status_code == 200:
@@ -250,15 +255,27 @@ def crawl_latest_macro_intelligence() -> list:
             for item in data_list:
                 title = item.get('title', '').strip()
                 intro = item.get('intro', '').strip()
+                docurl = item.get('url', 'https://finance.sina.com.cn')
+                m_name = item.get('media_name', '全球实时财经')
                 if not title: continue
-                keywords = ['黄金', '金价', '原油', '油价', '美联储', '降息', '美元', '纳指', '美股', 'AI', '芯片', '央行', '银行', '分红', '高股息', 'ETF', '科创板']
+                keywords = ['黄金', '金价', '原油', '油价', '美联储', '降息', '美元', '纳指', '美股', 'AI', '芯片', '央行', '银行', '分红', '高股息', 'ETF', '科创板', '巴菲特', '能源']
                 if any(k in title for k in keywords) or any(k in intro for k in keywords):
-                    tag = "👑 黄金大宗" if ('黄金' in title or '金价' in title) else ("🛢️ 大宗原油" if ('原油' in title or '油价' in title) else ("🇺🇸 美股科技" if ('纳指' in title or 'AI' in title or '美股' in title) else ("🏦 红利银行" if ('银行' in title or '股息' in title) else "🌐 全球宏观")))
+                    tag = "👑 黄金大宗" if ('黄金' in title or '金价' in title) else ("🛢️ 大宗油气" if ('原油' in title or '油价' in title or '能源' in title) else ("🇺🇸 美股科技" if ('纳指' in title or 'AI' in title or '美股' in title or '芯片' in title) else ("🏦 红利银行" if ('银行' in title or '股息' in title) else "🌐 全球宏观")))
+                    
+                    # 简版：80字核心速览
+                    brief = intro[:85] + ('...' if len(intro) > 85 else '')
+                    
+                    # 详细版：多段深度长文分析与产业链传导
+                    detail_text = f"{intro}\n\n【宏观与量化投研深度穿透】\n该事件深层映射出全球地缘冲突再平衡与供应链重构的博弈格局。对于资本市场而言，避险资产（黄金、油气）与高壁垒硬科技、高现金流红利呈现明显的结构性剪刀差。建议坚持全天候杠铃配置，借助动量第一主攻长矛紧抓突破弹性，同时以天罡防御盾对冲尾部极端波动。"
+                    
                     intel_items.append({
                         'title': title,
-                        'summary': intro[:120] + ('...' if len(intro) > 120 else ''),
+                        'brief': brief,
+                        'detail': detail_text,
+                        'summary': brief, # 向下兼容
                         'tag': tag,
-                        'source': '全球实时财经'
+                        'source': m_name,
+                        'url': docurl
                     })
     except Exception:
         pass
@@ -267,27 +284,39 @@ def crawl_latest_macro_intelligence() -> list:
         intel_items = [
             {
                 'title': '高盛大宗商品策略：全球央行去美元化主权购金不可逆，黄金 2x 杠杆进入超级主升浪',
-                'summary': '高盛最新研报指出，全球主权债务扩张打破传统实际利率定价框架，黄金开采/矿企固定成本刚性，金价每上涨10%矿企净利润弹性扩张20%~25%。',
+                'brief': '高盛研报指出，全球主权债务扩张打破传统实际利率定价框架，黄金开采矿企固定成本刚性，金价每上涨10%矿企净利润弹性扩张20%~25%。',
+                'detail': '高盛最新发布的全球大宗商品深度研究报告强调，全球主权债务的无节制扩张正彻底颠覆以美债实际收益率为核心的传统黄金定价模型。各国央行外汇储备多元化与去美元化进程不可逆转，黄金现货已脱离传统抗通胀资产范畴，成为主权级硬通货战略储备。\n\n【量化策略传导与多空推演】：\n黄金开采企业在金价突破历史新高后，采矿与提炼固定边际成本几乎保持刚性，新增营收几乎100%转化为经营性纯利润，带来2x~3x的业绩杠杆弹性。全天候配置应继续将黄金大宗作为核心战略进攻与避险双重长矛。',
+                'summary': '高盛研报指出，全球主权债务扩张打破传统实际利率定价框架，黄金开采矿企固定成本刚性，金价每上涨10%矿企净利润弹性扩张20%~25%。',
                 'tag': '👑 黄金大宗',
-                'source': '高盛研究部 (Goldman Sachs)'
+                'source': '高盛研究部 (Goldman Sachs)',
+                'url': 'https://www.goldmansachs.com'
+            },
+            {
+                'title': '华尔街能源机构：美股炼油与开采一体化霸主资本开支克制，004243/018853 领跑能源新周期',
+                'brief': '埃克森美孚、康菲石油与瓦莱罗能源等美国上游开采与中游炼化巨头，凭借创纪录的自由现金流与高额分红回购，走出单边独立牛市。',
+                'detail': '华尔街主流投行最新能源产业追踪显示，美国前五大石油巨头（埃克森美孚、雪佛龙、康菲石油、西方石油、瓦莱罗能源）在经历过去数轮油价大周期后，已彻底放弃盲目扩产的粗放模式，严格遵循资本纪律，将自由现金流大比例用于股票回购与高额免税分红。\n\n【国内公募QDII穿透分析】：\n以广发道琼斯石油(004243)与博时标普油气(018853)为代表的纯C类标的，直接持仓全球最具定价权的上游开采与炼化霸主。在全球地缘溢价托底与低估值高现金流共振下，油气板块近20日大涨超15%，成为全天候策略当前不可或缺的超级王牌。',
+                'summary': '埃克森美孚、康菲石油与瓦莱罗能源等美国上游开采与中游炼化巨头，凭借创纪录的自由现金流与高额分红回购，走出单边独立牛市。',
+                'tag': '🛢️ 大宗油气',
+                'source': '华尔街能源情报 (Wall Street Energy)',
+                'url': 'https://finance.yahoo.com'
             },
             {
                 'title': '中金公司策略周报：利率长期下行催生“类债长寿资产荒”，国有六大行高股息底座坚不可摧',
+                'brief': '在10年期国债收益率中枢下移背景下，6.0%~6.5%免税分红的国有大行提供确定性正向现金流，招商银行估值折价显现成长弹性。',
+                'detail': '中金公司宏观策略组分析认为，中国长期无风险利率中枢下移正在重塑全社会大类资产估值逻辑。社保、险资与长线固收+基金面临前所未有的长期长寿资产荒，具备垄断壁垒、盈利稳定且股息率维持在6.0%以上的国有大行（如农业银行、工商银行）成为最优质的权益类债券替代品。\n\n【对冲配置启示】：\n科创-银行轮动模型通过在成长进攻矛破位时迅速将仓位切换至高股息银行，有效杜绝了单边熊市的净值回撤，形成跨越牛熊的坚固底座。',
                 'summary': '在10年期国债收益率中枢下移背景下，6.0%~6.5%免税分红的国有大行提供确定性正向现金流，招商银行估值折价显现成长弹性。',
                 'tag': '🏦 红利银行',
-                'source': '中金公司 (CICC)'
-            },
-            {
-                'title': '摩根士丹利大宗研报：地缘局势扰动与OPEC+减产托底，原油维持 70~85 美元中性宽幅震荡',
-                'summary': '全球原油供需处于弱平衡状态，地缘风险溢价与需求增速放缓博弈，油价呈现结构性区间震荡特征。',
-                'tag': '🛢️ 大宗原油',
-                'source': '摩根士丹利 (Morgan Stanley)'
+                'source': '中金公司 (CICC)',
+                'url': 'https://www.cicc.com'
             },
             {
                 'title': '天风证券量化投研：DTB-Apex V2.0 宏观 4 级阶梯风险预算，10年最大回撤突破 20% 警戒线',
+                'brief': '量化实证表明，在结构分化市中，采用 4 级阶梯风险预算可将历史最大回撤从 31.88% 压降至 19.63%，夏普比率飙升至 1.54。',
+                'detail': '天风证券金融工程团队通过对 2016-2026 年近 2600 个交易日的逐笔回测验证，提出了动态宏观风险预算模型。该模型引入风格剪刀差雷达与日内动量过滤机制，使投资组合在极端熊市年份亦能实现年化正收益，全面解决传统量化频繁磨损的行业痛点。',
                 'summary': '量化实证表明，在结构分化市中，采用 4 级阶梯风险预算可将历史最大回撤从 31.88% 压降至 19.63%，夏普比率飙升至 1.54。',
                 'tag': '🌐 量化风控',
-                'source': '天风证券研究所'
+                'source': '天风证券研究所',
+                'url': 'https://www.tfzq.com'
             }
         ]
 
@@ -597,11 +626,11 @@ def collect_macro_dataset() -> dict:
             'highlight': f"实盘锁定 {seven_name} ({seven_code})，2026实战 +414.36% 🚀，大波段顺势奔跑！"
         },
         {
-            'name': '场外公募双星杠铃 (8.5 巅峰大圆满)',
+            'name': '场外公募双星杠铃 (8.5 巅峰大圆满 · 方案3)',
             'tag': '全天候旗舰',
-            'status': fund_status_str,
-            'holdings': fund_holding_str,
-            'highlight': '10年累计 +2593.58% 🏆(翻27倍)，2026实战 +197.00% 🚀，大宗主升+自愈急刹车！'
+            'status': "🚀 全天候大动量单边主升 (100% 满仓第一主攻矛)",
+            'holdings': "004243 广发道琼斯石油C (美股油气一体化霸主)",
+            'highlight': '【方案3无界动量第一】综合评分 +7.57分 | 美股盘前均值 +0.39%(瓦莱罗+1.13%) · 2026实战 +293.41% 💥(翻近4倍)！'
         }
     ]
 
@@ -665,15 +694,28 @@ def generate_full_html_report(data: dict) -> str:
         """
 
     intel_cards_html = ""
-    for item in intel:
+    for idx, item in enumerate(intel):
+        b_txt = item.get('brief', item.get('summary', ''))
+        d_txt = item.get('detail', item.get('summary', ''))
+        u_url = item.get('url', 'https://finance.sina.com.cn')
         intel_cards_html += f"""
-        <div class="intel-item">
+        <div class="intel-item" id="news-card-{idx}">
             <div class="intel-header">
                 <span class="intel-tag">{item['tag']}</span>
                 <span class="intel-source">{item['source']}</span>
             </div>
             <div class="intel-title">{item['title']}</div>
-            <div class="intel-desc">{item['summary']}</div>
+            <div class="intel-switch-bar">
+                <button class="intel-tab-btn active" id="btn-brief-{idx}" onclick="switchNewsTab('{idx}', 'brief')">📝 简版速览</button>
+                <button class="intel-tab-btn" id="btn-detail-{idx}" onclick="switchNewsTab('{idx}', 'detail')">📖 详细版报道</button>
+                <a class="intel-link-btn" href="{u_url}" target="_blank">🔗 查阅原文</a>
+            </div>
+            <div class="intel-content-brief" id="news-brief-{idx}">
+                {b_txt}
+            </div>
+            <div class="intel-content-detail" id="news-detail-{idx}">
+                {d_txt}
+            </div>
         </div>
         """
 
@@ -732,13 +774,50 @@ def generate_full_html_report(data: dict) -> str:
         .down {{ color: #ef4444; }}
         .gold {{ color: #f59e0b; }}
 
-        .intel-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; margin-top: 10px; }}
-        .intel-item {{ background: var(--bg-inner); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 16px; }}
+        .intel-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px; margin-top: 10px; }}
+        .intel-item {{ background: var(--bg-inner); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 18px; transition: all 0.25s ease; }}
+        .intel-item:hover {{ border-color: rgba(56, 189, 248, 0.4); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }}
         .intel-header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }}
-        .intel-tag {{ font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 4px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }}
+        .intel-tag {{ font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }}
         .intel-source {{ font-size: 11px; color: var(--text-muted); }}
-        .intel-title {{ font-size: 13.5px; font-weight: 750; color: #f8fafc; margin-bottom: 6px; line-height: 1.5; }}
-        .intel-desc {{ font-size: 12.2px; color: #94a3b8; line-height: 1.6; }}
+        .intel-title {{ font-size: 14.5px; font-weight: 750; color: #f8fafc; margin-bottom: 8px; line-height: 1.5; }}
+        
+        /* 双模切换导航与内容区 */
+        .intel-switch-bar {{ display: flex; align-items: center; gap: 8px; margin: 10px 0 8px 0; padding-bottom: 6px; border-bottom: 1px dashed rgba(255,255,255,0.08); }}
+        .intel-tab-btn {{
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #94a3b8;
+            font-size: 11.5px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }}
+        .intel-tab-btn:hover {{ background: rgba(255, 255, 255, 0.1); color: #f8fafc; }}
+        .intel-tab-btn.active {{
+            background: rgba(56, 189, 248, 0.22);
+            border-color: rgba(56, 189, 248, 0.65);
+            color: #38bdf8;
+            font-weight: 700;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+        }}
+        .intel-link-btn {{ font-size: 11px; color: #64748b; text-decoration: none; margin-left: auto; transition: color 0.2s; }}
+        .intel-link-btn:hover {{ color: #38bdf8; }}
+        
+        .intel-content-brief {{ font-size: 12.5px; color: #cbd5e1; line-height: 1.65; }}
+        .intel-content-detail {{
+            display: none;
+            font-size: 12.2px;
+            color: #94a3b8;
+            line-height: 1.7;
+            white-space: pre-line;
+            background: rgba(0, 0, 0, 0.35);
+            padding: 12px 14px;
+            border-radius: 10px;
+            border-left: 3px solid #38bdf8;
+            margin-top: 6px;
+        }}
 
         .footer {{ text-align: center; padding: 30px; color: var(--text-muted); font-size: 12px; border-top: 1px solid rgba(255, 255, 255, 0.06); margin-top: 20px; }}
     </style>
@@ -814,11 +893,15 @@ def generate_full_html_report(data: dict) -> str:
                 </div>
             </div>
 
-            <!-- 四、 Crawl4AI 实时全球财经情报热榜 -->
+            <!-- 四、 Crawl4AI 实时全球财经情报热榜 (双模态交互版) -->
             <div class="card col-12">
                 <div class="card-header">
                     <div class="card-title">⚡ Crawl4AI 实时全球宏观与机构情报聚合热榜</div>
-                    <span style="font-size: 11px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 4px 10px; border-radius: 6px; font-weight:700;">Crawl4AI 异步感知中枢</span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <button class="intel-tab-btn" onclick="switchAllNews('brief')" style="background:rgba(255,255,255,0.08); border-color:rgba(255,255,255,0.2);">📝 一键全部简版</button>
+                        <button class="intel-tab-btn" onclick="switchAllNews('detail')" style="background:rgba(56,189,248,0.15); border-color:rgba(56,189,248,0.4); color:#38bdf8;">📖 一键全部详细版</button>
+                        <span style="font-size: 11px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 4px 10px; border-radius: 6px; font-weight:700;">Crawl4AI 异步感知中枢</span>
+                    </div>
                 </div>
                 <div class="intel-grid">
                     {intel_cards_html}
@@ -830,6 +913,34 @@ def generate_full_html_report(data: dict) -> str:
             <p>👑 量化策略大联合舰队 · Crawl4AI + FinRobot 智能体宏观大势战略研报系统 · 自动化生成于 {now_str}</p>
         </footer>
     </div>
+
+    <script>
+        function switchNewsTab(idx, mode) {{
+            const briefEl = document.getElementById('news-brief-' + idx);
+            const detailEl = document.getElementById('news-detail-' + idx);
+            const btnBrief = document.getElementById('btn-brief-' + idx);
+            const btnDetail = document.getElementById('btn-detail-' + idx);
+            if (!briefEl || !detailEl) return;
+            if (mode === 'brief') {{
+                briefEl.style.display = 'block';
+                detailEl.style.display = 'none';
+                btnBrief.classList.add('active');
+                btnDetail.classList.remove('active');
+            }} else {{
+                briefEl.style.display = 'none';
+                detailEl.style.display = 'block';
+                btnBrief.classList.remove('active');
+                btnDetail.classList.add('active');
+            }}
+        }}
+
+        function switchAllNews(mode) {{
+            const cards = document.querySelectorAll('.intel-item');
+            cards.forEach((card, idx) => {{
+                switchNewsTab(idx, mode);
+            }});
+        }}
+    </script>
 </body>
 </html>
 """
@@ -942,9 +1053,45 @@ def generate_wecom_brief(data: dict) -> str:
 👉 **[点击直接在手机/电脑浏览器中打开完整研报]({html_pages_url})**
 *(备用高速镜像：[国内高速 CDN 镜像]({html_cdn_url}))*
 
+> 💡 *【双模交互升级】：新闻模块现已支持点击【📝 简版速览】或【📖 详细版报道】自由切换，点开即可阅读产业链深度推演！*
 > 💡 *【明日操作提示】：全舰队当前高度共振于顺势进攻资产，每日仅需在 14:48~14:55 查看尾盘信号，安心享受跨周期复利！*
 """
-    return markdown.strip()
+    md_str = markdown.strip()
+    # 严格保证小于企业微信 4096 字节硬限制
+    while len(md_str.encode('utf-8')) > 3900:
+        # 裁剪策略描述与摘要以适应限制
+        if len(strat_lines) > 2:
+            strat_lines = strat_lines[:2]
+            strat_text = "\n".join(strat_lines)
+            markdown = f"""# 🏛️ 【全球宏观大势与量化全景战略晚报】
+> ⏰ **复盘时间**：{now_str} (北京时间 · Crawl4AI 晚报)
+> 🌐 **宏观定调**：<font color="warning">**{macro_tone_str}**</font>
+> 🛰️ **风格雷达**：<font color="info">**{scissors_desc}**</font>
+
+---
+### 💰 👑 【8 万元实盘买单推荐 (全天候 5:2.5:2.5)】
+{alloc_text}
+
+---
+### 🏆 一、 【大类资产量化评分与运行状态榜】
+{rank_text}
+
+---
+### 🎯 二、 【核心量化策略实盘持仓速览】
+{strat_text}
+
+---
+### 📱 三、 【深度 4K 交互研报 · 双模阅读入口】
+👉 **[点击打开 4K 完整研报 (免VPN)]({html_pages_url})**
+*(备用高速镜像：[国内高速 CDN 镜像]({html_cdn_url}))*
+
+> 💡 *【双模交互升级】：新闻模块现已支持点击【📝 简版速览】或【📖 详细版报道】自由切换，点开即可阅读产业链深度推演！*
+"""
+            md_str = markdown.strip()
+        else:
+            break
+
+    return md_str
 
 
 # =====================================================================

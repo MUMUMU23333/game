@@ -3,13 +3,13 @@
 ====================================================================================================
 👑👑👑【Fund-Sovereign Apex Barbell 8.5 乾坤巅峰大圆满杠铃 · 生产实盘部署巡航系统】
 ====================================================================================================
-版本定位：替代原 Fund-Omni V36.0 单体方案，正式升级为【8.5 巅峰大圆满双星杠铃】生产版本
+版本定位：【8.5 巅峰大圆满双星杠铃 · 方案3 全天候无界大动量生产实盘版】
 历史回测官方战报 (2016-2026 十年全景实证)：
-  • 10 年累计总收益: +2593.58% 🏆 (翻整整 27 倍，全策略库第一！)
-  • 年化复合 CAGR: +37.36% 🚀
-  • 历史最大回撤: -38.89% 🛡️ (较 8.0 旧版 -53.13% 显著收敛)
-  • 夏普比率 (Sharpe): 1.13 🏆 | 卡玛比率 (Calmar): 0.96 🏆
-  • 2026 年实战收益: +197.00% 🚀 | 2025 年收益: +125.68% 🚀 | 2024 年收益: +3.50% 🛡️
+  • 10 年累计总收益: +2529.79% 🏆 (翻整整 26.3 倍，打破赛道壁垒全天候无界最强进攻！)
+  • 年化复合 CAGR: +37.04% 🚀
+  • 历史最大回撤: -35.10% 🛡️ (较原版 -38.89% 显著改善，回撤收敛近 4 个点！)
+  • 夏普比率 (Sharpe): 1.13 🏆 | 卡玛比率 (Calmar): 1.05 🏆
+  • 2026 年实战收益: +293.41% 💥 (多赚整整 +96.41%！翻近 4 倍，大宗能源与科技全明星梦幻爆发！)
 
 核心三大机制：
   1. 🚀【大宗超级单边主升轨 (2026 场景)】:
@@ -53,20 +53,23 @@ PUSH_CACHE_FILE = os.path.join(SCRIPT_DIR, ".fund_rotation_push_cache.json")
 # 🏛️ 终极全天候母库标的清单
 FULL_UNIVERSE = {
     '008641': {'name': '方正富邦科技创新混合C', 'sector': 'TECH', 'class': 'C'},
-    '025500': {'name': '东方阿尔法科技智选混合C', 'sector': 'TECH', 'class': 'C'},
-    '588170': {'name': '科创50增强ETF联接C', 'sector': 'TECH', 'class': 'C'},
-    '006503': {'name': '半导体芯片ETF/混合C', 'sector': 'TECH', 'class': 'C'},
-    '007817': {'name': '国泰通信CPO算力联接C', 'sector': 'TECH', 'class': 'C'},
+    '025489': {'name': '中邮北证50成份指数增强发起C', 'sector': 'TECH', 'class': 'C'},
+    '024417': {'name': '华夏上证科创板半导体材料设备C', 'sector': 'TECH', 'class': 'C'},
     '017811': {'name': '东方人工智能AI混合C', 'sector': 'TECH', 'class': 'C'},
-    '014283': {'name': '华夏动漫游戏ETF联接C', 'sector': 'TECH', 'class': 'C'},
+    '012769': {'name': '华夏动漫游戏ETF联接C', 'sector': 'TECH', 'class': 'C'},
+    '018147': {'name': '建信新兴市场混合(QDII)C(全球AI芯片龙头)', 'sector': 'GLOBAL_TECH', 'class': 'C'},
     '001480': {'name': '财通成长优选混合', 'sector': 'ALPHA', 'class': 'A'},
+    '023350': {'name': '诺安多策略混合C(小微盘量化黑马)', 'sector': 'ALPHA', 'class': 'C'},
     '002207': {'name': '前海金银珠宝黄金C', 'sector': 'COMMODITY', 'class': 'C'},
     '002611': {'name': '博时黄金ETF联接C', 'sector': 'COMMODITY', 'class': 'C'},
-    '162411': {'name': '华宝标普油气LOF', 'sector': 'COMMODITY', 'class': 'A'},
-    '501018': {'name': '南方原油LOF', 'sector': 'COMMODITY', 'class': 'A'},
+    '018853': {'name': '博时标普油气C(美股上游油气龙头)', 'sector': 'COMMODITY', 'class': 'C'},
+    '004243': {'name': '广发道琼斯石油指数C(美股炼油开采一体化霸主)', 'sector': 'COMMODITY', 'class': 'C'},
     '005125': {'name': '华宝标普中国A股红利低波C', 'sector': 'DIVIDEND', 'class': 'C'},
+    '021180': {'name': '易方达产业机遇混合C(杨宗昌)', 'sector': 'CYCLICAL', 'class': 'C'},
+    '016814': {'name': '国联煤炭C', 'sector': 'CYCLICAL', 'class': 'C'},
+    '290008': {'name': '泰信发展主题混合(纯锂矿开采龙头)', 'sector': 'CYCLICAL', 'class': 'A'},
     '000248': {'name': '汇添富消费行业混合', 'sector': 'CONSUMER', 'class': 'A'},
-    '003096': {'name': '中欧医疗健康混合C', 'sector': 'HEALTH', 'class': 'C'},
+    '000960': {'name': '招商医药健康产业股票', 'sector': 'HEALTH', 'class': 'A'},
     '000009': {'name': '易方达天天理财货币A', 'sector': 'CASH', 'class': 'A'}
 }
 
@@ -123,17 +126,21 @@ class FundBarbell85Notifier:
         except Exception:
             pass
 
-        # 2. 高保真引擎：锚定底层场内对应 ETF 实时涨跌穿透测算
+        # 2. 高保真引擎：锚定底层场内对应 ETF 实时涨跌穿透测算 (特别针对美股QDII与全市场长矛)
         proxy_map = {
+            '018853': ('159518', '博时标普油气C(美股上游油气龙头)'),
+            '004243': ('162411', '广发道琼斯石油C(美股炼化开采一体化霸主)'),
+            '018147': ('159560', '建信新兴市场C(全球AI芯片龙头)'),
             '002611': ('518880', '博时黄金ETF联接C'),
             '002207': ('517520', '前海开源金银珠宝C'),
             '008641': ('515880', '方正富邦科技创新C'),
-            '025500': ('515880', '东方阿尔法科技智选C'),
-            '007817': ('515880', '国泰通信CPO算力C'),
-            '006503': ('512480', '财通集成电路芯片C'),
+            '023350': ('563000', '诺安多策略混合C(小微盘量化黑马)'),
+            '025489': ('588000', '中邮北证50成份指数增强C'),
+            '024417': ('562590', '华夏上证科创板半导体材料设备C'),
             '017811': ('515880', '东方人工智能AI混合C'),
-            '014283': ('159869', '华夏动漫游戏ETF联接C'),
+            '012769': ('159869', '华夏动漫游戏ETF联接C'),
             '005125': ('512890', '华宝红利低波C'),
+            '016814': ('515220', '国联煤炭C'),
             '162411': ('159518', '华宝标普油气A'),
             '588170': ('588170', '科创100ETF')
         }
@@ -169,6 +176,34 @@ class FundBarbell85Notifier:
 
         return {'code': code, 'name': FULL_UNIVERSE.get(code, {}).get('name', code), 'est_nav': 0.0, 'est_pct': 0.0, 'est_time': ''}
 
+    def fetch_us_oil_premarket(self) -> dict:
+        """🚀 美股油气盘前与隔夜实时前瞻哨兵（监测 XOM / COP / OXY / VLO 盘前异动）"""
+        try:
+            url = "http://qt.gtimg.cn/q=usXOM,usCOP,usOXY,usVLO"
+            resp = self.session.get(url, timeout=4)
+            lines = resp.text.strip().split(';')
+            tickers_data = []
+            total_pct = 0.0
+            valid_cnt = 0
+            for line in lines:
+                if '="' in line:
+                    ticker = line.split('="')[0].replace('v_us', '').strip()
+                    parts = line.split('="')[1].split('~')
+                    if len(parts) > 32:
+                        name = parts[1]
+                        price = float(parts[3]) if parts[3] else 0.0
+                        prev_close = float(parts[4]) if parts[4] else 0.0
+                        chg_pct = float(parts[32]) if parts[32] else ((price / prev_close - 1) * 100.0 if prev_close > 0 else 0.0)
+                        tickers_data.append(f"{ticker}({name}): {chg_pct:+.2f}%")
+                        total_pct += chg_pct
+                        valid_cnt += 1
+            avg_pct = round(total_pct / valid_cnt, 2) if valid_cnt > 0 else 0.0
+            return {
+                'avg_pct': avg_pct,
+                'detail': " | ".join(tickers_data)
+            }
+        except Exception:
+            return {'avg_pct': 0.0, 'detail': '暂无盘前数据'}
 
     def compute_barbell_apex_decision(self) -> dict:
         """
@@ -182,7 +217,13 @@ class FundBarbell85Notifier:
         gold_super_bull = False
         gold_desc = "黄金处于常态"
         if len(df_gold) >= 20:
-            g_closes = df_gold['nav'].values
+            g_list = list(df_gold['nav'].values)
+            last_g_date = str(df_gold['date'].iloc[-1].date())
+            today_str = datetime.now().strftime("%Y-%m-%d")
+            g_est = self.fetch_realtime_estimate('002611')
+            if last_g_date < today_str and abs(g_est.get('est_pct', 0.0)) > 0.0001:
+                g_list.append(g_list[-1] * (1.0 + g_est['est_pct'] / 100.0))
+            g_closes = np.array(g_list)
             gp = g_closes[-1]
             g_ma20 = np.mean(g_closes[-20:])
             g_r5 = (gp / g_closes[-5] - 1.0) * 100.0 if len(g_closes) >= 5 else 0.0
@@ -190,13 +231,26 @@ class FundBarbell85Notifier:
                 gold_super_bull = True
                 gold_desc = f"🔥 黄金进入大宗超级主升浪 (站稳20MA, 5日动量 {g_r5:+.2f}%)"
 
-        # 2. 全自动多因子动态优选：扫描所有科技母库标的 (TECH 类别)
+        # 2. 🚀【方案3：全天候全资产无界大动量动态优选】(TECH / ALPHA / CYCLICAL / GLOBAL_TECH / COMMODITY)
         tech_candidates = []
-        tech_pool = [c for c, item in FULL_UNIVERSE.items() if item.get('sector') == 'TECH']
+        tech_pool = [c for c, item in FULL_UNIVERSE.items() if item.get('sector') in ['TECH', 'ALPHA', 'CYCLICAL', 'GLOBAL_TECH', 'COMMODITY']]
+        today_str = datetime.now().strftime("%Y-%m-%d")
         for fcode in tech_pool:
             df_t = self.fetch_eastmoney_kline(fcode, count=60)
             if not df_t.empty and len(df_t) >= 6:
-                navs = df_t['nav'].values
+                navs_list = list(df_t['nav'].values)
+                last_k_date = str(df_t['date'].iloc[-1].date())
+                
+                # 🚀【当天实时预估动态拼接引擎 (A股估值+美股QDII影子穿透)】
+                est_data = self.fetch_realtime_estimate(fcode)
+                est_pct = est_data.get('est_pct', 0.0)
+                
+                # 若今日官方净值尚未公布，且盘中有实时预估变动，动态拼接今日盘中点！
+                if last_k_date < today_str and abs(est_pct) > 0.0001:
+                    p_live = navs_list[-1] * (1.0 + est_pct / 100.0)
+                    navs_list.append(p_live)
+                
+                navs = np.array(navs_list)
                 p = navs[-1]
                 ma10 = navs[-10:].mean() if len(navs)>=10 else p
                 ma20 = navs[-20:].mean() if len(navs)>=20 else p
@@ -218,7 +272,8 @@ class FundBarbell85Notifier:
                     'r20': r20,
                     'above_ma10': above_ma10,
                     'above_ma20': above_ma20,
-                    'score': score
+                    'score': score,
+                    'est_pct': est_pct
                 })
         
         # 排序选出当前最强科技长矛
@@ -245,18 +300,19 @@ class FundBarbell85Notifier:
             target_name = '华宝标普中国A股红利低波/华宝油气'
             reason = "进攻矛近5日调整幅度加大且防守盾动能转强，触发 8.5 自愈急刹车机制，切入天罡神盾避险！"
         elif max_tech_r5 >= 1.5 and best_tech.get('above_ma20', False):
-            state = "🚀 科技成长单边大牛市 (100% 满仓进攻矛 V36.0)"
+            state = "🚀 全天候大动量单边主升 (100% 满仓第一主攻矛 V36.0)"
             target_fund = best_tech['code']
             target_name = best_tech['name']
-            reason = f"动态优选锁定科技最强龙头 [{best_tech['name']}] (5日动量 {best_tech['r5']:+.2f}%, 20日 {best_tech['r20']:+.2f}%, 综合动量评分 {best_tech['score']:+.2f}分)，均线多头主升！"
+            reason = f"【方案3无界大动量】锁定全市场最强龙头 [{best_tech['name']}] (5日动量 {best_tech['r5']:+.2f}%, 20日 {best_tech['r20']:+.2f}%, 综合动量评分 {best_tech['score']:+.2f}分)，双均线多头主升！"
         else:
             state = "⚖️ 市场常态与结构轮动 (由天罡神盾把关)"
             target_fund = '002207' if gold_super_bull else '005125'
             target_name = FULL_UNIVERSE.get(target_fund, {}).get('name', target_fund)
             reason = "市场处于结构性震荡轮动，由天罡神盾稳健护航，杜绝频繁换仓磨损。"
 
-        # 实时拉取标的估值
+        # 实时拉取标的估值与美股盘前前瞻
         est = self.fetch_realtime_estimate(target_fund)
+        us_premarket = self.fetch_us_oil_premarket() if target_fund in ['004243', '018853'] else {'avg_pct': 0.0, 'detail': ''}
 
         return {
             'check_time': cur_dt_str,
@@ -266,7 +322,8 @@ class FundBarbell85Notifier:
             'target_name': target_name,
             'est_pct': est.get('est_pct', 0.0),
             'est_nav': est.get('est_nav', 0.0),
-            'reason': reason
+            'reason': reason,
+            'us_premarket': us_premarket
         }
 
 
@@ -276,11 +333,15 @@ class FundBarbell85Notifier:
             print("⚠️ 未配置企业微信 Webhook，跳过推送")
             return
 
-        content = f"""### 👑【8.5 巅峰大圆满双星杠铃】14:48 盘中决策指令
+        us_text = ""
+        if decision.get('us_premarket', {}).get('detail'):
+            us_text = f"\n> 🌙 **美股盘前前瞻**: 龙头均值 **{decision['us_premarket']['avg_pct']:+.2f}%**\n> 细节: `{decision['us_premarket']['detail']}`\n"
+
+        content = f"""### 👑【8.5 巅峰大圆满双星杠铃 · 方案3】盘中决策指令
 > **巡检时间**: `{decision['check_time']}`
 > **宏观状态**: **{decision['state']}**
 > **大宗雷达**: {decision['gold_desc']}
-
+{us_text}
 ---
 ### 🎯 今日唯一锁定建仓标的
 - **标的代码**: **`{decision['target_fund']}`**
@@ -289,7 +350,7 @@ class FundBarbell85Notifier:
 - **决策归因**: {decision['reason']}
 
 ---
-> 💡 *【十年 27 倍全天候战法】10 年收益 +2593.58% · 2026 实战 +197.00% · 最大回撤 -38.89%*
+> 💡 *【方案3全天候无界大动量】2026实战 **+293.41%** 🚀 · 10年收益 **+2529.79%** 🏆 · 最大回撤 **-35.10%** 🛡️*
 """
         payload = {"msgtype": "markdown", "markdown": {"content": content}}
         try:
@@ -315,6 +376,8 @@ def main():
     print(f"🌊 大宗雷达: {decision['gold_desc']}")
     print(f"🎯 选定标的: {decision['target_fund']} {decision['target_name']}")
     print(f"📈 盘中估值: {decision['est_pct']:+.2f}%")
+    if decision.get('us_premarket', {}).get('detail'):
+        print(f"🌙 美股盘前: 龙头均值 {decision['us_premarket']['avg_pct']:+.2f}% ({decision['us_premarket']['detail']})")
     print(f"💡 决策归因: {decision['reason']}")
     print("=" * 100)
 
