@@ -73,7 +73,16 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Precision Beijing Time Scheduler")
     parser.add_argument("--target", type=str, default="14:48", help="目标北京时间 HH:MM (例如 14:48)")
     parser.add_argument("--now", action="store_true", help="跳过等待立即执行")
+    parser.add_argument("--ignore-trade-day", action="store_true", help="跳过交易日休市检查强制执行")
     args = parser.parse_args()
+
+    # 🛑 交易日休市熔断守卫：非交易日直接优雅退出，不作等待与执行
+    if not args.ignore_trade_day:
+        try:
+            from trade_day_guard import guard_and_exit_if_not_trade_day
+            guard_and_exit_if_not_trade_day(f"精准时钟调度 (目标 {args.target})")
+        except Exception as e:
+            print(f"⚠️ [交易日守卫警告] 导入或校验异常: {e}，继续按常规执行")
 
     if args.now:
         print("⏩ [时钟调度] 收到 --now 指令，跳过等待立即执行！")

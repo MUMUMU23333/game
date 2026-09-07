@@ -56,6 +56,13 @@ def run_script(script_path, args=None):
         return False, cost_s
 
 def main():
+    # 🛑 交易日休市熔断守卫：非交易日不运行、不计算、不更新
+    try:
+        from trade_day_guard import guard_and_exit_if_not_trade_day
+        guard_and_exit_if_not_trade_day("全量量化策略 14:48 总调度总线")
+    except Exception as e:
+        log(f"⚠️ [交易日守卫警告] {e}")
+
     log("================================================================================")
     log("🏛️ 开始执行全量量化策略 14:48 尾盘黄金决策巡检 (本地双保险引擎)...")
     log("================================================================================")

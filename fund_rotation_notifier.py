@@ -49,6 +49,7 @@ SERVERCHAN_KEY = os.environ.get('SERVERCHAN_KEY', '')
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 STATE_FILE = os.path.join(SCRIPT_DIR, ".fund_rotation_state.json")
 PUSH_CACHE_FILE = os.path.join(SCRIPT_DIR, ".fund_rotation_push_cache.json")
+LOCKED_DECISION_FILE = os.path.join(SCRIPT_DIR, ".fund_rotation_locked_decision.json")
 
 # 🏛️ 终极全天候母库标的清单
 FULL_UNIVERSE = {
@@ -205,12 +206,26 @@ class FundBarbell85Notifier:
         except Exception:
             return {'avg_pct': 0.0, 'detail': '暂无盘前数据'}
 
-    def compute_barbell_apex_decision(self) -> dict:
+    def compute_barbell_apex_decision(self, force_recompute: bool = False) -> dict:
         """
         核心 8.5 巅峰大圆满三维决策算法（已升级：科技全母库多因子动态优选）
         """
         now = datetime.now()
+        today_str = now.strftime("%Y-%m-%d")
         cur_dt_str = now.strftime('%Y-%m-%d %H:%M:%S')
+
+        # 🔒【14:48:32 最终决策唯一锁定铁律】
+        # 当天若已在 14:48:32 产生过锁定决策，收盘后或后续调用 100% 保持当天唯一确定值，杜绝夜盘美股波动导致结论漂移！
+        if not force_recompute and os.path.exists(LOCKED_DECISION_FILE):
+            try:
+                with open(LOCKED_DECISION_FILE, 'r', encoding='utf-8') as f:
+                    lock_record = json.load(f)
+                    if lock_record.get('date') == today_str and lock_record.get('decision'):
+                        d = lock_record['decision']
+                        print(f"🔒 [决策锁定生效] 命中今日 ({today_str}) 14:48:32 最终唯一锁定标的: [{d['target_name']} ({d['target_fund']})]！")
+                        return d
+            except Exception:
+                pass
 
         # 1. 扫描黄金与大宗状态 (002611 博时黄金 / 002207 金银珠宝)
         df_gold = self.fetch_eastmoney_kline('002611', count=40)
@@ -314,7 +329,7 @@ class FundBarbell85Notifier:
         est = self.fetch_realtime_estimate(target_fund)
         us_premarket = self.fetch_us_oil_premarket() if target_fund in ['004243', '018853'] else {'avg_pct': 0.0, 'detail': ''}
 
-        return {
+        result = {
             'check_time': cur_dt_str,
             'state': state,
             'gold_desc': gold_desc,
@@ -325,6 +340,20 @@ class FundBarbell85Notifier:
             'reason': reason,
             'us_premarket': us_premarket
         }
+
+        # 🔒 尾盘决策窗口自动持久化锁定为今日唯一值
+        if now.hour >= 14:
+            try:
+                with open(LOCKED_DECISION_FILE, 'w', encoding='utf-8') as f:
+                    json.dump({
+                        'date': today_str,
+                        'lock_time': cur_dt_str,
+                        'decision': result
+                    }, f, ensure_ascii=False, indent=2)
+            except Exception:
+                pass
+
+        return result
 
 
     def send_wecom_notification(self, decision: dict):
@@ -364,6 +393,13 @@ class FundBarbell85Notifier:
 
 
 def main():
+    # 🛑 交易日休市熔断守卫：非交易日不运行、不计算、不更新
+    try:
+        from trade_day_guard import guard_and_exit_if_not_trade_day
+        guard_and_exit_if_not_trade_day("场外公募双星杠铃 (8.5 巅峰大圆满 · 方案3)")
+    except Exception as e:
+        print(f"⚠️ [交易日守卫警告] {e}")
+
     print("=" * 100)
     print("👑【Fund-Sovereign Apex Barbell 8.5 乾坤巅峰大圆满杠铃】生产实盘巡检开始...")
     print("=" * 100)
