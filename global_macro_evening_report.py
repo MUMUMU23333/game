@@ -1339,6 +1339,17 @@ def generate_wecom_brief(data: dict) -> str:
     holdings_pitch = " + ".join(alloc_items) if alloc_items else "全天候量化资产配置"
     macro_tone_str = f"【全舰队实盘共振 · {holdings_pitch} · 顺势主升多头】"
 
+    # 2.5 提取场外公募双星杠铃 (方案3) 唯一锁定推荐
+    fund_rec_name = "008641 方正富邦科技创新混合C"
+    fund_rec_status = "🚀 全天候大动量单边主升 (100% 满仓第一主攻矛)"
+    fund_rec_desc = "【方案3无界动量第一】以 14:48 最终决策锁定，2026实战 +293.41% 💥！"
+    for s in strats:
+        if "公募" in s.get('name', '') or "8.5" in s.get('name', ''):
+            fund_rec_name = s.get('holdings', fund_rec_name)
+            fund_rec_status = s.get('status', fund_rec_status)
+            fund_rec_desc = s.get('highlight', fund_rec_desc)
+            break
+
     markdown = f"""# 🏛️ 【全球宏观大势与量化全景战略晚报】
 > ⏰ **复盘时间**：{now_str} (北京时间 · Crawl4AI 晚间 20:00 深度内参)
 > 🌐 **宏观核心定调**：<font color="warning">**{macro_tone_str}**</font>
@@ -1353,6 +1364,12 @@ def generate_wecom_brief(data: dict) -> str:
 
 📊 **穿透总敞口汇总**：
 {summary_text}
+
+---
+### 🎯 🌟 【场外公募基金策略推荐 (8.5 巅峰大圆满 · 方案3)】
+- **唯一锁定标的**：👉 <font color="warning">**{fund_rec_name}**</font>
+- **宏观作战状态**：<font color="info">**{fund_rec_status}**</font>
+- **策略决策亮点**：{fund_rec_desc}
 
 ---
 ### 🏆 一、 【全球大类资产量化评分与运行状态排行榜】
@@ -1395,6 +1412,11 @@ def generate_wecom_brief(data: dict) -> str:
 ---
 ### 💰 👑 【8 万元实盘买单推荐 (全天候 5:2.5:2.5)】
 {alloc_text}
+
+---
+### 🎯 🌟 【场外公募基金策略推荐 (8.5 方案3)】
+- **唯一锁定标的**：👉 <font color="warning">**{fund_rec_name}**</font>
+- **作战状态**：<font color="info">**{fund_rec_status}**</font>
 
 ---
 ### 🏆 一、 【大类资产量化评分与运行状态榜】
