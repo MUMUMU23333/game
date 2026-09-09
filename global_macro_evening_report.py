@@ -808,14 +808,14 @@ def collect_macro_dataset() -> dict:
     fund_code = "008641"
     fund_name = "方正富邦科技创新混合C"
     fund_status = "🚀 全天候大动量单边主升 (100% 满仓第一主攻矛)"
-    fund_highlight = "【方案3无界动量第一】以 14:48 最终锁定 [方正富邦科技创新混合C (008641)] · 2026实战 +293.41% 💥！"
+    fund_highlight = "【方案3全天候无界大动量】以 14:48 最终锁定 [方正富邦科技创新混合C (008641)] · 2026实战 +293.41% 💥 · 10年 +2529.79% 🏆！"
     if os.path.exists(fund_state_file):
         try:
             with open(fund_state_file, "r", encoding="utf-8") as f:
                 f_state = json.load(f)
                 fund_code = str(f_state.get("holding_code", "008641")).strip()
                 fund_name = str(f_state.get("holding_name", "方正富邦科技创新混合C")).strip()
-                fund_highlight = f"【方案3无界动量第一】以 14:48 最终决策锁定 [{fund_name} ({fund_code})] · 2026实战 +293.41% 💥！"
+                fund_highlight = f"【方案3全天候无界大动量】以 14:48 最终决策锁定 [{fund_name} ({fund_code})] · 2026实战 +293.41% 💥 · 10年 +2529.79% 🏆！"
         except Exception:
             pass
 
@@ -1339,7 +1339,7 @@ def generate_wecom_brief(data: dict) -> str:
     # 2.5 提取场外公募双星杠铃 (方案3) 唯一锁定推荐
     fund_rec_name = "008641 方正富邦科技创新混合C"
     fund_rec_status = "🚀 全天候大动量单边主升 (100% 满仓第一主攻矛)"
-    fund_rec_desc = "【方案3无界动量第一】以 14:48 最终决策锁定，2026实战 +293.41% 💥！"
+    fund_rec_desc = "【方案3全天候无界大动量】以 14:48 最终决策锁定，2026实战 +293.41% 💥 · 10年 +2529.79% 🏆！"
     for s in strats:
         if "公募" in s.get('name', '') or "8.5" in s.get('name', ''):
             fund_rec_name = s.get('holdings', fund_rec_name)

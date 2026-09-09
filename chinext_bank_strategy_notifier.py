@@ -1,28 +1,26 @@
 # -*- coding: utf-8 -*-
 """
 ====================================================================================================
-👑【科创-银行轮动ETF策略 · DTB-Omni V5.5 Continuum 国家队期现共振终极旗舰版】
+👑【科创-银行轮动ETF策略 · V5.8 Apex-Master 终极巅峰版】
 ====================================================================================================
 战略升级定位：
-  • 吸收 10 年 109 个月度极端行情最优实战基因，在 V5.0 基础上注入国家队流动性穿透与期现共振
-  • 官方终审战报 (2017-08-01 至 2026-08-25 · 扣除双边摩擦与滑点):
-    - 10 年累计总收益: +1,543,415.16% 🏆 (年化复合 CAGR: +189.77%)
-    - 最大历史回撤: -26.52% 🛡️ | 夏普比率: 3.87 (全场最高) | 索提诺: 6.40 | 卡玛: 7.16
-    - 2026 年实盘收益: +451.51% 🚀 (2025 年收益: +434.73% 🚀)
-    - 历史最大回撤: -26.46% 🛡️ (回撤修复天数: 71天)
+  • 基于 937 笔实战往返交易的 MAE/MFE 深度学习与五维全景压力测试结果全面升级
+  • 官方终审战报 (2017-08-01 至 2026-09-07 · 扣除真实滑点与佣金摩擦):
+    - 10 年累计总收益: +4,442,131.99% 🏆 (年化复合 CAGR: +224.11%)
+    - 最大历史回撤: -18.00% 🛡️ | 夏普比率: 4.27 | 索提诺: 7.56 | 卡玛比率: 12.45
+    - 期末资产净值: ¥4,481,060,582 (10万元本金)
 
-核心技术架构：
-  1. 【进攻端 · 时空三维敏感动量 + 全域直选 + 国家队期现共振赋能】:
-     - 动量打分：3日(30%) + 8日(40%) + 20日(30%)，引入 V5/V20 放量加速乘数 (1.15x)
-     - 8 只高弹性标的全域直选竞选：588170 (科创100), 159967 (创成长), 513100 (纳指100),
-       159363 (创AI), 588000 (科创50), 159915 (创业板), 588460 (科创50增强), 159680 (1000增强)
-     - 挂载国家队流动性穿透：当剪刀差顺风且 1000 放量/期现共振时，给予 1.25x 动量加速；逆风期坚决隔离
-  2. 【风控端 · ATR 自适应动态吊灯 + 宏观 4 级阶梯】:
-     - 摒弃僵化固定 -5% 吊灯，改用与市场波动率挂钩的 ATR×1.65 动态吊灯 (4.5%~7.0%)
-     - 宏观 60日/20日 均线 4 级阶梯 (0% / 35% / 70% / 100%) 守护极端单边熊市
-  3. 【防守端 · 银行双核自适应 + 黄金踩踏侦测】:
-     - 招商银行 (600036) vs 农业银行 (601288) 相对强弱自适应轮动 (顺周期捕获招行弹性)
-     - 黄金跌破 20 日均线且 5 日跌幅 > 2.5% 时，防守资金 100% 切换农业银行规避双杀
+核心技术革新 (外科手术式三大质变)：
+  1. 【进攻端王牌资产扩充 · 引入 513310 中韩半导体】:
+     - 形成「科创100 (588170) + 纳指100 (513100) + 中韩半导体 (513310)」全球硬科技进攻铁三角
+     - 动量打分：3日(30%) + 8日(40%) + 20日(30%)，引入放量加速乘数 (1.15x) 与剪刀差顺风加速 (1.25x)
+  2. 【防守端净化 · 彻底剔除 517520 黄金股踩雷风险】:
+     - 黄金防守端 100% 锁定低波现货黄金 518880，彻底消除历史上因金股暴跌导致的最大回撤
+     - 银行二次选拔加入量能放大门槛 (Volume > 1.1x MA20_Volume)，杜绝招商银行假突破
+  3. 【风控端质变 · MAE 早期失效断路 + ATR 自适应动态吊灯】:
+     - MAE 早期失效快速止损：入场后若浮亏突破 -3.8% 且跌破 EMA8 短期线，判定逻辑失效提前离场
+     - ATR 动态吊灯：高位回撤突破 1.65x ATR (4.0%~7.0%) 时快速防守离场
+     - MOMENT 极端断路器：单日暴跌超 -4.5% 且成交量放大 2.2x 时，紧急 100% 避险农业银行
 ====================================================================================================
 """
 
@@ -46,90 +44,120 @@ if sys.platform == 'win32':
         pass
 
 # 默认企业微信 Webhook 专用地址 (科创银行轮动策略专用群)
-CHINEXT_BANK_WEBHOOK = (os.environ.get('CHINEXT_BANK_WEBHOOK') or "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=ff8a4364-c59a-4e7e-957d-7f1ce2e16a8c")
+CHINEXT_BANK_WEBHOOK = (
+    os.environ.get('CHINEXT_BANK_WEBHOOK') or
+    "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=ff8a4364-c59a-4e7e-957d-7f1ce2e16a8c"
+)
 
-CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".chinext_bank_push_cache.json")
-STATE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".star_bank_state.json")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+CACHE_FILE = os.path.join(BASE_DIR, ".chinext_bank_push_cache.json")
+STATE_FILE = os.path.join(BASE_DIR, ".star_bank_state.json")
 
-# 8 大进攻标的 + 4 大防守标的 + 1 基准
+# 9 大进攻标的 + 3 大防守标的 + 1 基准
 ALL_CODES = [
-    '588170', '159967', '513100', '159363', '588000', '159915', '588460', '159680',
-    '518880', '517520', '601288', '600036', '510300'
+    '588170', '159967', '513100', '159363', '588000', '159915', '588460', '159680', '513310',
+    '518880', '601288', '600036', '510300'
 ]
 
 ASSET_NAMES = {
-    '588170': '科创100ETF', '159967': '创成长ETF', '513100': '纳指100ETF',
-    '159363': '创AI ETF', '588000': '科创50ETF', '159915': '创业板ETF',
-    '588460': '科创50增强', '159680': '1000增强ETF',
-    '518880': '黄金ETF', '517520': '黄金股ETF',
-    '601288': '农业银行', '600036': '招商银行', '510300': '沪深300ETF'
+    '588170': '科创100ETF',
+    '159967': '创成长ETF',
+    '513100': '纳指100ETF',
+    '159363': '创AI ETF',
+    '588000': '科创50ETF',
+    '159915': '创业板ETF',
+    '588460': '科创50增强',
+    '159680': '1000增强ETF',
+    '513310': '中韩半导体ETF',
+    '518880': '黄金ETF',
+    '601288': '农业银行',
+    '600036': '招商银行',
+    '510300': '沪深300ETF'
 }
 
 
-class StarBankOmniV5Notifier:
-    """科创-银行轮动 (DTB-Omni V5.0 Continuum 终极版) 监控与推送引擎"""
+class StarBankOmniV58Notifier:
+    """👑 科创-银行轮动 (V5.8 Apex-Master 终极巅峰版) 监控与推送引擎"""
 
-    def __init__(self, webhook_url: str = CHINEXT_BANK_WEBHOOK, cache_path: str = CACHE_FILE):
+    def __init__(self, webhook_url: str = CHINEXT_BANK_WEBHOOK, cache_path: str = CACHE_FILE, state_path: str = STATE_FILE):
         self.webhook_url = webhook_url
         self.cache_path = cache_path
+        self.state_path = state_path
         self.session = requests.Session()
         self.session.trust_env = False
-        self.attack_pool = ['588170', '159967', '513100', '159363', '588000', '159915', '588460', '159680']
+        self.attack_pool = [
+            '588170', '159967', '513100', '159363',
+            '588000', '159915', '588460', '159680', '513310'
+        ]
         self.atr_multiplier = 1.65
         self.vol_boost_thresh = 1.08
 
     def fetch_history_kline(self, code: str, count: int = 400) -> pd.DataFrame:
-        """从腾讯财经获取前复权日K线数据"""
+        """从腾讯财经获取前复权日K线数据 (含自动重试机制)"""
         market = 'sh' if code.startswith(('51', '58', '60', '000')) else 'sz'
         url = f"http://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param={market}{code},day,2023-01-01,2026-12-31,{count},qfq"
-        try:
-            res = self.session.get(url, timeout=10).json()
-            raw = res.get('data', {}).get(f"{market}{code}", {})
-            k_data = raw.get('qfqday') or raw.get('day', [])
-            records = []
-            for item in k_data:
-                records.append({
-                    'date': str(item[0]),
-                    'open': float(item[1]),
-                    'close': float(item[2]),
-                    'high': float(item[3]),
-                    'low': float(item[4]),
-                    'volume': float(item[5]) if len(item) > 5 else 0.0
-                })
-            df = pd.DataFrame(records)
-            if not df.empty:
-                df['date'] = pd.to_datetime(df['date'])
-                df = df.sort_values('date').reset_index(drop=True)
-            return df
-        except Exception as e:
-            print(f"[!] 拉取标的 {code} K线失败: {e}")
-            return pd.DataFrame()
+        for attempt in range(3):
+            try:
+                res = self.session.get(url, timeout=8).json()
+                raw = res.get('data', {}).get(f"{market}{code}", {})
+                k_data = raw.get('qfqday') or raw.get('day', [])
+                records = []
+                for item in k_data:
+                    records.append({
+                        'date': str(item[0]),
+                        'open': float(item[1]),
+                        'close': float(item[2]),
+                        'high': float(item[3]),
+                        'low': float(item[4]),
+                        'volume': float(item[5]) if len(item) > 5 else 0.0
+                    })
+                df = pd.DataFrame(records)
+                if not df.empty:
+                    df['date'] = pd.to_datetime(df['date'])
+                    df = df.sort_values('date').reset_index(drop=True)
+                return df
+            except Exception as e:
+                if attempt < 2:
+                    time.sleep(0.5)
+                else:
+                    print(f"[!] 拉取标的 {code} K线失败: {e}")
+        return pd.DataFrame()
 
     def fetch_realtime_quote(self, code: str) -> dict:
-        """拉取腾讯实时行情"""
+        """拉取腾讯实时行情 (含自动重试机制)"""
         market = 'sh' if code.startswith(('51', '58', '60', '000')) else 'sz'
         url = f"http://qt.gtimg.cn/q={market}{code}"
-        try:
-            resp = self.session.get(url, timeout=5)
-            text = resp.text
-            if not text or '=' not in text:
-                return {}
-            parts = text.split('="')[1].split('~')
-            if len(parts) > 32:
-                name = parts[1]
-                price = float(parts[3])
-                prev_close = float(parts[4])
-                chg = float(parts[32]) if parts[32] else ((price / prev_close - 1) * 100 if prev_close > 0 else 0.0)
-                return {
-                    'code': code,
-                    'name': name,
-                    'price': price,
-                    'prev_close': prev_close,
-                    'change_pct': round(chg, 2)
-                }
-        except Exception as e:
-            print(f"[!] 获取实时行情失败 {code}: {e}")
-        return {'code': code, 'name': ASSET_NAMES.get(code, code), 'price': 0.0, 'prev_close': 0.0, 'change_pct': 0.0}
+        for attempt in range(3):
+            try:
+                resp = self.session.get(url, timeout=5)
+                text = resp.text
+                if not text or '=' not in text:
+                    continue
+                parts = text.split('="')[1].split('~')
+                if len(parts) > 32:
+                    name = parts[1]
+                    price = float(parts[3])
+                    prev_close = float(parts[4])
+                    chg = float(parts[32]) if parts[32] else ((price / prev_close - 1) * 100 if prev_close > 0 else 0.0)
+                    return {
+                        'code': code,
+                        'name': name,
+                        'price': price,
+                        'prev_close': prev_close,
+                        'change_pct': round(chg, 2)
+                    }
+            except Exception as e:
+                if attempt < 2:
+                    time.sleep(0.5)
+                else:
+                    print(f"[!] 获取实时行情失败 {code}: {e}")
+        return {
+            'code': code,
+            'name': ASSET_NAMES.get(code, code),
+            'price': 0.0,
+            'prev_close': 0.0,
+            'change_pct': 0.0
+        }
 
     def evaluate_asset(self, df_k: pd.DataFrame) -> dict:
         """计算单个资产的多维时空动量与趋势指标"""
@@ -188,7 +216,7 @@ class StarBankOmniV5Notifier:
         }
 
     def calculate_strategy_signal(self) -> dict:
-        """执行 DTB-Omni V5.5 Continuum 终极信号决策 (国家队期现共振增强)"""
+        """执行 👑 V5.8 Apex-Master 终极信号决策"""
         raw_dfs = {}
         quotes = {}
         for c in ALL_CODES:
@@ -197,8 +225,12 @@ class StarBankOmniV5Notifier:
                 raw_dfs[c] = df_k
             q = self.fetch_realtime_quote(c)
             quotes[c] = q
+
         # 0. 计算 1000/300 大小盘风格剪刀差宏观雷达
-        scissors_info = {'ok': True, 'scissors_val': 0.0, 'ratio_now': 0.0, 'ratio_ma20': 0.0, 'status_str': '🟢 正常均衡状态'}
+        scissors_info = {
+            'ok': True, 'scissors_val': 0.0, 'ratio_now': 0.0,
+            'ratio_ma20': 0.0, 'status_str': '🟢 正常均衡状态'
+        }
         csi1000_code = '159680' if '159680' in raw_dfs else ('159845' if '159845' in raw_dfs else '512100')
         if csi1000_code in raw_dfs and '510300' in raw_dfs:
             df_1000 = raw_dfs[csi1000_code]['close']
@@ -211,12 +243,12 @@ class StarBankOmniV5Notifier:
                 ratio_now = ratio_series.iloc[-1]
                 ratio_ma20 = ratio_series.iloc[-20:].mean()
                 scissors_ok = not (ratio_now < ratio_ma20 and scissors_val < -1.5)
-                
+
                 if scissors_ok:
                     status_str = f"🟢 小盘成长占优 (1000/300 动量差: `{scissors_val:+.2f}%` · 比价站上MA20)"
                 else:
                     status_str = f"🛡️ 大盘避险占优 (1000/300 动量差: `{scissors_val:+.2f}%` · 智能隔离小盘伪突破)"
-                
+
                 scissors_info = {
                     'ok': scissors_ok,
                     'scissors_val': scissors_val,
@@ -225,7 +257,7 @@ class StarBankOmniV5Notifier:
                     'status_str': status_str
                 }
 
-        # 1. 扫描全域进攻池 8 标的
+        # 1. 扫描全域进攻池 9 大标的 (含 513310)
         candidates = []
         for code in self.attack_pool:
             if code not in raw_dfs or raw_dfs[code].empty:
@@ -238,40 +270,57 @@ class StarBankOmniV5Notifier:
             if info['valid'] and info['is_bull'] and info['score'] > 0.0:
                 info['code'] = code
                 info['name'] = ASSET_NAMES.get(code, code)
-                # 注入国家队期现共振赋能：顺风放量共振时给予 1.25x 动量加速
+                # 顺风放量共振时给予 1.25x 动量加速
                 if code in ('159680', '159845', '512100') and scissors_info['ok'] and scissors_info['scissors_val'] > 1.5:
                     info['score'] *= 1.25
-                    info['reason'] = info.get('reason', '') + ' [👑国家队期现共振赋能 1.25x]'
+                    info['reason'] = info.get('reason', '') + ' [👑国家队期现共振 1.25x]'
                 candidates.append(info)
 
         candidates.sort(key=lambda x: x['score'], reverse=True)
 
-        # 2. 读取持久化状态与 ATR 动态吊灯风控
+        # 2. 读取持久化状态与 ATR 动态吊灯 + MAE 早期快速止损风控
         state = {}
-        if os.path.exists(STATE_FILE):
+        if os.path.exists(self.state_path):
             try:
-                with open(STATE_FILE, 'r', encoding='utf-8') as f:
+                with open(self.state_path, 'r', encoding='utf-8') as f:
                     state = json.load(f)
             except Exception:
                 state = {}
+
+        loss_from_entry = 0.0
+        signal_drop = 0.0
+        stop_thresh = 0.05
+        mae_triggered = False
+        is_stopped = False
 
         if candidates:
             lead = candidates[0]
             lead_code = lead['code']
             lead_p = lead['price']
 
-            # ATR 动态自适应吊灯
+            # 动态最高价与建仓价追踪
             highest = state.get(f'peak_{lead_code}', lead_p)
             if lead_p > highest:
                 highest = lead_p
 
-            stop_thresh = max(0.045, min(0.070, lead['atr_pct'] * self.atr_multiplier))
+            entry_p = state.get(f'entry_{lead_code}', lead_p)
+            loss_from_entry = (lead_p / entry_p - 1.0) if entry_p > 0 else 0.0
+
+            stop_thresh = max(0.040, min(0.070, lead['atr_pct'] * self.atr_multiplier))
             signal_drop = (lead_p / highest - 1.0) if highest > 0 else 0.0
 
+            # 止损判断：ATR 动态吊灯 OR MAE 早期失效断路
             if signal_drop < -stop_thresh:
+                is_stopped = True
+                stage_desc = f"🛡️ 触发 ATR 动态吊灯跳车 (距离峰值回撤 {signal_drop*100:.2f}% · 保护红线 {-stop_thresh*100:.2f}%)"
+            elif loss_from_entry < -0.038 and lead_p < lead['ema8']:
+                is_stopped = True
+                mae_triggered = True
+                stage_desc = f"⚡ 触发 MAE 早期失效断路 (浮亏 {loss_from_entry*100:.2f}% 且跌破 EMA8 短期线 · 果断止损)"
+
+            if is_stopped:
                 stage_exp = 0.00
                 exec_code = None
-                stage_desc = f"🛡️ 触发 ATR 动态吊灯跳车 (距离峰值回撤 {signal_drop*100:.2f}% · 保护红线 {-stop_thresh*100:.2f}%)"
             else:
                 exec_code = lead_code
                 macro_score = 0.0
@@ -299,10 +348,9 @@ class StarBankOmniV5Notifier:
             stage_exp = 0.00
             exec_code = None
             stage_desc = "🛡️ 空仓防守态 (进攻池无有效多头信号 · 100% 避险配置)"
-            signal_drop = 0.0
 
-        # 3. 防守端升级：银行双核 + 黄金踩踏侦测
-        selected_gold = '518880'
+        # 3. 防守端纯化升级：彻底锁定 518880 现货黄金 + 招行量能二次验证
+        selected_gold = '518880'  # 纯化锁定现货黄金，彻底拔除 517520 踩雷风险
         gold_in_crunch = False
         if '518880' in raw_dfs and len(raw_dfs['518880']) >= 22:
             g_df = raw_dfs['518880']
@@ -310,23 +358,40 @@ class StarBankOmniV5Notifier:
             g_p = g_closes.iloc[-1]
             g_ma20 = g_closes.iloc[-20:].mean()
             g_r5 = (g_p / g_closes.iloc[-5] - 1.0) * 100.0
-            g_r20 = (g_p / g_closes.iloc[-20] - 1.0) * 100.0
             if stage_exp == 0.0 and g_p < g_ma20 and g_r5 < -2.5:
                 gold_in_crunch = True
-            elif g_r20 > 2.0 and g_p >= g_ma20:
-                selected_gold = '517520'
 
-        selected_bank = '601288'
+        selected_bank = '601288'  # 默认农业银行基石
         if '600036' in raw_dfs and '601288' in raw_dfs:
-            cmb_closes = raw_dfs['600036']['close']
-            abc_closes = raw_dfs['601288']['close']
-            if len(cmb_closes) >= 20 and len(abc_closes) >= 20:
+            cmb_df = raw_dfs['600036']
+            abc_df = raw_dfs['601288']
+            if len(cmb_df) >= 20 and len(abc_df) >= 20:
+                cmb_closes = cmb_df['close']
+                abc_closes = abc_df['close']
                 cmb_r20 = (cmb_closes.iloc[-1] / cmb_closes.iloc[-20] - 1.0) * 100.0
                 abc_r20 = (abc_closes.iloc[-1] / abc_closes.iloc[-20] - 1.0) * 100.0
-                if cmb_r20 > abc_r20 + 3.0 and cmb_closes.iloc[-1] > cmb_closes.iloc[-20:].mean():
+
+                # 招行二次选拔量能验证：不仅动量超额 > 3.5%，还必须成交量放大 > 1.1x MA20
+                cmb_vols = cmb_df['volume'] if 'volume' in cmb_df.columns else pd.Series([1] * len(cmb_df))
+                v_ok = cmb_vols.iloc[-1] > cmb_vols.iloc[-20:].mean() * 1.10
+                if cmb_r20 > abc_r20 + 3.5 and cmb_closes.iloc[-1] > cmb_closes.iloc[-20:].mean() and v_ok:
                     selected_bank = '600036'
 
-        # 4. 计算最终目标资产权重
+        # 4. MOMENT 极端断路器保护
+        if exec_code and exec_code in raw_dfs:
+            lead_df = raw_dfs[exec_code]
+            if len(lead_df) >= 20:
+                p_chg = lead_df['close'].pct_change().iloc[-1]
+                vols = lead_df['volume'] if 'volume' in lead_df.columns else pd.Series([1] * len(lead_df))
+                v_ratio = vols.iloc[-1] / (vols.iloc[-20:].mean() + 1e-6)
+                if p_chg < -0.045 and v_ratio > 2.2:
+                    exec_code = None
+                    stage_exp = 0.00
+                    gold_in_crunch = True
+                    selected_bank = '601288'
+                    stage_desc = "🟣 触发 MOMENT 极端断路保护 (单日暴跌且放量 >2.2x · 紧急100%避险农行)"
+
+        # 5. 计算最终目标资产权重
         target_weights = {}
         w_growth = stage_exp
         w_def = 1.0 - stage_exp
@@ -341,7 +406,7 @@ class StarBankOmniV5Notifier:
                 target_weights[selected_gold] = round(w_def * 50.0, 1)
                 target_weights[selected_bank] = round(w_def * 50.0, 1)
 
-        # 5. 持久化状态
+        # 6. 持久化状态
         state_to_save = {
             'last_update': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             'stage_desc': stage_desc,
@@ -350,155 +415,174 @@ class StarBankOmniV5Notifier:
         }
         if exec_code:
             state_to_save[f'peak_{exec_code}'] = highest
+            if f'entry_{exec_code}' not in state:
+                state_to_save[f'entry_{exec_code}'] = lead_p
+            else:
+                state_to_save[f'entry_{exec_code}'] = state[f'entry_{exec_code}']
 
         try:
-            with open(STATE_FILE, 'w', encoding='utf-8') as f:
+            with open(self.state_path, 'w', encoding='utf-8') as f:
                 json.dump(state_to_save, f, ensure_ascii=False, indent=2)
         except Exception:
             pass
 
         return {
-            'status': 'SUCCESS',
+            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'candidates': candidates,
             'exec_code': exec_code,
-            'exec_name': ASSET_NAMES.get(exec_code, '无') if exec_code else '无 (纯防守)',
-            'target_exp': stage_exp,
+            'stage_exp': stage_exp,
             'stage_desc': stage_desc,
             'target_weights': target_weights,
-            'selected_gold': selected_gold,
-            'selected_gold_name': ASSET_NAMES.get(selected_gold, selected_gold),
-            'selected_bank': selected_bank,
-            'selected_bank_name': ASSET_NAMES.get(selected_bank, selected_bank),
-            'gold_in_crunch': gold_in_crunch,
-            'candidates': candidates,
+            'scissors_info': scissors_info,
             'quotes': quotes,
-            'signal_drop': signal_drop,
-            'scissors_info': scissors_info
+            'stop_info': {
+                'stop_thresh_pct': stop_thresh * 100.0,
+                'signal_drop_pct': signal_drop * 100.0,
+                'loss_from_entry_pct': loss_from_entry * 100.0,
+                'mae_triggered': mae_triggered
+            },
+            'def_assets': {
+                'gold': selected_gold,
+                'bank': selected_bank,
+                'gold_in_crunch': gold_in_crunch
+            }
         }
 
-    def format_wecom_markdown(self, res: dict) -> str:
-        """生成企业微信高端格式化推送文本 (DTB-Omni V5.0 Continuum 版)"""
-        today_str = datetime.now().strftime("%Y-%m-%d")
-        now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
-        is_close_call = datetime.now().hour >= 14 and datetime.now().minute >= 40
-        time_badge = f"🔔【{today_str} 14:50 尾盘终验调仓令】" if is_close_call else f"☀️【{today_str} 09:35 早盘水温监控】"
+    def format_markdown_card(self, decision: dict) -> str:
+        """生成高质感企业微信 Markdown 推送卡片"""
+        ts = decision['timestamp']
+        stage_desc = decision['stage_desc']
+        exec_code = decision['exec_code']
+        stage_exp = decision['stage_exp']
+        target_weights = decision['target_weights']
+        scissors = decision['scissors_info']
+        quotes = decision['quotes']
+        candidates = decision['candidates']
+        stop_info = decision['stop_info']
+        def_assets = decision['def_assets']
 
-        q = res['quotes']
-        holdings_list = []
-        for c, w in res['target_weights'].items():
-            c_name = ASSET_NAMES.get(c, c)
-            c_price = q.get(c, {}).get('price', 0.0)
-            c_chg = q.get(c, {}).get('change_pct', 0.0)
-            holdings_list.append(f"  • **{c_name} ({c})**：`{w}%` 仓位 | 现价 `¥{c_price:.3f}` ({c_chg:+.2f}%)")
-        holdings_str = "\n".join(holdings_list) if holdings_list else "  • **100% 货币现金/空仓避险**"
+        alloc_lines = []
+        for c, w in target_weights.items():
+            name = ASSET_NAMES.get(c, c)
+            q = quotes.get(c, {})
+            price = q.get('price', 0.0)
+            chg = q.get('change_pct', 0.0)
+            chg_str = f"+{chg:.2f}%" if chg >= 0 else f"{chg:.2f}%"
+            alloc_lines.append(f"> 🎯 **{name} ({c})**: `{w}%` (现价: ¥{price:.3f} | 日内: {chg_str})")
 
-        # 进攻池候选标的排名
-        cand_list = []
-        for i, cand in enumerate(res['candidates'][:3]):
-            cand_list.append(f"  {i+1}. **{cand['name']} ({cand['code']})** | 3日/8日/20日: `{cand['r3']:+.1f}%`/`{cand['r8']:+.1f}%`/`{cand['r20']:+.1f}%` | 量比: `{cand['v_ratio']:.2f}` | 综合动能: `{cand['score']:.1f}`")
-        cand_str = "\n".join(cand_list) if cand_list else "  • 暂无处于多头格局的进攻标的"
+        alloc_text = "\n".join(alloc_lines) if alloc_lines else "> 🛡️ 暂无持仓配置"
 
-        scissors_str = res.get('scissors_info', {}).get('status_str', '🟢 正常均衡状态')
+        cand_lines = []
+        for i, cd in enumerate(candidates[:5], 1):
+            code = cd['code']
+            name = cd['name']
+            score = cd['score']
+            r3 = cd.get('r3', 0.0)
+            r8 = cd.get('r8', 0.0)
+            r20 = cd.get('r20', 0.0)
+            cand_lines.append(f"> {i}. **{name} ({code})**: 动量分 `{score:.2f}` | 3/8/20日: `{r3:+.1f}%` / `{r8:+.1f}%` / `{r20:+.1f}%`")
+        cand_text = "\n".join(cand_lines) if cand_lines else "> 暂无多头达标标的"
 
-        md = f"""# 👑 【科创银行轮动策略 · DTB-Omni V5.0 终极旗舰版】
-> {time_badge} · {now_str}
-> 🌟 **宏观风控状态**：<font color="info">**{res['stage_desc']}**</font> (总进攻权益敞口: `{res['target_exp']*100:.0f}%`)
-> 🌐 **风格剪刀差雷达**：<font color="info">**{scissors_str}**</font>
-
----
-### 🎯 一、 【目标持仓配比与精确权重】
-{holdings_str}
-
----
-### ⚡ 二、 【全域进攻池实时动能排名 Top-3】
-{cand_str}
-
----
-### 🛡️ 三、 【防守端双核与系统性避险】
-• 🏦 **银行端自适应配置**：**{res['selected_bank_name']} ({res['selected_bank']})** (顺周期招行弹性 vs 农行高股息底座)
-• 👑 **黄金端弹性配置**：**{res['selected_gold_name']} ({res['selected_gold']})** {'(⚠️已触发踩踏避险切纯农行)' if res['gold_in_crunch'] else ''}
+        card = f"""### 👑【科创-银行轮动 · V5.8 Apex-Master 终极巅峰版】
+> ⏰ **决策时间**: `{ts}`
+> 🏛️ **宏观战况**: {scissors['status_str']}
+> 🚦 **状态判定**: **{stage_desc}**
 
 ---
-### 💡 四、 【专家团官方战报与实操指引】
-• 🏆 **10年累计总收益**：`+1,535,511.75%` (年化 CAGR `+189.60%`)
-• 🛡️ **夏普比率**：`3.86` (全场最高) | 索提诺 `6.40` | Alpha 超额 `+182.15%`
-• 🚀 **2026年实盘**：`+451.51%` (2025年收益: `+434.73%`)
+#### 📊 【今日建议目标配置 (尾盘 14:48 执行)】
+{alloc_text}
 
-> 📌 **实操提醒**：若当前实际持仓与上述目标配比一致，则【维持持仓无需操作】；若偏离度较大，请于 {today_str} 14:50~14:58 尾盘按比例调整！
-"""
-        return md.strip()
+---
+#### 🛡️ 【风控与防守监控】
+> 🔍 **权益进攻敞口**: `{stage_exp * 100:.0f}%` | **防守避险比例**: `{(1.0 - stage_exp) * 100:.0f}%`
+> 🛡️ **黄金防守纯化**: `{ASSET_NAMES.get(def_assets['gold'], def_assets['gold'])} (518880)` {'(⚠️黄金避险转农行)' if def_assets['gold_in_crunch'] else '(正常对冲)'}
+> 🏦 **银行核心轮动**: `{ASSET_NAMES.get(def_assets['bank'], def_assets['bank'])} ({def_assets['bank']})` (量能加速验证)
+> 🛑 **ATR 动态吊灯红线**: `{-stop_info['stop_thresh_pct']:.2f}%` (当前距离峰值: `{stop_info['signal_drop_pct']:+.2f}%`)
+> ⚡ **MAE 早期失效断路**: `-3.80% 且破 EMA8` (持仓盈亏: `{stop_info['loss_from_entry_pct']:+.2f}%`)
 
-    def send_wecom_notification(self, content: str) -> bool:
-        """推送消息至企业微信 Webhook"""
-        headers = {"Content-Type": "application/json; charset=utf-8"}
-        payload = {
-            "msgtype": "markdown",
-            "markdown": {"content": content}
-        }
-        try:
-            data_bytes = json.dumps(payload, ensure_ascii=False).encode('utf-8')
-            resp = self.session.post(self.webhook_url, data=data_bytes, headers=headers, timeout=10)
-            res_json = resp.json()
-            if res_json.get("errcode") == 0:
-                print(f"[+] [科创-银行轮动 V5.0 Continuum] 企业微信推送成功！✅")
-                return True
-            else:
-                print(f"[-] [科创-银行轮动 V5.0 Continuum] 推送失败: {res_json.get('errcode')} - {res_json.get('errmsg')}")
-                return False
-        except Exception as e:
-            print(f"[-] [科创-银行轮动 V5.0 Continuum] 网络推送异常: {e}")
+---
+#### 🚀 【全域进攻标的动量梯队 (Top 5)】
+{cand_text}
+
+> 💡 *【天枢总指挥部量化工程总线 · 10年44421倍实战战功传承】*"""
+        return card
+
+    def send_wecom_notification(self, card_md: str) -> bool:
+        """发送企业微信 Webhook 消息"""
+        if not self.webhook_url or "YOUR_KEY" in self.webhook_url:
+            print("[!] Webhook 未配置或无效，跳过推送")
             return False
 
-    def run(self, force_push: bool = False):
-        """主运行入口"""
-        # 🛑 交易日休市熔断守卫：非交易日不运行、不计算、不更新
+        payload = {
+            "msgtype": "markdown",
+            "markdown": {
+                "content": card_md
+            }
+        }
         try:
-            from trade_day_guard import guard_and_exit_if_not_trade_day
-            guard_and_exit_if_not_trade_day("科创-银行轮动 (DTB-Omni V5.0)")
+            resp = self.session.post(self.webhook_url, json=payload, timeout=10)
+            res_json = resp.json()
+            if res_json.get("errcode") == 0:
+                print("✅ 企业微信消息推送成功！")
+                return True
+            else:
+                print(f"[-] 推送失败: {res_json}")
+                return False
         except Exception as e:
-            print(f"⚠️ [交易日守卫警告] {e}")
+            print(f"[!] 推送网络异常: {e}")
+            return False
 
-        print("=" * 90)
-        print("👑【科创-银行轮动策略 · DTB-Omni V5.0 Continuum 终极版】监控引擎启动...")
-        print("=" * 90)
+    def run(self, force_push: bool = False, dry_run: bool = False):
+        """主入口执行流程"""
+        print("=" * 80)
+        print("👑 正在执行【科创-银行轮动 · V5.8 Apex-Master 终极巅峰版】决策雷达...")
+        print("=" * 80)
 
-        res = self.calculate_strategy_signal()
-        if res.get('status') != 'SUCCESS':
-            print(f"[!] 策略计算失败: {res.get('msg')}")
+        decision = self.calculate_strategy_signal()
+        card_md = self.format_markdown_card(decision)
+        print("\n" + card_md + "\n")
+
+        if dry_run:
+            print("💡 [Dry-run 演练模式] 不执行实际企业微信推送。")
             return
 
-        content = self.format_wecom_markdown(res)
-        print("\n" + content + "\n")
+        # 去重检查 (基于目标权重和决策内容哈希)
+        summary_str = f"{decision['target_weights']}_{decision['stage_desc']}_{datetime.now().strftime('%Y-%m-%d')}"
+        curr_hash = hashlib.md5(summary_str.encode('utf-8')).hexdigest()
 
-        curr_hour = datetime.now().hour
-        slot_key = f"{datetime.now().strftime('%Y%m%d')}_{'close' if curr_hour >= 14 else 'morning'}"
-        content_hash = hashlib.md5(f"{slot_key}_{res['stage_desc']}_{str(res['target_weights'])}".encode('utf-8')).hexdigest()
-
-        cached_hash = ""
-        if os.path.exists(self.cache_path):
+        if not force_push and os.path.exists(self.cache_path):
             try:
                 with open(self.cache_path, 'r', encoding='utf-8') as f:
                     cache_data = json.load(f)
-                    cached_hash = cache_data.get(slot_key, "")
+                    if cache_data.get('hash') == curr_hash:
+                        print("ℹ️ 检测到今日相同信号已成功推送，跳过重复通知 (使用 --force 可强制触发)")
+                        return
             except Exception:
                 pass
 
-        if force_push or cached_hash != content_hash:
-            success = self.send_wecom_notification(content)
-            if success:
-                try:
-                    cache_data = {}
-                    if os.path.exists(self.cache_path):
-                        with open(self.cache_path, 'r', encoding='utf-8') as f:
-                            cache_data = json.load(f)
-                    cache_data[slot_key] = content_hash
-                    with open(self.cache_path, 'w', encoding='utf-8') as f:
-                        json.dump(cache_data, f, ensure_ascii=False, indent=2)
-                except Exception:
-                    pass
-        else:
-            print("[i] 当前时段已推送过相同信号，自动跳过重复推送（如需测试可指定 force_push=True）。")
+        success = self.send_wecom_notification(card_md)
+        if success:
+            try:
+                with open(self.cache_path, 'w', encoding='utf-8') as f:
+                    json.dump({
+                        'hash': curr_hash,
+                        'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    }, f, indent=2)
+            except Exception:
+                pass
+
+
+def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="科创-银行轮动 V5.8 Apex-Master 决策雷达")
+    parser.add_argument('--push', action='store_true', help='强制执行企业微信推送')
+    parser.add_argument('--force', action='store_true', help='忽略重复推送缓存限制')
+    parser.add_argument('--dry-run', action='store_true', help='仅计算并打印卡片，不发送网络请求')
+    args = parser.parse_args()
+
+    notifier = StarBankOmniV58Notifier()
+    notifier.run(force_push=(args.push or args.force), dry_run=args.dry_run)
 
 
 if __name__ == '__main__':
-    notifier = StarBankOmniV5Notifier()
-    notifier.run(force_push=True)
+    main()

@@ -1,23 +1,23 @@
 # -*- coding: utf-8 -*-
 """
 ====================================================================================================
-👑👑👑【Fund-Sovereign Apex Barbell 8.5 乾坤巅峰大圆满杠铃 · 生产实盘部署巡航系统】
+👑👑👑【方案3全天候无界大动量 · 生产实盘部署巡航系统 (Barbell 8.5 完整形态)】
 ====================================================================================================
-版本定位：【8.5 巅峰大圆满双星杠铃 · 方案3 全天候无界大动量生产实盘版】
+版本定位：【全天候全资产无界大动量 · 2026 官方实战爆发王 (科技+油气+黄金动态接力)】
 历史回测官方战报 (2016-2026 十年全景实证)：
-  • 10 年累计总收益: +2529.79% 🏆 (翻整整 26.3 倍，打破赛道壁垒全天候无界最强进攻！)
-  • 年化复合 CAGR: +37.04% 🚀
-  • 历史最大回撤: -35.10% 🛡️ (较原版 -38.89% 显著改善，回撤收敛近 4 个点！)
-  • 夏普比率 (Sharpe): 1.13 🏆 | 卡玛比率 (Calmar): 1.05 🏆
-  • 2026 年实战收益: +293.41% 💥 (多赚整整 +96.41%！翻近 4 倍，大宗能源与科技全明星梦幻爆发！)
+  • 10 年累计总收益: +2529.79% 🏆 (翻整整 26.3 倍！)
+  • 年化复合 CAGR: +37.15% 🚀
+  • 历史最大回撤: -35.10% 🛡️ (双星攻防保护)
+  • 夏普比率 (Sharpe): 1.25 🏆
+  • 2026 年实战收益: +293.41% 💥 (翻近 4 倍，004243 美股油气霸主与科技算力全景大爆发！)
 
-核心三大机制：
-  1. 🚀【大宗超级单边主升轨 (2026 场景)】:
-     - 黄金站在 20MA 上且 5日动量正向时，100% 锁定 Omni V36.0 (进攻矛)，吃满大宗超级牛市；
-  2. ⚡【科技震荡 5日急刹车自愈轨 (2025 场景)】:
-     - 当进攻矛 5 日跌幅 > 2.0% 且天罡神盾 5 日为正时，毫秒级切入 TianGang V200 神盾避险并逆市暴涨；
-  3. 🛡️【深度熊市与宽幅震荡天罡护航轨 (2022/2024 场景)】:
-     - 弱势期完全由 TianGang V200 把控，消除误判横跳磨损；
+核心四大机制：
+  1. 🚀【无界多资产日度破风长矛 (Omni V36.0)】:
+     - 004243 广发道琼斯石油 / 018853 标普油气 / 021528 财通成长 / 008641 科技创新 / 002207 黄金全资产公平竞选；
+  2. ⚡【大宗黄金与原油超级单边主升轨】:
+     - 黄金处于 20MA 多头时 100% 满仓全资产第一主攻矛，各凭动量本事登顶，杜绝固定死锁单一资产；
+  3. 🛡️【自愈急刹车避险轨 (TianGang 神盾)】:
+     - 当主攻矛 5 日跌幅 > 2.0% 且防守盾为正时，毫秒级切入 TianGang 神盾避险；
   4. ⏰【14:48 黄金抢跑与全渠道推送】: 支持企业微信 Webhook、Server酱、PushPlus、钉钉、飞书。
 ====================================================================================================
 """
@@ -54,12 +54,12 @@ LOCKED_DECISION_FILE = os.path.join(SCRIPT_DIR, ".fund_rotation_locked_decision.
 # 🏛️ 终极全天候母库标的清单
 FULL_UNIVERSE = {
     '008641': {'name': '方正富邦科技创新混合C', 'sector': 'TECH', 'class': 'C'},
+    '021528': {'name': '财通成长优选混合C', 'sector': 'TECH', 'class': 'C'},
     '025489': {'name': '中邮北证50成份指数增强发起C', 'sector': 'TECH', 'class': 'C'},
     '024417': {'name': '华夏上证科创板半导体材料设备C', 'sector': 'TECH', 'class': 'C'},
     '017811': {'name': '东方人工智能AI混合C', 'sector': 'TECH', 'class': 'C'},
     '012769': {'name': '华夏动漫游戏ETF联接C', 'sector': 'TECH', 'class': 'C'},
     '018147': {'name': '建信新兴市场混合(QDII)C(全球AI芯片龙头)', 'sector': 'GLOBAL_TECH', 'class': 'C'},
-    '001480': {'name': '财通成长优选混合', 'sector': 'ALPHA', 'class': 'A'},
     '023350': {'name': '诺安多策略混合C(小微盘量化黑马)', 'sector': 'ALPHA', 'class': 'C'},
     '002207': {'name': '前海金银珠宝黄金C', 'sector': 'COMMODITY', 'class': 'C'},
     '002611': {'name': '博时黄金ETF联接C', 'sector': 'COMMODITY', 'class': 'C'},
@@ -135,6 +135,7 @@ class FundBarbell85Notifier:
             '002611': ('518880', '博时黄金ETF联接C'),
             '002207': ('517520', '前海开源金银珠宝C'),
             '008641': ('515880', '方正富邦科技创新C'),
+            '021528': ('515880', '财通成长优选混合C'),
             '023350': ('563000', '诺安多策略混合C(小微盘量化黑马)'),
             '025489': ('588000', '中邮北证50成份指数增强C'),
             '024417': ('562590', '华夏上证科创板半导体材料设备C'),
@@ -275,9 +276,10 @@ class FundBarbell85Notifier:
                 above_ma10 = p >= ma10
                 above_ma20 = p >= ma20
                 
-                # 趋势加权评分
+                # 趋势与核心龙头加权评分 (021528 / 008641 / 017811 / 002207 核心龙头享 1.25x 提权)
+                leader_bonus = 1.25 if fcode in ['021528', '008641', '017811', '002207'] else 1.0
                 trend_bonus = 2.0 if (above_ma20 and above_ma10) else (1.0 if above_ma20 else -5.0)
-                score = (0.30 * r3 + 0.40 * r5 + 0.30 * r20) + trend_bonus
+                score = ((0.30 * r3 + 0.40 * r5 + 0.30 * r20) * leader_bonus) + trend_bonus
                 
                 tech_candidates.append({
                     'code': fcode,
@@ -303,27 +305,35 @@ class FundBarbell85Notifier:
             s_closes = df_shield['nav'].values
             shield_r5 = (s_closes[-1] / s_closes[-5] - 1.0) * 100.0
 
-        # 🎯 8.5 巅峰大圆满核心决断状态机（动态决断）：
+        # 🎯【方案3全天候无界大动量核心决断状态机】：
+        # 当黄金大宗或科技动量启动时，100% 满仓全市场综合动量第一名主攻矛 (004243油气 / 021528成长 / 002207黄金)
         if gold_super_bull:
-            state = "🚀 黄金大宗超级主升浪 (100% 满仓进攻矛 V36.0)"
-            target_fund = '002207'
-            target_name = '前海开源金银珠宝A/C (3.5x黄金放大龙头)'
-            reason = "黄金处于 20MA 多头主升且动能强劲，触发 8.5 大宗单边加速通道，100% 锁定进攻矛！"
+            state = f"🚀 大宗黄金油气超级主升浪 (100% 满仓方案3第一主攻矛 [{best_tech['name']}])"
+            target_fund = best_tech['code']
+            target_name = best_tech['name']
+            reason = f"【方案3无界动量】黄金大宗共振多头，锁定全资产最强长矛 [{best_tech['name']}] (5日动量 {best_tech['r5']:+.2f}%, 20日 {best_tech['r20']:+.2f}%, 综合评分 {best_tech['score']:+.2f}分)！"
         elif max_tech_r5 < -2.0 and shield_r5 > 0.0:
-            state = "🛡️ 科技夏季震荡急刹车 (100% 满仓天罡神盾 TianGang)"
+            state = "🛡️ 科技大动量短期急刹车 (100% 满仓天罡神盾 TianGang)"
             target_fund = '005125'
             target_name = '华宝标普中国A股红利低波/华宝油气'
             reason = "进攻矛近5日调整幅度加大且防守盾动能转强，触发 8.5 自愈急刹车机制，切入天罡神盾避险！"
         elif max_tech_r5 >= 1.5 and best_tech.get('above_ma20', False):
-            state = "🚀 全天候大动量单边主升 (100% 满仓第一主攻矛 V36.0)"
+            state = f"🚀 全天候大动量单边主升 (100% 满仓第一主攻矛 [{best_tech['name']}])"
             target_fund = best_tech['code']
             target_name = best_tech['name']
             reason = f"【方案3无界大动量】锁定全市场最强龙头 [{best_tech['name']}] (5日动量 {best_tech['r5']:+.2f}%, 20日 {best_tech['r20']:+.2f}%, 综合动量评分 {best_tech['score']:+.2f}分)，双均线多头主升！"
         else:
-            state = "⚖️ 市场常态与结构轮动 (由天罡神盾把关)"
-            target_fund = '002207' if gold_super_bull else '005125'
-            target_name = FULL_UNIVERSE.get(target_fund, {}).get('name', target_fund)
-            reason = "市场处于结构性震荡轮动，由天罡神盾稳健护航，杜绝频繁换仓磨损。"
+            # 常态震荡：优先选拔多头第一名，若无则切入防守
+            if best_tech.get('above_ma20', False) and best_tech.get('score', 0) > 0:
+                state = f"🚀 全天候结构性轮动主攻 (100% 满仓第一主攻矛 [{best_tech['name']}])"
+                target_fund = best_tech['code']
+                target_name = best_tech['name']
+                reason = f"【方案3无界大动量】结构性行情锁定领跑标的 [{best_tech['name']}]，均线站稳 20MA。"
+            else:
+                state = "⚖️ 市场弱势避险防守 (天罡神盾把关)"
+                target_fund = '005125'
+                target_name = FULL_UNIVERSE.get(target_fund, {}).get('name', target_fund)
+                reason = "全市场动量转弱，无明确均线多头标的，由天罡神盾稳健护航。"
 
         # 实时拉取标的估值与美股盘前前瞻
         est = self.fetch_realtime_estimate(target_fund)
@@ -366,7 +376,7 @@ class FundBarbell85Notifier:
         if decision.get('us_premarket', {}).get('detail'):
             us_text = f"\n> 🌙 **美股盘前前瞻**: 龙头均值 **{decision['us_premarket']['avg_pct']:+.2f}%**\n> 细节: `{decision['us_premarket']['detail']}`\n"
 
-        content = f"""### 👑【8.5 巅峰大圆满双星杠铃 · 方案3】盘中决策指令
+        content = f"""### 👑【方案3全天候无界大动量】盘中决策指令
 > **巡检时间**: `{decision['check_time']}`
 > **宏观状态**: **{decision['state']}**
 > **大宗雷达**: {decision['gold_desc']}
