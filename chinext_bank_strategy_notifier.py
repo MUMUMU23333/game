@@ -462,15 +462,36 @@ class StarBankOmniV58Notifier:
         def_assets = decision['def_assets']
 
         alloc_lines = []
+        table_lines = [
+            "> | 标的资产 (代码) | 目标权重 | 10万本金推荐买入 | 4万底座推荐买入 |",
+            "> | :--- | :--- | :--- | :--- |"
+        ]
         for c, w in target_weights.items():
             name = ASSET_NAMES.get(c, c)
             q = quotes.get(c, {})
             price = q.get('price', 0.0)
             chg = q.get('change_pct', 0.0)
             chg_str = f"+{chg:.2f}%" if chg >= 0 else f"{chg:.2f}%"
-            alloc_lines.append(f"> 🎯 **{name} ({c})**: `{w}%` (现价: ¥{price:.3f} | 日内: {chg_str})")
 
-        alloc_text = "\n".join(alloc_lines) if alloc_lines else "> 🛡️ 暂无持仓配置"
+            # 10万元资金计算
+            amt_10w = 100000.0 * (w / 100.0)
+            shares_10w = int(amt_10w / price / 100) * 100 if price > 0 else 0
+
+            # 4万元底座资金计算 (全天候 8 万资产中科创银行占 50%)
+            amt_4w = 40000.0 * (w / 100.0)
+            shares_4w = int(amt_4w / price / 100) * 100 if price > 0 else 0
+
+            alloc_lines.append(
+                f"> 🎯 **【买入/配比】{name} ({c})**：目标配比 **`{w:.0f}%`** (现价: ¥{price:.3f} | {chg_str})\n"
+                f"> 　• 💰 **10万元本金**: 买入 **`¥{amt_10w:,.0f} 元`** ➔ 挂单 **`{shares_10w:,} 股`** ({shares_10w//100}手)\n"
+                f"> 　• 🛡️ **4万元底座**: 买入 **`¥{amt_4w:,.0f} 元`** ➔ 挂单 **`{shares_4w:,} 股`** ({shares_4w//100}手)"
+            )
+            table_lines.append(
+                f"> | **{name}** (`{c}`) | `{w:.0f}%` | **{shares_10w:,}股** (¥{amt_10w:,.0f}) | **{shares_4w:,}股** (¥{amt_4w:,.0f}) |"
+            )
+
+        alloc_text = "\n>\n".join(alloc_lines) if alloc_lines else "> 🛡️ 暂无持仓配置"
+        table_text = "\n".join(table_lines)
 
         cand_lines = []
         for i, cd in enumerate(candidates[:5], 1):
@@ -489,8 +510,12 @@ class StarBankOmniV58Notifier:
 > 🚦 **状态判定**: **{stage_desc}**
 
 ---
-#### 📊 【今日建议目标配置 (尾盘 14:48 执行)】
+#### 📊 【今日实操买单与精确份额 (尾盘 14:48 执行)】
 {alloc_text}
+
+---
+#### 📋 【资金规模速查挂单表 (按一手100股向下取整)】
+{table_text}
 
 ---
 #### 🛡️ 【风控与防守监控】
