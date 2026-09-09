@@ -798,23 +798,64 @@ def collect_macro_dataset() -> dict:
         'source': '七星量化 (25% 大宗轮动)'
     })
 
+    # 计算同标的代码合并项 (例如五福与七星同时选中同一大宗品种时智能共振合并)
+    merged_80k = {}
+    for item in allocations_80k:
+        c = item['code']
+        if c not in merged_80k:
+            merged_80k[c] = {
+                'name': item['name'],
+                'code': c,
+                'amount': item['amount'],
+                'price': item['price'],
+                'shares': item['shares'],
+                'weight': item['weight'],
+                'sources': [item['source']]
+            }
+        else:
+            merged_80k[c]['amount'] += item['amount']
+            merged_80k[c]['shares'] += item['shares']
+            merged_80k[c]['weight'] += item['weight']
+            merged_80k[c]['sources'].append(item['source'])
+
     portfolio_80k = {
         'total_capital': 80000.0,
-        'allocations': allocations_80k
+        'allocations': allocations_80k,
+        'merged_allocations': list(merged_80k.values())
     }
 
     # 4. 动态加载场外双星杠铃 (方案3) 状态 (以 14:48:32 最终计算结果为唯一准绳)
+    fund_locked_file = os.path.join(SCRIPT_DIR, ".fund_rotation_locked_decision.json")
     fund_state_file = os.path.join(SCRIPT_DIR, ".fund_rotation_state.json")
-    fund_code = "008641"
-    fund_name = "方正富邦科技创新混合C"
+    fund_code = "016814"
+    fund_name = "国联煤炭C"
     fund_status = "🚀 全天候大动量单边主升 (100% 满仓第一主攻矛)"
-    fund_highlight = "【方案3全天候无界大动量】以 14:48 最终锁定 [方正富邦科技创新混合C (008641)] · 2026实战 +293.41% 💥 · 10年 +2529.79% 🏆！"
-    if os.path.exists(fund_state_file):
+    fund_highlight = "【方案3全天候无界大动量】以 14:48 最终锁定 [国联煤炭C (016814)] · 2026实战 +293.41% 💥 · 10年 +2529.79% 🏆！"
+
+    # 优先读取今日 14:48:32 最终锁定决策文件
+    beijing_today = datetime.now().strftime("%Y-%m-%d")
+    loaded_from_lock = False
+    if os.path.exists(fund_locked_file):
+        try:
+            with open(fund_locked_file, "r", encoding="utf-8") as f:
+                lock_rec = json.load(f)
+                if lock_rec.get("date") == beijing_today and lock_rec.get("decision"):
+                    dec = lock_rec["decision"]
+                    fund_code = str(dec.get("target_fund", fund_code)).strip()
+                    fund_name = str(dec.get("target_name", fund_name)).strip()
+                    fund_status = str(dec.get("state", fund_status)).strip()
+                    fund_reason = dec.get("reason", "")
+                    fund_highlight = f"{fund_reason} · 2026实战 +293.41% 💥 · 10年 +2529.79% 🏆！" if fund_reason else f"【方案3全天候无界大动量】以 14:48 最终决策锁定 [{fund_name} ({fund_code})] · 2026实战 +293.41% 💥 · 10年 +2529.79% 🏆！"
+                    loaded_from_lock = True
+        except Exception as e:
+            print(f"⚠️ [场外决策锁读取异常] {e}")
+
+    if not loaded_from_lock and os.path.exists(fund_state_file):
         try:
             with open(fund_state_file, "r", encoding="utf-8") as f:
                 f_state = json.load(f)
-                fund_code = str(f_state.get("holding_code", "008641")).strip()
-                fund_name = str(f_state.get("holding_name", "方正富邦科技创新混合C")).strip()
+                fund_code = str(f_state.get("holding_code", fund_code)).strip()
+                fund_name = str(f_state.get("holding_name", fund_name)).strip()
                 fund_highlight = f"【方案3全天候无界大动量】以 14:48 最终决策锁定 [{fund_name} ({fund_code})] · 2026实战 +293.41% 💥 · 10年 +2529.79% 🏆！"
         except Exception:
             pass
@@ -880,7 +921,8 @@ def generate_full_html_report(data: dict) -> str:
     date_badge = datetime.now().strftime("%Y年%m月%d日")
     
     p80 = data.get('portfolio_80k', {})
-    alloc_items = [f"{a['name']}({a['weight']:.0f}%)" for a in p80.get('allocations', [])]
+    m_allocs = p80.get('merged_allocations', p80.get('allocations', []))
+    alloc_items = [f"{a['name']}({a['weight']:.0f}%)" for a in m_allocs]
     holdings_pitch = " + ".join(alloc_items) if alloc_items else "全天候量化资产配置"
 
     rank_rows_html = ""
@@ -1295,11 +1337,14 @@ def generate_wecom_brief(data: dict) -> str:
     p80 = data.get('portfolio_80k', {})
     alloc_lines = []
     summary_lines = []
-    if p80 and 'allocations' in p80:
-        for item in p80['allocations']:
+    m_allocs = p80.get('merged_allocations', p80.get('allocations', []))
+    if p80:
+        for item in m_allocs:
+            src_note = f" (🔥 {' + '.join(item['sources'])})" if len(item.get('sources', [])) > 1 else ""
             alloc_lines.append(
-                f"• **{item['name']}** ({item['code']}): 买入 <font color=\"warning\">**¥{item['amount']:,.0f}**</font> ({item['weight']:.0f}%) | 约 **{item['shares']:,}股** @ ¥{item['price']:.3f}"
+                f"• **{item['name']}** ({item['code']}): 买入 <font color=\"warning\">**¥{item['amount']:,.0f}**</font> ({item['weight']:.0f}%){src_note} | 约 **{item['shares']:,}股** @ ¥{item['price']:.3f}"
             )
+        for item in p80.get('allocations', []):
             summary_lines.append(
                 f"- 🎯 **{item['source']}** ➔ **{item['name']} ({item['code']})**：**¥{item['amount']:,.0f} 元 ({item['weight']:.1f}%)**"
             )
@@ -1332,12 +1377,12 @@ def generate_wecom_brief(data: dict) -> str:
     scissors_desc = data.get('scissors_radar', {}).get('status_desc', '🟢 正常均衡状态')
 
     # 动态根据最新真实持仓提炼宏观核心定调
-    alloc_items = [f"{a['name']}({a['weight']:.0f}%)" for a in p80.get('allocations', [])]
+    alloc_items = [f"{a['name']}({a['weight']:.0f}%)" for a in m_allocs]
     holdings_pitch = " + ".join(alloc_items) if alloc_items else "全天候量化资产配置"
     macro_tone_str = f"【全舰队实盘共振 · {holdings_pitch} · 顺势主升多头】"
 
     # 2.5 提取场外公募双星杠铃 (方案3) 唯一锁定推荐
-    fund_rec_name = "008641 方正富邦科技创新混合C"
+    fund_rec_name = "016814 国联煤炭C"
     fund_rec_status = "🚀 全天候大动量单边主升 (100% 满仓第一主攻矛)"
     fund_rec_desc = "【方案3全天候无界大动量】以 14:48 最终决策锁定，2026实战 +293.41% 💥 · 10年 +2529.79% 🏆！"
     for s in strats:
