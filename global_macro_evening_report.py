@@ -1442,15 +1442,87 @@ def generate_wecom_brief(data: dict) -> str:
 
 
 # =====================================================================
-# 七、 主执行流
+# 七、 主执行流与双机热备探针
 # =====================================================================
-def run_macro_evening_pipeline(webhook_url: str = MACRO_EVENING_WEBHOOK):
+def is_cloud_environment() -> bool:
+    """判断当前是否运行在 GitHub Actions 等云端 CI/CD 容器中"""
+    return os.getenv("GITHUB_ACTIONS") == "true"
+
+
+def check_cloud_report_status(max_wait_seconds: int = 40):
+    """
+    【双机热备探针】检查 GitHub Actions 今日 20:00 的晚报是否已成功执行并推送。
+    如果云端正在运行中 (in_progress/queued)，智能等待至多 max_wait_seconds 秒直至收敛。
+    返回: (should_skip: bool, reason: str)
+      - should_skip = True: 云端已成功推送，本地接管解除，静默退出。
+      - should_skip = False: 云端未执行或失败，本地热备接管，继续生成推送。
+    """
+    import datetime
+    from datetime import timezone, timedelta
+
+    beijing_tz = timezone(timedelta(hours=8))
+    today_str = datetime.datetime.now(beijing_tz).strftime('%Y-%m-%d')
+    url = "https://api.github.com/repos/MUMUMU23333/game/actions/workflows/global_macro_quant_evening_report.yml/runs?per_page=3"
+
+    start_wait = time.time()
+    while True:
+        try:
+            r = requests.get(url, timeout=8)
+            if r.status_code == 200:
+                runs = r.json().get('workflow_runs', [])
+                found_today = False
+                for run in runs:
+                    up_time_str = run.get('updated_at') or run.get('created_at')
+                    if not up_time_str:
+                        continue
+                    up_dt = datetime.datetime.fromisoformat(up_time_str.replace('Z', '+00:00')).astimezone(beijing_tz)
+                    run_date = up_dt.strftime('%Y-%m-%d')
+                    status = run.get('status')
+                    conclusion = run.get('conclusion')
+
+                    if run_date == today_str:
+                        found_today = True
+                        if status == 'completed' and conclusion == 'success':
+                            return True, f"云端 GitHub Actions 今日晚报已于 {up_dt.strftime('%H:%M:%S')} 成功执行并完成推送 (Run ID: {run.get('id')})"
+                        elif status in ('in_progress', 'queued'):
+                            if time.time() - start_wait < max_wait_seconds:
+                                print(f"⏳ [热备探针] 检测到云端正在执行中 (状态: {status})，等待 5 秒收敛...")
+                                time.sleep(5)
+                                break  # 跳出循环重新请求
+                            else:
+                                return False, f"云端执行等待超时仍在运行 (状态: {status})"
+                        elif status == 'completed' and conclusion != 'success':
+                            return False, f"云端今日执行未成功 (状态: {status}, 结论: {conclusion})"
+                else:
+                    if not found_today:
+                        return False, "今日未发现云端执行记录"
+            else:
+                return False, f"查询云端状态接口返回 HTTP {r.status_code}"
+        except Exception as e:
+            return False, f"热备探针检测异常: {e}"
+
+        if time.time() - start_wait >= max_wait_seconds:
+            return False, "云端执行等待超时"
+
+
+def run_macro_evening_pipeline(webhook_url: str = MACRO_EVENING_WEBHOOK, force: bool = False):
     # 🛑 交易日休市熔断守卫：非A股交易日不运行、不更新、不推送
     try:
         from trade_day_guard import guard_and_exit_if_not_trade_day
         guard_and_exit_if_not_trade_day("全球宏观量化战略晚报")
     except Exception as e:
         print(f"⚠️ [交易日守卫警告] {e}")
+
+    # 🛡️ 双机热备探针（仅在本地运行且未显式开启 --force 时生效）
+    if not is_cloud_environment() and not force:
+        print("🔍 [双机热备探针] 正在检查今日 20:00 云端 GitHub Actions 晚报推送状态...")
+        should_skip, reason = check_cloud_report_status()
+        if should_skip:
+            print(f"🛡️ [热备探针] {reason}")
+            print("🛑 [本地热备接管解除] 线上版本已成功推送，本地不再推送，系统静默退出！")
+            return True
+        else:
+            print(f"🚨 [热备探针] 未检测到线上成功推送 ({reason})，本地热备立即接管启动！")
 
     print("=" * 100)
     print("🏛️【全球宏观大势与量化全景战略研报】全舰队实盘共振终极版启动...")
@@ -1501,4 +1573,8 @@ def run_macro_evening_pipeline(webhook_url: str = MACRO_EVENING_WEBHOOK):
 
 
 if __name__ == '__main__':
-    run_macro_evening_pipeline()
+    import argparse
+    parser = argparse.ArgumentParser(description="全球宏观大势与量化全景战略研报")
+    parser.add_argument("--force", "-f", action="store_true", help="强制在本地执行并推送，跳过云端热备探针")
+    args = parser.parse_args()
+    run_macro_evening_pipeline(force=args.force)
