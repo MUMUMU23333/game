@@ -69,7 +69,7 @@ FULL_UNIVERSE = {
     '021180': {'name': '易方达产业机遇混合C(杨宗昌)', 'sector': 'CYCLICAL', 'class': 'C'},
     '016814': {'name': '国联煤炭C', 'sector': 'CYCLICAL', 'class': 'C'},
     '290008': {'name': '泰信发展主题混合(纯锂矿开采龙头)', 'sector': 'CYCLICAL', 'class': 'A'},
-    '000248': {'name': '汇添富消费行业混合', 'sector': 'CONSUMER', 'class': 'A'},
+    '012857': {'name': '汇添富中证主要消费ETF联接C', 'sector': 'CONSUMER', 'class': 'C'},
     '000960': {'name': '招商医药健康产业股票', 'sector': 'HEALTH', 'class': 'A'},
     '000009': {'name': '易方达天天理财货币A', 'sector': 'CASH', 'class': 'A'}
 }
