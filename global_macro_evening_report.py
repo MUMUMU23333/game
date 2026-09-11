@@ -4,12 +4,12 @@
 🏛️【全球宏观大势与量化全景战略研报 · 全舰队实盘共振终极版】
 ====================================================================================================
 全舰队最新精准持仓实况：
-  1. 科创-银行 DTB-Apex V2.0：50% 黄金股ETF (517520) + 50% 农业银行 (601288) [弱势防守避险]
+  1. 👑 科创-银行轮动 (V5.8 Apex-Master 终极版)：50% 黄金ETF (518880) + 50% 农业银行 (601288) [终极防守避险]
   2. 纳指-双核银行策略：50% 纳指100 (513100) + 11.9% 农行 + 18.1% 招行 + 20% 黄金 [平稳收息]
-  3. ⚔️ 五福 5.2/7.3 日内趋势：华安黄金ETF (518880) [止盈纳指生物(+6.57%)，14:46切换黄金龙头]
+  3. ⚔️ 五福 5.2/7.3 日内趋势：华安黄金ETF (518880) [止盈纳指生物(+6.57%)，切换黄金龙头]
   4. ⭐ 七星跨板块 ETF 轮动：100% 华安黄金ETF (518880) [领跑龙头/原油高溢价熔断保护]
-  5. 场外公募基金轮动：006503 财通集成电路芯片混合 [半导体高景气/周四免申赎]
-  • 宏观定调：全舰队 4 大策略在弱势大盘中形成【黄金大宗 + 高股息银行】的超级避风港共振！
+  5. 场外公募基金轮动：方案3全天候无界大动量
+  • 宏观定调：全舰队核心策略在弱势震荡中形成【黄金大宗 + 高股息银行】的超级避风港共振！
 ====================================================================================================
 """
 
@@ -60,6 +60,7 @@ ETF_NAME_MAP = {
     '588170': '科创100ETF', '588000': '科创50ETF',  '159915': '创业板ETF',
     '510300': '沪深300ETF', '159363': '创AI ETF',   '588460': '科创50增强',
     '159680': '1000增强ETF', '159845': '中证1000ETF', '512100': '中证1000ETF',
+    '501046': '财通福享LOF', '515880': '通信ETF',
     '515220': '煤炭ETF',    '159985': '华夏豆粕ETF',
     '002207': '前海开源金银珠宝A/C', '007817': '国泰通信CPO算力联接C',
     '006503': '财通集成电路芯片混合', '002611': '博时黄金ETF联接C',
@@ -509,6 +510,8 @@ def collect_macro_dataset() -> dict:
         ('159915', '创业板ETF (高贝塔成长基准)', '🇨🇳 A股成长'),
         ('588000', '科创50ETF (硬科技半导体)', '🇨🇳 A股科技'),
         ('588170', '科创100ETF (高弹性成长增强)', '🇨🇳 A股科技'),
+        ('501046', '财通福享LOF (微盘高Alpha战矛)', '🚀 全域微盘'),
+        ('515880', '通信ETF (算力/CPO/光模块)', '⚡ 科技通信'),
         ('510300', '沪深300ETF (大盘核心蓝筹)', '🇨🇳 A股蓝筹')
     ]
 
@@ -643,8 +646,11 @@ def collect_macro_dataset() -> dict:
 
     if not loaded_sb:
         try:
-            from chinext_bank_strategy_notifier import StarBankOmniV5Notifier
-            sb_res = StarBankOmniV5Notifier().calculate_strategy_signal()
+            try:
+                from chinext_bank_strategy_notifier import StarBankOmniV58Notifier as NotifierClass
+            except Exception:
+                from chinext_bank_strategy_notifier import StarBankOmniV5Notifier as NotifierClass
+            sb_res = NotifierClass().calculate_strategy_signal()
             if sb_res.get('status') == 'SUCCESS':
                 sb_weights = sb_res.get('target_weights', {'513100': 100.0})
                 sb_status_str = sb_res.get('stage_desc', '🌟 超级顺风主升 (100% 进攻)')
@@ -862,11 +868,11 @@ def collect_macro_dataset() -> dict:
 
     strategy_positions = [
         {
-            'name': '科创-银行轮动 (DTB-Omni V5.5)',
+            'name': '👑 科创-银行轮动 · 11大长矛全域双加版 (V5.8 Apex-Master)',
             'tag': '官方旗舰',
             'status': sb_status_str,
             'holdings': sb_holdings_str,
-            'highlight': '10年累计 +1,543,415.16% 🏆 (夏普 3.87)，挂载 3D 国家队期现共振雷达与 1000增强！'
+            'highlight': '10年累计 +62,289,337.93% 🏆 (62.83万倍 · 夏普 4.58 · 卡玛 17.65)，全域纳入 [501046 财通微盘 + 515880 通信算力]！'
         },
         {
             'name': '五福 5.2/7.3 日内趋势',
