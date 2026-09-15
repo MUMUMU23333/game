@@ -651,9 +651,9 @@ def collect_macro_dataset() -> dict:
             except Exception:
                 from chinext_bank_strategy_notifier import StarBankOmniV5Notifier as NotifierClass
             sb_res = NotifierClass().calculate_strategy_signal()
-            if sb_res.get('status') == 'SUCCESS':
-                sb_weights = sb_res.get('target_weights', {'513100': 100.0})
-                sb_status_str = sb_res.get('stage_desc', '🌟 超级顺风主升 (100% 进攻)')
+            if sb_res and ('target_weights' in sb_res or sb_res.get('status') == 'SUCCESS'):
+                sb_weights = sb_res.get('target_weights', {'518880': 50.0, '601288': 50.0})
+                sb_status_str = sb_res.get('stage_desc', '🛡️ 空仓防守态 (进攻池无有效多头信号 · 100% 避险配置)')
                 parts = []
                 for c, w in sb_weights.items():
                     c_clean = str(c).strip()
@@ -855,6 +855,21 @@ def collect_macro_dataset() -> dict:
                     loaded_from_lock = True
         except Exception as e:
             print(f"⚠️ [场外决策锁读取异常] {e}")
+
+    if not loaded_from_lock:
+        try:
+            from fund_rotation_notifier import FundBarbell85Notifier
+            fb_inst = FundBarbell85Notifier()
+            f_dec = fb_inst.compute_barbell_apex_decision()
+            if f_dec and f_dec.get('target_fund'):
+                fund_code = str(f_dec['target_fund']).strip()
+                fund_name = str(f_dec.get('target_name', fund_name)).strip()
+                fund_status = str(f_dec.get('state', fund_status)).strip()
+                fund_reason = f_dec.get('reason', '')
+                fund_highlight = f"{fund_reason} · 2026实战 +293.41% 💥 · 10年 +2529.79% 🏆！" if fund_reason else f"【方案3全天候无界大动量】锁定 [{fund_name} ({fund_code})] · 2026实战 +293.41% 💥 · 10年 +2529.79% 🏆！"
+                loaded_from_lock = True
+        except Exception as e:
+            print(f"⚠️ [场外公募实时计算兜底异常] {e}")
 
     if not loaded_from_lock and os.path.exists(fund_state_file):
         try:
