@@ -351,17 +351,27 @@ class FundBarbell85Notifier:
             'us_premarket': us_premarket
         }
 
-        # 🔒 尾盘决策窗口自动持久化锁定为今日唯一值
+        # 🔒 尾盘决策窗口自动持久化锁定为今日唯一值 (若今日已有锁定记录，绝对锁死杜绝漂移)
         if now.hour >= 14:
-            try:
-                with open(LOCKED_DECISION_FILE, 'w', encoding='utf-8') as f:
-                    json.dump({
-                        'date': today_str,
-                        'lock_time': cur_dt_str,
-                        'decision': result
-                    }, f, ensure_ascii=False, indent=2)
-            except Exception:
-                pass
+            should_write = True
+            if os.path.exists(LOCKED_DECISION_FILE):
+                try:
+                    with open(LOCKED_DECISION_FILE, 'r', encoding='utf-8') as f:
+                        old_rec = json.load(f)
+                        if old_rec.get('date') == today_str and old_rec.get('decision'):
+                            should_write = False
+                except Exception:
+                    pass
+            if should_write:
+                try:
+                    with open(LOCKED_DECISION_FILE, 'w', encoding='utf-8') as f:
+                        json.dump({
+                            'date': today_str,
+                            'lock_time': cur_dt_str,
+                            'decision': result
+                        }, f, ensure_ascii=False, indent=2)
+                except Exception:
+                    pass
 
         return result
 
