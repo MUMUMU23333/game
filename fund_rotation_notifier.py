@@ -402,7 +402,45 @@ class FundBarbell85Notifier:
             print(f"❌ 推送失败: {e}")
 
 
+
+def check_and_wait_cloud_push(script_dir: str = SCRIPT_DIR) -> bool:
+    """
+    30秒云端哨兵检测与避让逻辑：
+    1. 若在 14:48:00~14:48:35 之间，平滑等待至 14:48:35，给云端 30 秒先发窗口。
+    2. 检查远程是否存在今日 cloud-fund-pushed-YYYYMMDD 凭据 tag。
+    3. 若存在，返回 True (指示本地避让，跳过推送)。
+    4. 若不存在或异常，返回 False (指示本地兜底接管并推送)。
+    """
+    import subprocess
+    now = datetime.now()
+    today_tag = f"cloud-fund-pushed-{now.strftime('%Y%m%d')}"
+    
+    # 若在 14:48 前半段，等待云端执行与打 tag
+    if now.hour == 14 and now.minute == 48 and now.second < 35:
+        wait_s = max(1, 35 - now.second)
+        print(f"⏳ [主备协同哨兵] 当前处于 14:48:00~14:48:35 前半段，等待 {wait_s} 秒观察云端首发状态...")
+        time.sleep(wait_s)
+    
+    # 探测远程 tag (优先使用本地星辰代理 7888，亦支持直连)
+    proxy_cmd = ['-c', 'http.proxy=http://127.0.0.1:7888', '-c', 'https.proxy=http://127.0.0.1:7888']
+    cmd = ['git'] + proxy_cmd + ['ls-remote', '--tags', 'origin', f'refs/tags/{today_tag}']
+    try:
+        res = subprocess.run(cmd, cwd=script_dir, capture_output=True, text=True, timeout=8)
+        if res.returncode == 0 and today_tag in res.stdout:
+            print(f"🛑 [控制论静默避让] 检测到云端已于 14:48 准点推送成功 (凭据 tag: {today_tag})！本地自动保持静默，绝不重复推送。")
+            return True
+    except Exception as e:
+        print(f"⚠️ [哨兵探测提示] 云端状态探测跳过 ({e})")
+    
+    print("🚀 [本地紧急兜底触发] 30秒内未见云端推送凭据（可能云端离线或异常），本地立即接管执行并推送！")
+    return False
+
 def main():
+    if "--check-cloud" in sys.argv:
+        if check_and_wait_cloud_push():
+            print("🎉 本地任务正常避让退出，避免重复推送。")
+            return
+
     # 🛑 交易日休市熔断守卫：非交易日不运行、不计算、不更新
     try:
         from trade_day_guard import guard_and_exit_if_not_trade_day

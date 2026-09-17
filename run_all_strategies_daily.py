@@ -71,7 +71,7 @@ def main():
         ("五福 5.2 动量策略", os.path.join("quant_strategies", "wufu_5_2", "wufu_5_2_local_bot.py"), ["--force"]),
         ("七星量化动量策略", os.path.join("quant_strategies", "seven_stars", "local_etf_quant_bot.py"), ["--now"]),
         ("科创-银行轮动 (V5.8 Apex-Master)", "chinext_bank_strategy_notifier.py", ["--push"]),
-        ("场外公募基金轮动 (006503)", "fund_rotation_notifier.py", [])
+        ("场外公募基金轮动 (006503)", "fund_rotation_notifier.py", ["--check-cloud"])
     ]
     
     results = []

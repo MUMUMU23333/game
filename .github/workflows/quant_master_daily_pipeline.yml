@@ -20,6 +20,8 @@ permissions:
 jobs:
   run-master-pipeline:
     runs-on: ubuntu-latest
+    env:
+      TZ: 'Asia/Shanghai'
 
     steps:
       - name: 检出量化策略仓库代码
@@ -74,11 +76,14 @@ jobs:
             python precision_scheduler.py --target 14:48
           fi
           python chinext_bank_strategy_notifier.py --push
-          # 🛑【控制论单一决策权威源原则】:
-          # 场外公募基金轮动依赖国内局域网低延迟穿透天天基金与场内ETF实时估值。
-          # GitHub Actions 海外机房因网络封锁会导致实时估值缺失并退化为旧数据错误推荐，
-          # 且 UTC 时区产生 06:48 伪时间。此处坚决停用云端推送，100% 仅由本地 Windows 定时总线权威推送！
-          # python fund_rotation_notifier.py
+          # 🚀【云端先发制人 (首选发车引擎)】:
+          python fund_rotation_notifier.py
+          # 🏷️【生成云端已推凭证 Tag，供本地 30 秒哨兵避让检索】:
+          TODAY_TAG="cloud-fund-pushed-$(date +%Y%m%d)"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git tag -f "$TODAY_TAG"
+          git push origin "$TODAY_TAG" --force || echo "Tag push skipped" 
 
       # ----------------------------------------------------------------------
       # 阶段 3: 14:55 准点触发 五福 5.2 策略 (尾盘黄金决断)
