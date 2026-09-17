@@ -1035,9 +1035,18 @@ def generate_full_html_report(data: dict) -> str:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
+    <script>
+        // 自动破除微信与手机浏览器旧离线缓存
+        const BUILD_VERSION = "{int(time.time())}";
+        const currentV = new URLSearchParams(window.location.search).get('v');
+        if (currentV && currentV !== BUILD_VERSION && !sessionStorage.getItem('reloaded_v_' + BUILD_VERSION)) {{
+            sessionStorage.setItem('reloaded_v_' + BUILD_VERSION, '1');
+            window.location.replace(window.location.pathname + '?v=' + BUILD_VERSION + '&_t=' + Date.now());
+        }}
+    </script>
     <title>全球宏观大势与量化全景战略研报 · 全舰队实盘共振版</title>
     <style>
         :root {{
@@ -1141,9 +1150,9 @@ def generate_full_html_report(data: dict) -> str:
                 <h1>🏛️ 全球宏观大势与量化全景战略研报</h1>
                 <p>Crawl4AI 异步情报感知 + FinRobot 投研思维链双核赋能 · 资产评分排行榜与实盘持仓全景</p>
             </div>
-            <div class="header-badge">
-                <span class="pulse-dot"></span>
-                <span>{date_badge} 晚间 20:00 旗舰版</span>
+            <div class="header-badge" style="background: rgba(16, 185, 129, 0.18); border-color: rgba(16, 185, 129, 0.5); color: #34d399;">
+                <span class="pulse-dot" style="background-color: #10b981; box-shadow: 0 0 12px #10b981;"></span>
+                <span>{date_badge} 14:48 尾盘最终锁定版 · 已全面同步</span>
             </div>
         </header>
 
@@ -1333,9 +1342,9 @@ def generate_wecom_brief(data: dict) -> str:
     except Exception:
         pass
 
-    ts_now = int(time.time())
-    html_cdn_url = f"https://fastly.jsdelivr.net/gh/MUMUMU23333/game@{commit_hash}/index.html"
-    html_pages_url = f"https://mumumu23333.github.io/game/?v={ts_now}"
+    ts_now = int(time.time() * 1000)
+    html_cdn_url = f"https://fastly.jsdelivr.net/gh/MUMUMU23333/game@{commit_hash}/index.html?t={ts_now}"
+    html_pages_url = f"https://mumumu23333.github.io/game/?v={ts_now}&t=20260917"
 
     # 主动刷新 jsDelivr CDN 缓存
     try:
