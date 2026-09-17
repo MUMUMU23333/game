@@ -59,9 +59,9 @@ jobs:
           python local_etf_quant_bot.py --now
 
       # ----------------------------------------------------------------------
-      # 阶段 2: 14:48 准点触发 科创-银行轮动 & 006503 场外基金轮动
+      # 阶段 2: 14:48 准点触发 科创-银行轮动 (场外公募轮动已剥离由本地权威执行)
       # ----------------------------------------------------------------------
-      - name: ⏳ [阶段 2] 等待至 14:48:00 并执行 科创-银行与场外公募轮动
+      - name: ⏳ [阶段 2] 等待至 14:48:00 并执行 科创-银行轮动
         env:
           WECOM_WEBHOOK: ${{ secrets.WECOM_WEBHOOK }}
           CHINEXT_BANK_WEBHOOK: ${{ secrets.CHINEXT_BANK_WEBHOOK }}
@@ -74,7 +74,11 @@ jobs:
             python precision_scheduler.py --target 14:48
           fi
           python chinext_bank_strategy_notifier.py --push
-          python fund_rotation_notifier.py
+          # 🛑【控制论单一决策权威源原则】:
+          # 场外公募基金轮动依赖国内局域网低延迟穿透天天基金与场内ETF实时估值。
+          # GitHub Actions 海外机房因网络封锁会导致实时估值缺失并退化为旧数据错误推荐，
+          # 且 UTC 时区产生 06:48 伪时间。此处坚决停用云端推送，100% 仅由本地 Windows 定时总线权威推送！
+          # python fund_rotation_notifier.py
 
       # ----------------------------------------------------------------------
       # 阶段 3: 14:55 准点触发 五福 5.2 策略 (尾盘黄金决断)
@@ -98,10 +102,5 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git add quant_strategies/wufu_5_2/portfolio_state.json || true
           git add quant_strategies/seven_stars/portfolio_state.json || true
-          git add .fund_rotation_state.json || true
-          git add .star_bank_state.json || true
-          git add .chinext_bank_push_cache.json || true
-          git add .wufu_push_cache.json || true
-          git add .qixing_push_cache.json || true
-          git commit -m "chore: auto update all quant strategy states [skip ci]" || true
-          git push || true
+          git commit -m "chore(quant): auto sync portfolio states [skip ci]" || echo "无持仓状态变更"
+          git push || echo "Git push skipped"
