@@ -101,11 +101,12 @@ jobs:
       # ----------------------------------------------------------------------
       # 阶段 4: 原子化同步所有策略持仓与状态缓存 (防 Git 冲突)
       # ----------------------------------------------------------------------
-      - name: 💾 原子化同步并持久化全策略持仓状态
+      - name: 💾 原子化同步并持久化全策略持仓状态与14:48锁定决策
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
+          git add .star_bank_state.json .fund_rotation_locked_decision.json .fund_rotation_state.json || true
           git add quant_strategies/wufu_5_2/portfolio_state.json || true
           git add quant_strategies/seven_stars/portfolio_state.json || true
-          git commit -m "chore(quant): auto sync portfolio states [skip ci]" || echo "无持仓状态变更"
+          git commit -m "chore(quant): auto sync portfolio states and 14:48 locked decisions [skip ci]" || echo "无持仓状态变更"
           git push || echo "Git push skipped"

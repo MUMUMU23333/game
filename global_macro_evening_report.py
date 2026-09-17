@@ -1414,14 +1414,14 @@ def generate_wecom_brief(data: dict) -> str:
             break
 
     markdown = f"""# 🏛️ 【全球宏观大势与量化全景战略晚报】
-> ⏰ **复盘时间**：{now_str} (北京时间 · Crawl4AI 晚间 20:00 深度内参)
+> ⏰ **复盘时间**：{now_str} (基准决策定格: 今日 14:48 尾盘最终锁定版)
 > 🌐 **宏观核心定调**：<font color="warning">**{macro_tone_str}**</font>
 > 🛰️ **风格剪刀差雷达**：<font color="info">**{scissors_desc}**</font>
 > 🏛️ **国家队期指共振**：<font color="comment">**{data.get('scissors_radar', {}).get('national_team_str', '🏛️ 资金均衡轮动')} · {data.get('scissors_radar', {}).get('cifi_signal', '⚖️ 期指持仓中性')}**</font>
 
 ---
-### 💰 👑 【8 万元总资金实盘配置与买单推荐 (全天候铁三角 5:2.5:2.5)】
-> 💡 *配置逻辑：4.0万科创银行全天候底座 + 2.0万五福行业长矛 + 2.0万七星大宗长矛，全自动跨周期跟踪！*
+### 💰 👑 【8 万元总资金跨资产全天候配置 (全天候铁三角 5:2.5:2.5)】
+> 💡 *配置说明：此为母基金多策略对冲组合 (4万科创银行底座 + 2万五福动量 + 2万七星大宗)，与单策略100%满仓指令协同互补！*
 
 {alloc_text}
 
@@ -1429,7 +1429,7 @@ def generate_wecom_brief(data: dict) -> str:
 {summary_text}
 
 ---
-### 🎯 🌟 【场外公募基金策略推荐 (8.5 巅峰大圆满 · 方案3)】
+### 🎯 🌟 【场外公募基金策略推荐 (方案3全天候无界大动量 · 14:48锁定)】
 - **唯一锁定标的**：👉 <font color="warning">**{fund_rec_name}**</font>
 - **宏观作战状态**：<font color="info">**{fund_rec_status}**</font>
 - **策略决策亮点**：{fund_rec_desc}
@@ -1459,7 +1459,7 @@ def generate_wecom_brief(data: dict) -> str:
 *(备用高速镜像：[国内高速 CDN 镜像]({html_cdn_url}))*
 
 > 💡 *【双模交互升级】：新闻模块现已支持点击【📝 简版速览】或【📖 详细版报道】自由切换，点开即可阅读产业链深度推演！*
-> 💡 *【明日操作提示】：全舰队当前高度共振于顺势进攻资产，每日仅需在 14:48~14:55 查看尾盘信号，安心享受跨周期复利！*
+> 💡 *【实盘执行铁律】：全舰队以每日 14:48~14:55 发布的尾盘最终撮合指令为唯一执行准绳，安心享受跨周期复利！*
 """
     md_str = markdown.strip()
     # 严格保证小于企业微信 4096 字节硬限制
@@ -1468,16 +1468,17 @@ def generate_wecom_brief(data: dict) -> str:
             strat_lines = strat_lines[:2]
             strat_text = "\n".join(strat_lines)
             markdown = f"""# 🏛️ 【全球宏观大势与量化全景战略晚报】
-> ⏰ **复盘时间**：{now_str} (北京时间 · Crawl4AI 晚报)
+> ⏰ **复盘时间**：{now_str} (基准决策定格: 今日 14:48 尾盘最终锁定版)
 > 🌐 **宏观定调**：<font color="warning">**{macro_tone_str}**</font>
 > 🛰️ **风格雷达**：<font color="info">**{scissors_desc}**</font>
 
 ---
-### 💰 👑 【8 万元实盘买单推荐 (全天候 5:2.5:2.5)】
+### 💰 👑 【8 万元跨资产全天候组合配置 (50%底座+25%动量+25%大宗)】
+> 💡 *注：此为全舰队多策略母基金对冲组合，与单策略满仓指令各司其职。*
 {alloc_text}
 
 ---
-### 🎯 🌟 【场外公募基金策略推荐 (8.5 方案3)】
+### 🎯 🌟 【场外公募基金策略推荐 (方案3无界大动量 · 14:48锁定)】
 - **唯一锁定标的**：👉 <font color="warning">**{fund_rec_name}**</font>
 - **作战状态**：<font color="info">**{fund_rec_status}**</font>
 
