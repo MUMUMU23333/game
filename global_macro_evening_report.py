@@ -4,12 +4,13 @@
 🏛️【全球宏观大势与量化全景战略研报 · 全舰队实盘共振终极版】
 ====================================================================================================
 全舰队最新精准持仓实况：
-  1. 👑 科创-银行轮动 (V5.8 Apex-Master 终极版)：50% 黄金ETF (518880) + 50% 农业银行 (601288) [终极防守避险]
-  2. 纳指-双核银行策略：50% 纳指100 (513100) + 11.9% 农行 + 18.1% 招行 + 20% 黄金 [平稳收息]
-  3. ⚔️ 五福 5.2/7.3 日内趋势：华安黄金ETF (518880) [止盈纳指生物(+6.57%)，切换黄金龙头]
-  4. ⭐ 七星跨板块 ETF 轮动：100% 华安黄金ETF (518880) [领跑龙头/原油高溢价熔断保护]
-  5. 场外公募基金轮动：方案3全天候无界大动量
-  • 宏观定调：全舰队核心策略在弱势震荡中形成【黄金大宗 + 高股息银行】的超级避风港共振！
+  1. 👑 终极神王体 · 苍穹七十矛主板种业神皇版 (70矛)：100% 华瓷股份 (001216) [多头全域共振顶格]
+  2. 👑 科创-银行轮动 (V5.9 Apex-Master 终极巅峰版 · 14大长矛全域平铺版)：100% 科创100ETF (588170) [全域共振进攻]
+  3. 纳指-双核银行策略：50% 纳指100 (513100) + 11.9% 农行 + 18.1% 招行 + 20% 黄金 [平稳收息]
+  4. ⚔️ 五福 5.2/7.3 日内趋势：华安黄金ETF (518880) [止盈纳指生物(+6.57%)，切换黄金龙头]
+  5. ⭐ 七星跨板块 ETF 轮动：100% 华安黄金ETF (518880) [领跑龙头/原油高溢价熔断保护]
+  6. 场外公募基金轮动：方案3全天候无界大动量
+  • 宏观定调：全舰队核心策略在多空轮动中精准捕捉【科技成长 + 黄金大宗 + 创新药 + 阿尔法神王个股】的超级阿尔法！
 ====================================================================================================
 """
 
@@ -61,12 +62,31 @@ ETF_NAME_MAP = {
     '510300': '沪深300ETF', '159363': '创AI ETF',   '588460': '科创50增强',
     '159680': '1000增强ETF', '159845': '中证1000ETF', '512100': '中证1000ETF',
     '501046': '财通福享LOF', '515880': '通信ETF',
-    '515220': '煤炭ETF',    '159985': '华夏豆粕ETF',
+    '512170': '医疗ETF',    '159992': '创新药ETF',   '520880': '港股通创新药ETF',
+    '159981': '能源化工ETF', '515220': '煤炭ETF',    '159985': '华夏豆粕ETF',
     '002207': '前海开源金银珠宝A/C', '007817': '国泰通信CPO算力联接C',
     '006503': '财通集成电路芯片混合', '002611': '博时黄金ETF联接C',
     '005125': '华宝标普中国A股红利低波C', '162411': '华宝标普油气LOF',
     '017811': '东方人工智能AI混合C', '014283': '华夏动漫游戏ETF联接C',
-    '008641': '方正富邦科技创新C', '025500': '东方阿尔法科技智选C'
+    '008641': '方正富邦科技创新C', '025500': '东方阿尔法科技智选C',
+    # 👑 终极神王体 · 苍穹五十一矛神王版 核心标的映射
+    '000002': '万科A',   '002285': '世联行',
+    '001216': '华瓷股份', '001317': '三羊马', '002292': '奥飞娱乐',
+    '002317': '众生药业', '002693': '双成药业', '002931': '锋龙股份',
+    '603268': '松发股份', '603960': '克来机电', '605179': '一鸣食品',
+    '002636': '金安国纪', '601579': '会稽山', '000636': '风华高科',
+    '002428': '云南锗业', '000657': '中钨高新', '002384': '东山精密',
+    '301205': '联特科技', '603823': '百合股份', '300502': '新易盛',
+    '300750': '宁德时代', '002371': '北方华创', '601899': '紫金矿业',
+    '002594': '比亚迪',   '002714': '牧原股份', '300033': '同花顺',
+    '603129': '春风动力', '603228': '景旺电子', '002156': '通富微电',
+    '002475': '立讯精密', '600118': '中国卫星', '600900': '长江电力',
+    '300059': '东方财富', '603986': '兆易创新', '000063': '中兴通讯',
+    '002396': '星网锐捷', '600183': '生益科技', '600111': '北方稀土',
+    '000831': '中国稀土', '600938': '中国海油', '603198': '迎驾贡酒',
+    '601975': '招商南油', '300124': '汇川技术', '002626': '金达威',
+    '002353': '杰瑞股份', '002241': '歌尔股份', '603019': '中科曙光',
+    '600259': '中稀有色', '002253': '川大智胜', '600354': '敦煌种业'
 }
 
 def resolve_etf_name(code_or_symbol: str) -> str:
@@ -512,6 +532,9 @@ def collect_macro_dataset() -> dict:
         ('588170', '科创100ETF (高弹性成长增强)', '🇨🇳 A股科技'),
         ('501046', '财通福享LOF (微盘高Alpha战矛)', '🚀 全域微盘'),
         ('515880', '通信ETF (算力/CPO/光模块)', '⚡ 科技通信'),
+        ('512170', '医疗ETF (医疗器械CXO底座)', '💊 医药医疗'),
+        ('159992', '创新药ETF (高弹性A股创新药)', '🧬 医药创新'),
+        ('520880', '港股通创新药ETF (全球流动性先锋)', '🌐 港股医药'),
         ('510300', '沪深300ETF (大盘核心蓝筹)', '🇨🇳 A股蓝筹')
     ]
 
@@ -620,7 +643,30 @@ def collect_macro_dataset() -> dict:
     except Exception as e:
         pass
 
-    # 0. 动态加载科创-银行轮动状态 (DTB-Omni V5.0 Continuum)
+    # 0. 动态加载终极神王体 · 苍穹七十矛主板种业神皇版状态 (70矛 全域最高统率)
+    godking_state_file = os.path.join(SCRIPT_DIR, ".godking_ultimate_state.json")
+    godking_status_str = "🌟 多头全域共振顶格 (100% 进攻 · 领涨: 华瓷股份)"
+    godking_holdings_str = "100% 华瓷股份 (001216)"
+    godking_weights = {"001216": 100.0}
+    godking_highlight_str = "10年5,860载倍 👑 (卡玛 24,985.89 🏆 · 夏普 9.00)，2026实战 +185,207.64%！"
+    if os.path.exists(godking_state_file):
+        try:
+            with open(godking_state_file, "r", encoding="utf-8") as f:
+                gk_state = json.load(f)
+                weights = gk_state.get("target_weights", {})
+                if weights:
+                    godking_weights = weights
+                    parts = []
+                    for c, w in weights.items():
+                        c_clean = str(c).strip()
+                        c_name = resolve_etf_name(c_clean)
+                        parts.append(f"{w:.0f}% {c_name} ({c_clean})")
+                    godking_holdings_str = " + ".join(parts)
+                godking_status_str = gk_state.get("stage_desc", godking_status_str)
+        except Exception:
+            pass
+
+    # 1. 动态加载科创-银行轮动状态 (DTB-Omni V5.0 Continuum)
     sb_state_file = os.path.join(SCRIPT_DIR, ".star_bank_state.json")
     sb_status_str = "🌟 超级顺风主升 (100% 进攻)"
     sb_holdings_str = "100% 华夏纳指ETF (513100)"
@@ -647,9 +693,9 @@ def collect_macro_dataset() -> dict:
     if not loaded_sb:
         try:
             try:
-                from chinext_bank_strategy_notifier import StarBankOmniV58Notifier as NotifierClass
+                from chinext_bank_strategy_notifier import StarBankOmniV59Notifier as NotifierClass
             except Exception:
-                from chinext_bank_strategy_notifier import StarBankOmniV5Notifier as NotifierClass
+                from chinext_bank_strategy_notifier import StarBankOmniV58Notifier as NotifierClass
             sb_res = NotifierClass().calculate_strategy_signal()
             if sb_res and ('target_weights' in sb_res or sb_res.get('status') == 'SUCCESS'):
                 sb_weights = sb_res.get('target_weights', {'518880': 50.0, '601288': 50.0})
@@ -749,7 +795,7 @@ def collect_macro_dataset() -> dict:
             pass
 
     # 4. 补充各策略标的实时行情
-    check_codes = list(sb_weights.keys()) + [wufu_code, seven_code]
+    check_codes = list(godking_weights.keys()) + list(sb_weights.keys()) + [wufu_code, seven_code]
     for c_code in check_codes:
         c_clean = str(c_code).strip()
         if c_clean not in quotes:
@@ -883,11 +929,18 @@ def collect_macro_dataset() -> dict:
 
     strategy_positions = [
         {
-            'name': '👑 科创-银行轮动 · 11大长矛全域双加版 (V5.8 Apex-Master)',
+            'name': '👑 终极神王体 · 苍穹七十矛主板种业神皇版 (70矛)',
+            'tag': '全域旗舰最高统率',
+            'status': godking_status_str,
+            'holdings': godking_holdings_str,
+            'highlight': godking_highlight_str
+        },
+        {
+            'name': '👑 科创-银行轮动 · 14大长矛全域平铺版 (V5.9 Apex-Master)',
             'tag': '官方旗舰',
             'status': sb_status_str,
             'holdings': sb_holdings_str,
-            'highlight': '10年累计 +62,289,337.93% 🏆 (62.83万倍 · 夏普 4.58 · 卡玛 17.65)，全域纳入 [501046 财通微盘 + 515880 通信算力]！'
+            'highlight': '10年累计 +357,576,647.63% 🏆 (357.5万倍 · 夏普 5.05 · 卡玛 22.36)，全域直接平铺 [512170 医疗 + 159992 创新药 + 520880 港股通创新药]！'
         },
         {
             'name': '五福 5.2/7.3 日内趋势',
@@ -1343,8 +1396,9 @@ def generate_wecom_brief(data: dict) -> str:
         pass
 
     ts_now = int(time.time() * 1000)
+    date_param = datetime.now().strftime("%Y%m%d")
     html_cdn_url = f"https://fastly.jsdelivr.net/gh/MUMUMU23333/game@{commit_hash}/index.html?t={ts_now}"
-    html_pages_url = f"https://mumumu23333.github.io/game/?v={ts_now}&t=20260917"
+    html_pages_url = f"https://mumumu23333.github.io/game/?v={ts_now}&t={date_param}"
 
     # 主动刷新 jsDelivr CDN 缓存
     try:
@@ -1581,7 +1635,7 @@ def check_cloud_report_status(max_wait_seconds: int = 40):
             return False, "云端执行等待超时"
 
 
-def run_macro_evening_pipeline(webhook_url: str = MACRO_EVENING_WEBHOOK, force: bool = False):
+def run_macro_evening_pipeline(webhook_url: str = MACRO_EVENING_WEBHOOK, force: bool = False, dry_run: bool = False):
     # 🛑 交易日休市熔断守卫：非A股交易日不运行、不更新、不推送
     try:
         from trade_day_guard import guard_and_exit_if_not_trade_day
@@ -1589,8 +1643,8 @@ def run_macro_evening_pipeline(webhook_url: str = MACRO_EVENING_WEBHOOK, force: 
     except Exception as e:
         print(f"⚠️ [交易日守卫警告] {e}")
 
-    # 🛡️ 双机热备探针（仅在本地运行且未显式开启 --force 时生效）
-    if not is_cloud_environment() and not force:
+    # 🛡️ 双机热备探针（仅在本地运行且未显式开启 --force / --dry-run 时生效）
+    if not is_cloud_environment() and not force and not dry_run:
         print("🔍 [双机热备探针] 正在检查今日 20:00 云端 GitHub Actions 晚报推送状态...")
         should_skip, reason = check_cloud_report_status()
         if should_skip:
@@ -1608,18 +1662,23 @@ def run_macro_evening_pipeline(webhook_url: str = MACRO_EVENING_WEBHOOK, force: 
     print(">>> [1/4] 正在拉取全球核心大类资产多源行情并计算量化评分与全舰队持仓...")
     dataset = collect_macro_dataset()
 
-    # 2. 生成 4K Bento 栅格深度 HTML 研报
-    print(">>> [2/4] 正在渲染 4K 深度交互式 HTML 研报...")
+    # 2. 生成 4K Bento 栅格深度 HTML 研报 (详版)
+    print(">>> [2/4] 正在渲染 4K 深度交互式 HTML 研报 (详版)...")
     html_content = generate_full_html_report(dataset)
     with open(HTML_OUTPUT_PATH, 'w', encoding='utf-8') as f:
         f.write(html_content)
     with open(HTML_DASHBOARD_PATH, 'w', encoding='utf-8') as f:
         f.write(html_content)
-    print(f"    ✓ HTML 研报已成功持久化至: {HTML_OUTPUT_PATH}")
+    print(f"    ✓ 4K HTML 详版研报已成功持久化至: {HTML_OUTPUT_PATH}")
 
-    # 3. 渲染企业微信精炼图文简报
-    print(">>> [3/4] 正在生成企业微信精炼图文简报...")
+    # 3. 渲染企业微信精炼图文简报 (简版)
+    print(">>> [3/4] 正在生成企业微信精炼图文简报 (简版)...")
     wecom_brief = generate_wecom_brief(dataset)
+    print("\n" + wecom_brief + "\n")
+
+    if dry_run:
+        print("💡 [Dry-run 演练模式] 已成功生成 4K HTML 详版与企业微信简报，不执行实际网络推送。")
+        return True
 
     # 4. 推送企业微信 (带 3 次指数退避重试)
     print(">>> [4/4] 正在向指定 Webhook 发送晚间深度简报...")
@@ -1652,5 +1711,6 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description="全球宏观大势与量化全景战略研报")
     parser.add_argument("--force", "-f", action="store_true", help="强制在本地执行并推送，跳过云端热备探针")
+    parser.add_argument("--dry-run", action="store_true", help="仅生成 4K HTML 详版与简版卡片，不发送网络请求")
     args = parser.parse_args()
-    run_macro_evening_pipeline(force=args.force)
+    run_macro_evening_pipeline(force=args.force, dry_run=args.dry_run)

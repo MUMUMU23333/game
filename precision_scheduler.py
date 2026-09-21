@@ -22,11 +22,20 @@ def get_beijing_now():
     beijing_tz = timezone(timedelta(hours=8))
     return utc_now.astimezone(beijing_tz)
 
-def wait_until_target_beijing_time(target_hour: int, target_minute: int, target_second: int = 0, max_wait_seconds: int = 2400):
+def wait_until_target_beijing_time(
+    target_hour: int,
+    target_minute: int,
+    target_second: int = 0,
+    max_wait_seconds: int = 2400,
+    max_overdue_seconds: int = 600
+):
     """
     等待直到指定的北京时间 (HH:MM:SS)
     - 若当前时间早于目标时间：执行精准倒计时 sleep
-    - 若当前时间已过目标时间：立即返回执行，不作等待
+    - 若当前时间处于目标时间极窄窗口内 (<= max_overdue_seconds 且未收盘)：立即返回执行
+    - 🛑【盘后与严重过期超时熔断锁】：
+      1. 盘中指令 (09:00~15:00) 若在收盘后 (>=15:02) 启动，100% 绝对硬熔断阻断，严禁盘后补发白天买卖信号！
+      2. 滞后超过 max_overdue_seconds (默认10分钟) 的滞后任务，判定为云端排队卡顿无效任务，立即优雅熔断退出！
     - 若等待时间超过 max_wait_seconds：安全退出等待，直接执行
     """
     now = get_beijing_now()
@@ -36,7 +45,25 @@ def wait_until_target_beijing_time(target_hour: int, target_minute: int, target_
     
     if delta_seconds <= 0:
         over_sec = abs(delta_seconds)
-        print(f"⏰ [时钟调度] 当前北京时间 {now.strftime('%H:%M:%S')} 已到达/超过目标时间 {target_hour:02d}:{target_minute:02d}:{target_second:02d} (超时 {over_sec:.1f}s)，立即触发执行！")
+        
+        # 1. 针对白天盘中指令 (09:00~15:00) 的盘后收盘硬熔断
+        is_intraday_target = (target_hour < 15) or (target_hour == 15 and target_minute == 0)
+        is_post_market = (now.hour > 15) or (now.hour == 15 and now.minute >= 2)
+        
+        if is_intraday_target and is_post_market:
+            print(f"🛑 [盘后超时硬熔断] 当前北京时间 {now.strftime('%H:%M:%S')} 已收盘！")
+            print(f"   🎯 目标时间 {target_hour:02d}:{target_minute:02d}:{target_second:02d} 为白天盘中决策指令，严禁在盘后/晚间幽灵补发！")
+            print(f"   🛡️ 钱学森控制论安全守卫生效：系统立即优雅熔断退出，阻断后续全部推送链路。")
+            sys.exit(0)
+            
+        # 2. 超出最大允许滞后窗口的通用防滞后熔断
+        if over_sec > max_overdue_seconds:
+            print(f"🛑 [严重过期滞后熔断] 当前北京时间 {now.strftime('%H:%M:%S')} 距离目标时间 {target_hour:02d}:{target_minute:02d}:{target_second:02d} 已严重超时 {over_sec/60:.1f} 分钟！")
+            print(f"   ⚠️ 远超最大允许滞后上限 ({max_overdue_seconds/60:.1f} 分钟)，判定为云端队列积压导致的滞后无效任务！")
+            print(f"   🛡️ 系统立即优雅熔断退出，杜绝非交易窗口期的错误信号发射。")
+            sys.exit(0)
+            
+        print(f"⏰ [时钟调度] 当前北京时间 {now.strftime('%H:%M:%S')} 处于目标发射点容许窗口内 (轻微滞后 {over_sec:.1f}s)，准予立即触发执行！")
         return
     
     if delta_seconds > max_wait_seconds:
@@ -74,6 +101,7 @@ if __name__ == "__main__":
     parser.add_argument("--target", type=str, default="14:48", help="目标北京时间 HH:MM (例如 14:48)")
     parser.add_argument("--now", action="store_true", help="跳过等待立即执行")
     parser.add_argument("--ignore-trade-day", action="store_true", help="跳过交易日休市检查强制执行")
+    parser.add_argument("--max-overdue", type=int, default=600, help="最大允许滞后超时秒数 (默认 600 秒 / 10 分钟)")
     args = parser.parse_args()
 
     # 🛑 交易日休市熔断守卫：非交易日直接优雅退出，不作等待与执行
@@ -93,6 +121,6 @@ if __name__ == "__main__":
         th = int(parts[0])
         tm = int(parts[1])
         ts = int(parts[2]) if len(parts) > 2 else 0
-        wait_until_target_beijing_time(th, tm, ts)
+        wait_until_target_beijing_time(th, tm, ts, max_overdue_seconds=args.max_overdue)
     except Exception as e:
         print(f"⚠️ [时钟调度] 解析目标时间失败: {e}，默认立即执行！")

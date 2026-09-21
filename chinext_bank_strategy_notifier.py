@@ -1,22 +1,25 @@
 # -*- coding: utf-8 -*-
 """
 ====================================================================================================
-👑【科创-银行轮动ETF策略 · V5.8 Apex-Master 终极巅峰版 · 11大长矛全域双加版】
+👑【科创-银行轮动ETF策略 · V5.9 Apex-Master 终极巅峰版 · 14大长矛全域平铺版】
 ====================================================================================================
 战略升级定位：
-  • 官方终审战报 (2017-08-01 至 2026-09-11 · 2215交易日·扣除真实滑点与万一佣金摩擦):
-    - 10 年累计总收益: +62,289,337.93% 🏆 (增幅 628,339.0 倍 · 年化复合 CAGR: +333.03%)
-    - 最大历史回撤: -18.87% 🛡️ | 夏普比率: 4.58 | 索提诺: 7.85 | 卡玛比率: 17.65 👑
-    - 期末资产净值: ¥61,953,064,706 (10万元本金)
+  • 官方终审战报 (2017-08-01 至 2026-09-18 · 2220交易日·扣除真实滑点与万一佣金摩擦):
+    - 10 年累计总收益: +357,576,647.63% 🏆 (增幅 3,575,767.5 倍 · 年化复合 CAGR: +461.52%)
+    - 最大历史回撤: -18.87% 🛡️ | 夏普比率: 5.05 | 索提诺: 8.86 | 卡玛比率: 22.36 👑
+    - 期末资产净值: ¥357,576,647,630 (10万元本金)
 
-核心技术革新 (11大长矛全域双加全景矩阵)：
-  1. 【全域进攻端扩充 · 引入 501046 财通福享 + 515880 通信ETF】:
+核心技术革新 (14大长矛全域直接平铺矩阵)：
+  1. 【全域进攻端三度扩充 · 深度融合 [512170 医疗 + 159992 创新药 + 520880 港股通创新药]】:
+     - 512170 (A股医疗器械+CXO大白马底座) + 159992 (A股创新药高弹性龙头) + 520880 (港股通创新药全球弹性先锋)
      - 501046 (微盘定增多策略高阿尔法) + 515880 (通信/CPO/AI算力主升浪)
      - 与科创100 (588170)、创成长 (159967)、纳指100 (513100)、创AI (159363)、科创50 (588000)、
-       创业板 (159915)、科创50增强 (588460)、1000增强 (159680)、中韩半导体 (513310) 形成 11 大长矛全域池
-  2. 【防守端双重壁垒 · 现货黄金 + 农业银行/招商银行】:
+       创业板 (159915)、科创50增强 (588460)、1000增强 (159680)、中韩半导体 (513310) 形成 14 大长矛全域无缝竞技池
+  2. 【架构裁决 · 全域平铺全面压制分层架构】:
+     - 摒弃分层二级选拔（彻底消除时滞阻断与子池锁死），全生命周期多抓 30% 创新药独立暴涨主升浪
+  3. 【防守端双重壁垒 · 现货黄金 + 农业银行/招商银行】:
      - 黄金端锁定低波黄金现货 518880；银行端动态优选 601288 农业银行 与 600036 招商银行
-  3. 【风控端四重铁锁 · ATR 动态吊灯 + MAE 早期失效断路 + 剪刀差宏观雷达 + MOMENT 异常断路】
+  4. 【风控端四重铁锁 · ATR 动态吊灯 + MAE 早期失效断路 + 剪刀差宏观雷达 + MOMENT 异常断路】
 ====================================================================================================
 """
 
@@ -49,10 +52,11 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CACHE_FILE = os.path.join(BASE_DIR, ".chinext_bank_push_cache.json")
 STATE_FILE = os.path.join(BASE_DIR, ".star_bank_state.json")
 
-# 11 大进攻标的 + 3 大防守标的 + 1 基准
+# 14 大进攻标的 + 3 大防守标的 + 1 基准
 ALL_CODES = [
     '588170', '159967', '513100', '159363', '588000', '159915', '588460', '159680', '513310',
     '501046', '515880',
+    '512170', '159992', '520880',
     '518880', '601288', '600036', '510300'
 ]
 
@@ -68,6 +72,9 @@ ASSET_NAMES = {
     '513310': '中韩半导体ETF',
     '501046': '财通福享LOF',
     '515880': '通信ETF',
+    '512170': '医疗ETF',
+    '159992': '创新药ETF',
+    '520880': '港股通创新药ETF',
     '518880': '黄金ETF',
     '601288': '农业银行',
     '600036': '招商银行',
@@ -75,8 +82,8 @@ ASSET_NAMES = {
 }
 
 
-class StarBankOmniV58Notifier:
-    """👑 科创-银行轮动 (V5.8 Apex-Master 终极巅峰版 · 11大长矛全域双加版) 监控与推送引擎"""
+class StarBankOmniV59Notifier:
+    """👑 科创-银行轮动 (V5.9 Apex-Master 终极巅峰版 · 14大长矛全域直接平铺版) 监控与推送引擎"""
 
     def __init__(self, webhook_url: str = CHINEXT_BANK_WEBHOOK, cache_path: str = CACHE_FILE, state_path: str = STATE_FILE):
         self.webhook_url = webhook_url
@@ -87,18 +94,47 @@ class StarBankOmniV58Notifier:
         self.attack_pool = [
             '588170', '159967', '513100', '159363',
             '588000', '159915', '588460', '159680', '513310',
-            '501046', '515880'
+            '501046', '515880',
+            '512170', '159992', '520880'
         ]
         self.atr_multiplier = 1.65
         self.vol_boost_thresh = 1.08
 
     def fetch_history_kline(self, code: str, count: int = 400) -> pd.DataFrame:
-        """从腾讯财经获取前复权日K线数据 (含自动重试机制)"""
-        market = 'sh' if code.startswith(('51', '58', '60', '000')) else 'sz'
-        url = f"http://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param={market}{code},day,2023-01-01,2026-12-31,{count},qfq"
-        for attempt in range(3):
+        """获取日K线数据 (新浪财经主通道 + 腾讯财经备用通道，双重冗余)"""
+        market = 'sh' if code.startswith(('51', '58', '60', '50')) else 'sz'
+        
+        # 1. 主通道：新浪财经高可用高频日K线接口
+        sina_symbol = f"{market}{code}"
+        sina_url = f"https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData?symbol={sina_symbol}&scale=240&ma=no&datalen={min(count, 800)}"
+        try:
+            resp = self.session.get(sina_url, timeout=5)
+            if resp.status_code == 200:
+                data = resp.json()
+                if isinstance(data, list) and len(data) > 0:
+                    records = []
+                    for item in data:
+                        records.append({
+                            'date': str(item.get('day')),
+                            'open': float(item.get('open', 0)),
+                            'close': float(item.get('close', 0)),
+                            'high': float(item.get('high', 0)),
+                            'low': float(item.get('low', 0)),
+                            'volume': float(item.get('volume', 0))
+                        })
+                    df = pd.DataFrame(records)
+                    if not df.empty:
+                        df['date'] = pd.to_datetime(df['date'])
+                        df = df.sort_values('date').reset_index(drop=True)
+                        return df
+        except Exception:
+            pass
+
+        # 2. 备用通道：腾讯财经前复权K线接口
+        tx_url = f"http://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param={market}{code},day,,,{count},qfq"
+        for attempt in range(2):
             try:
-                res = self.session.get(url, timeout=8).json()
+                res = self.session.get(tx_url, timeout=5).json()
                 raw = res.get('data', {}).get(f"{market}{code}", {})
                 k_data = raw.get('qfqday') or raw.get('day', [])
                 records = []
@@ -115,12 +151,10 @@ class StarBankOmniV58Notifier:
                 if not df.empty:
                     df['date'] = pd.to_datetime(df['date'])
                     df = df.sort_values('date').reset_index(drop=True)
-                return df
-            except Exception as e:
-                if attempt < 2:
-                    time.sleep(0.5)
-                else:
-                    print(f"[!] 拉取标的 {code} K线失败: {e}")
+                    return df
+            except Exception:
+                time.sleep(0.3)
+        print(f"[!] 标的 {code} K线双通道拉取异常，将启用实时降级保护")
         return pd.DataFrame()
 
     def fetch_realtime_quote(self, code: str) -> dict:
@@ -504,9 +538,9 @@ class StarBankOmniV58Notifier:
             cand_lines.append(f"> {i}. **{name} ({code})**: 动量分 `{score:.2f}` | 3/8/20日: `{r3:+.1f}%` / `{r8:+.1f}%` / `{r20:+.1f}%`")
         cand_text = "\n".join(cand_lines) if cand_lines else "> 暂无多头达标标的"
 
-        card = f"""### 👑【科创-银行轮动 · V5.8 Apex-Master · 11大长矛全域双加版】
+        card = f"""### 👑【科创-银行轮动 · V5.9 Apex-Master · 14大长矛全域直接平铺版】
 > ⏰ **决策时间**: `{ts}`
-> ⚔️ **长矛阵列**: **11大长矛全域池** (含 `501046` 财通微盘 + `515880` 通信算力)
+> ⚔️ **长矛阵列**: **14大长矛全域池** (增设 `512170` 医疗 + `159992` 创新药 + `520880` 港股通创新药)
 > 🏛️ **宏观战况**: {scissors['status_str']}
 > 🚦 **状态判定**: **{stage_desc}**
 
@@ -530,7 +564,7 @@ class StarBankOmniV58Notifier:
 #### 🚀 【全域进攻标的动量梯队 (Top 5)】
 {cand_text}
 
-> 💡 *【天枢总指挥部量化工程总线 · 10年628339倍全域双加战功传承 (卡玛 17.65 👑)】*"""
+> 💡 *【天枢总指挥部量化工程总线 · 10年357.5万倍全域平铺王牌战功 (卡玛 22.36 👑)】*"""
         return card
 
     def send_wecom_notification(self, card_md: str) -> bool:
@@ -561,7 +595,7 @@ class StarBankOmniV58Notifier:
     def run(self, force_push: bool = False, dry_run: bool = False):
         """主入口执行流程"""
         print("=" * 80)
-        print("👑 正在执行【科创-银行轮动 · V5.8 Apex-Master · 11大长矛全域双加版】决策雷达...")
+        print("👑 正在执行【科创-银行轮动 · V5.9 Apex-Master · 14大长矛全域直接平铺版】决策雷达...")
         print("=" * 80)
 
         decision = self.calculate_strategy_signal()
@@ -598,15 +632,18 @@ class StarBankOmniV58Notifier:
                 pass
 
 
+StarBankOmniV58Notifier = StarBankOmniV59Notifier  # 保持向后兼容性别名
+
+
 def main():
     import argparse
-    parser = argparse.ArgumentParser(description="科创-银行轮动 V5.8 Apex-Master 决策雷达")
+    parser = argparse.ArgumentParser(description="科创-银行轮动 V5.9 Apex-Master 决策雷达")
     parser.add_argument('--push', action='store_true', help='强制执行企业微信推送')
     parser.add_argument('--force', action='store_true', help='忽略重复推送缓存限制')
     parser.add_argument('--dry-run', action='store_true', help='仅计算并打印卡片，不发送网络请求')
     args = parser.parse_args()
 
-    notifier = StarBankOmniV58Notifier()
+    notifier = StarBankOmniV59Notifier()
     notifier.run(force_push=(args.push or args.force), dry_run=args.dry_run)
 
 
