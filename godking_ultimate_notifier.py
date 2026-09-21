@@ -713,23 +713,59 @@ class GodKingUltimateNotifier:
         }
 
     def format_markdown_card_morning(self, diag: dict) -> str:
-        """生成早盘 09:26:00 专属开盘决策与实操指引卡片"""
+        """生成早盘 09:26:00 专属开盘决策与【方案 B】实操指引卡片"""
         ts = diag['timestamp']
         pending = diag['pending_diag']
         holding = diag['holding_diag']
         hot_list = diag['hot_attack']
 
+        # 动态判定命中哪一种开盘形态 (优先针对挂起买单，若无挂起买单则针对持仓标的今开涨幅)
+        target_chg = None
+        target_label = ""
         if pending:
-            exec_section = f"""#### 🎯 【方案 B 挂起订单实操指引 (距开盘还有 4 分钟)】
+            target_chg = pending['open_change_pct']
+            target_label = f"挂起买单标的【{pending['name']} ({pending['code']})】今开 {target_chg:+.2f}%"
+        elif holding:
+            target_chg = holding['open_change_pct']
+            target_label = f"当前持仓标的【{holding['name']} ({holding['code']})】今开 {target_chg:+.2f}%"
+
+        # 生成 4 类形态的具体渲染，并动态为命中项添加【👉 当前精准命中】标记
+        tag_1, tag_2, tag_3, tag_4 = "", "", "", ""
+        limit_thresh = 9.85
+        if target_chg is not None:
+            if target_chg >= limit_thresh:
+                tag_4 = " 🔥 **【👉 当前精准命中 · 立即执行】**"
+            elif target_chg >= 5.5:
+                tag_2 = " 🔥 **【👉 当前精准命中 · 立即执行】**"
+            elif target_chg >= 1.5:
+                tag_1 = " 🔥 **【👉 当前精准命中 · 立即执行】**"
+            else:
+                tag_3 = " 🔥 **【👉 当前精准命中 · 立即执行】**"
+
+        if pending:
+            pending_box = f"""> 🎯 **【挂起买单执行任务】**:
 > 🏷️ **目标龙头**: **{pending['name']} ({pending['code']})**
 > 📊 **09:25 集合竞价开盘价**: `¥{pending['open_price']:.2f}` (开盘涨幅: `{pending['open_change_pct']:+.2f}%`)
 > 💰 **竞价成交额**: `{pending['open_amount']/10000:.1f} 万元`
 > 🚦 **盘口判定**: **{pending['action_title']}**
-
-> 🚀 **实操指令**:
-> {pending['action_guide']}"""
+> 🚀 **即时指令**: {pending['action_guide']}"""
         else:
-            exec_section = """> ℹ️ **今日无挂起买单**: 昨日尾盘已完成常规配置，早盘无需紧急换仓挂单，继续严密执行趋势跟踪。"""
+            pending_box = f"""> ℹ️ **今日状态**: 昨日尾盘已完成常规配置，早盘无紧急换仓挂单。对照下方实操指引卡执行持仓与盘口水温监控。"""
+
+        guide_card = f"""#### 👑 【终极神王体 · 方案 B 次日开盘买入实操指引卡】
+> ⏰ **09:25 ~ 09:26 观察开盘涨幅与盘口形态** ({target_label if target_label else '实战决策守则'}):
+>
+> • 🟢 **若高开 +2% ~ +5% (最理想 · 弱转强黄金买点)**{tag_1}：
+> 　 ➔ **09:24:45 ~ 09:30 直接以现价或高于现价挂单，锁定 09:25 开盘价或 09:30 开盘秒成交！**
+>
+> • ⚠️ **若超高开 +6% ~ +9% (防诱多 · 谨防冲高回落)**{tag_2}：
+> 　 ➔ **09:30 先不买！等 09:35 ~ 09:45 股价回踩分时黄线 (VWAP) 缩量企稳时再行低吸！**
+>
+> • 🟡 **若平开 / 低开 (低于预期 · 观察确认)**{tag_3}：
+> 　 ➔ **观察到 09:35，只要放量翻红站上分时均线即刻买入；若跌破 -3% 则坚决放弃！**
+>
+> • 🔴 **若依然一字涨停 (流动性闭锁 · 买不进)**{tag_4}：
+> 　 ➔ **果断放弃该标的，直接调仓买入今日动量榜第 2 名！**"""
 
         if holding:
             amt_flag = "📈" if holding['open_change_pct'] >= 0 else "📉"
@@ -748,7 +784,10 @@ class GodKingUltimateNotifier:
 > ⚔️ **全域阵列**: **68大神王股票 + 2大宏观对冲ETF** (70 苍穹长矛)
 
 ---
-{exec_section}
+{pending_box}
+
+---
+{guide_card}
 
 ---
 #### 📋 【昨夜持仓隔夜损益与水温】

@@ -495,6 +495,40 @@ class StarBankOmniV59Notifier:
         stop_info = decision['stop_info']
         def_assets = decision['def_assets']
 
+        is_morning = datetime.now().hour < 12
+        time_mode_desc = "(集合竞价撮合完毕 · 距连续竞价还有 4 分钟)" if is_morning else "(尾盘 14:48 黄金决策时钟)"
+        title_prefix = "🌅【科创-银行轮动 · V5.9 Apex-Master】早盘 09:26 开盘态势速查卡" if is_morning else "👑【科创-银行轮动 · V5.9 Apex-Master · 14大长矛全域直接平铺版】"
+
+        # 针对早盘提取主要持仓或第一攻击标的的开盘水温
+        primary_code = list(target_weights.keys())[0] if target_weights else '588170'
+        primary_name = ASSET_NAMES.get(primary_code, primary_code)
+        q_p = quotes.get(primary_code, {})
+        p_chg = q_p.get('change_pct', 0.0)
+
+        tag_1, tag_2, tag_3 = "", "", ""
+        if p_chg >= 3.5:
+            tag_2 = " 🔥 **【👉 当前标的开盘触发】**"
+        elif p_chg >= 0.8:
+            tag_1 = " 🔥 **【👉 当前标的开盘触发】**"
+        else:
+            tag_3 = " 🔥 **【👉 当前标的开盘触发】**"
+
+        morning_guide = f"""#### 👑 【方案 B · ETF 集合竞价与开盘实操指引卡】
+> ⏰ **09:25 ~ 09:26 观察开盘涨幅与盘口形态** (目标标的【{primary_name} ({primary_code})】今开 {p_chg:+.2f}%):
+>
+> • 🟢 **若高开 +1% ~ +3% (最理想 · 弱转强黄金买点)**{tag_1}：
+> 　 ➔ **09:24:45 ~ 09:30 直接以现价或高于现价挂单，锁定 09:25 开盘价或 09:30 开盘秒成交！**
+>
+> • ⚠️ **若超高开 +4% 以上 (防诱多 · 谨防冲高回落)**{tag_2}：
+> 　 ➔ **09:30 先不买！等 09:35 ~ 09:45 股价回踩分时黄线 (VWAP) 缩量企稳时再行低吸！**
+>
+> • 🟡 **若平开 / 低开 (低于预期 · 观察确认)**{tag_3}：
+> 　 ➔ **观察到 09:35，只要放量翻红站上分时均线即刻买入；若跌破 -2.5% 则暂缓调仓！**
+>
+> 💡 *注：ETF 策略原则上于每日 14:48 执行正式换仓，早盘 09:26 推送为开盘态势与隔夜水温指引。*"""
+
+        guide_section = f"\n---\n{morning_guide}\n" if is_morning else ""
+
         alloc_lines = []
         table_lines = [
             "> | 标的资产 (代码) | 目标权重 | 10万本金推荐买入 | 4万底座推荐买入 |",
@@ -538,14 +572,14 @@ class StarBankOmniV59Notifier:
             cand_lines.append(f"> {i}. **{name} ({code})**: 动量分 `{score:.2f}` | 3/8/20日: `{r3:+.1f}%` / `{r8:+.1f}%` / `{r20:+.1f}%`")
         cand_text = "\n".join(cand_lines) if cand_lines else "> 暂无多头达标标的"
 
-        card = f"""### 👑【科创-银行轮动 · V5.9 Apex-Master · 14大长矛全域直接平铺版】
-> ⏰ **决策时间**: `{ts}`
+        card = f"""### {title_prefix}
+> ⏰ **时钟定型**: `{ts}` {time_mode_desc}
 > ⚔️ **长矛阵列**: **14大长矛全域池** (增设 `512170` 医疗 + `159992` 创新药 + `520880` 港股通创新药)
 > 🏛️ **宏观战况**: {scissors['status_str']}
 > 🚦 **状态判定**: **{stage_desc}**
-
+{guide_section}
 ---
-#### 📊 【今日实操买单与精确份额 (尾盘 14:48 执行)】
+#### 📊 【今日实操买单与精确份额 ({'早盘态势速查' if is_morning else '尾盘 14:48 执行'})】
 {alloc_text}
 
 ---
