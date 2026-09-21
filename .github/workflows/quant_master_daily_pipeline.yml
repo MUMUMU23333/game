@@ -76,6 +76,8 @@ jobs:
             python precision_scheduler.py --target 14:48
           fi
           python chinext_bank_strategy_notifier.py --push
+          # 👑【终极神王体 · 苍穹七十矛主板种业神皇版】14:48 尾盘黄金决断:
+          python godking_ultimate_notifier.py --push
           # 🚀【云端先发制人 (首选发车引擎)】:
           python fund_rotation_notifier.py
           # 🏷️【生成云端已推凭证 Tag，供本地 30 秒哨兵避让检索】:
@@ -106,6 +108,7 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add .star_bank_state.json .fund_rotation_locked_decision.json .fund_rotation_state.json || true
+          git add .godking_ultimate_state.json .godking_ultimate_cache.json || true
           git add quant_strategies/wufu_5_2/portfolio_state.json || true
           git add quant_strategies/seven_stars/portfolio_state.json || true
           git commit -m "chore(quant): auto sync portfolio states and 14:48 locked decisions [skip ci]" || echo "无持仓状态变更"

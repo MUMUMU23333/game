@@ -1,11 +1,11 @@
-name: 👑 科创-银行轮动ETF策略 (V5.9 Apex-Master 终极巅峰版) · 每日早盘 09:26 实盘监控与企业微信推送
+name: 👑 终极神王体 · 苍穹七十矛主板种业神皇版 (70矛) · 早盘 09:26 开盘态势与实操决策雷达
 
 on:
   # 提前错峰预热启动：每个交易日北京时间 09:15 (UTC 01:15) 启动 GitHub Actions Runner
   schedule:
     - cron: '15 1 * * 1-5'
 
-  # 支持在 GitHub 网页上一键手动点击运行测试
+  # 支持在 GitHub 网页上一键手动点击触发
   workflow_dispatch:
     inputs:
       skip_wait:
@@ -18,23 +18,23 @@ permissions:
   contents: write
 
 jobs:
-  run-star-bank-monitor:
+  run-morning-radar:
     runs-on: ubuntu-latest
     env:
       TZ: 'Asia/Shanghai'
 
     steps:
-      - name: 检出策略代码
+      - name: 检出量化策略仓库代码
         uses: actions/checkout@v4
 
-      - name: 配置 Python 环境 (3.11)
+      - name: 配置 Python 3.11 运行环境
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
           cache-dependency-path: 'requirements.txt'
 
-      - name: 安装量化核心依赖
+      - name: 安装量化核心计算与推送依赖
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
@@ -56,17 +56,23 @@ jobs:
             python precision_scheduler.py --target 09:26:00
           fi
 
-      - name: 运行 科创-银行轮动ETF策略 信号引擎并推送企业微信
+      # ----------------------------------------------------------------------
+      # 🚀 运行【终极神王体 · 70矛主板种业神皇版】早盘决策雷达并推送企业微信
+      # ----------------------------------------------------------------------
+      - name: 🚀 执行早盘 09:26 态势速查并推送企业微信
         env:
-          CHINEXT_BANK_WEBHOOK: ${{ secrets.CHINEXT_BANK_WEBHOOK }}
           WECOM_WEBHOOK: ${{ secrets.WECOM_WEBHOOK }}
+          GODKING_WEBHOOK: ${{ secrets.GODKING_WEBHOOK }}
         run: |
-          python chinext_bank_strategy_notifier.py --push
+          python godking_ultimate_notifier.py --morning --push
 
-      - name: 💾 原子化同步并持久化状态与缓存
+      # ----------------------------------------------------------------------
+      # 💾 原子化同步并持久化早盘状态与去重缓存 (防 Git 冲突)
+      # ----------------------------------------------------------------------
+      - name: 💾 原子化同步并持久化早盘状态与推送缓存
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add .star_bank_state.json .chinext_bank_push_cache.json || true
-          git commit -m "chore(star-bank): auto sync morning 09:26 state [skip ci]" || echo "无状态变更"
+          git add .godking_ultimate_state.json .godking_ultimate_cache.json || true
+          git commit -m "chore(godking): auto sync morning 09:26 portfolio state [skip ci]" || echo "无状态变更"
           git push || echo "Git push skipped"
