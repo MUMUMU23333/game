@@ -53,15 +53,15 @@ def wait_until_target_beijing_time(
         if is_intraday_target and is_post_market:
             print(f"🛑 [盘后超时硬熔断] 当前北京时间 {now.strftime('%H:%M:%S')} 已收盘！")
             print(f"   🎯 目标时间 {target_hour:02d}:{target_minute:02d}:{target_second:02d} 为白天盘中决策指令，严禁在盘后/晚间幽灵补发！")
-            print(f"   🛡️ 钱学森控制论安全守卫生效：系统立即优雅熔断退出，阻断后续全部推送链路。")
-            sys.exit(0)
+            print(f"   🛡️ 钱学森控制论安全守卫生效：系统立即硬熔断阻断退出 (Exit 88)，彻底终止下游推送。")
+            sys.exit(88)
             
         # 2. 超出最大允许滞后窗口的通用防滞后熔断
         if over_sec > max_overdue_seconds:
             print(f"🛑 [严重过期滞后熔断] 当前北京时间 {now.strftime('%H:%M:%S')} 距离目标时间 {target_hour:02d}:{target_minute:02d}:{target_second:02d} 已严重超时 {over_sec/60:.1f} 分钟！")
             print(f"   ⚠️ 远超最大允许滞后上限 ({max_overdue_seconds/60:.1f} 分钟)，判定为云端队列积压导致的滞后无效任务！")
-            print(f"   🛡️ 系统立即优雅熔断退出，杜绝非交易窗口期的错误信号发射。")
-            sys.exit(0)
+            print(f"   🛡️ 系统立即硬熔断阻断退出 (Exit 88)，杜绝非交易窗口期的错误信号发射。")
+            sys.exit(88)
             
         print(f"⏰ [时钟调度] 当前北京时间 {now.strftime('%H:%M:%S')} 处于目标发射点容许窗口内 (轻微滞后 {over_sec:.1f}s)，准予立即触发执行！")
         return

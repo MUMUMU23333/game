@@ -828,6 +828,12 @@ class GodKingUltimateNotifier:
 
     def run_morning(self, force_push: bool = False, dry_run: bool = False):
         """早盘 09:26 专属执行流程"""
+        now_dt = datetime.now()
+        # 🛑 策略级时间窗口硬守卫：严防云端队列积压滞后唤醒误发早盘卡
+        if not (now_dt.hour == 9 and now_dt.minute >= 15):
+            print(f"🛑 [早盘窗口硬守卫拦截] 当前时间 {now_dt.strftime('%H:%M:%S')} 非 09:15~09:59 早盘窗口，硬锁拒绝发射早盘卡！")
+            return
+
         print("=" * 80)
         print("🌅 正在执行【终极神王体 · 70矛主板种业神皇版】早盘 09:26:00 开盘决策雷达...")
         print("=" * 80)

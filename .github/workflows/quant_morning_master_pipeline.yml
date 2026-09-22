@@ -1,15 +1,15 @@
-name: 👑 终极神王体 · 苍穹七十矛主板种业神皇版 (70矛) · 早盘 09:26 开盘态势与实操决策雷达
+name: 👑 量化策略早盘 09:26 集合竞价决策与实操雷达总线 (Master 早盘总线)
 
 on:
-  # 提前错峰预热启动：每个交易日北京时间 09:15 (UTC 01:15) 启动 GitHub Actions Runner
+  # 提前错峰充分预热：每个交易日北京时间 09:10 (UTC 01:10) 唤醒 Runner (预留 16 分钟排队裕度)
   schedule:
-    - cron: '15 1 * * 1-5'
+    - cron: '10 1 * * 1-5'
 
   # 支持在 GitHub 网页上一键手动点击触发
   workflow_dispatch:
     inputs:
       skip_wait:
-        description: '是否跳过等待立即执行 (true/false)'
+        description: '是否跳过等待立即全量执行 (true/false)'
         required: false
         default: 'false'
         type: boolean
@@ -18,7 +18,7 @@ permissions:
   contents: write
 
 jobs:
-  run-morning-radar:
+  run-morning-master-pipeline:
     runs-on: ubuntu-latest
     env:
       TZ: 'Asia/Shanghai'
@@ -50,16 +50,16 @@ jobs:
       # ----------------------------------------------------------------------
       # ⏳ 毫秒级准点对齐至北京时间 09:26:00 (集合竞价撮合完毕，留足4分钟决策时间)
       # ----------------------------------------------------------------------
-      - name: ⏳ 毫秒级对齐至早盘 09:26:00
+      - name: ⏳ 毫秒级对齐至早盘 09:26:00 (超时自动硬阻断退出 88)
         run: |
           if [ "${{ github.event_name == 'schedule' || !inputs.skip_wait }}" = "true" ]; then
             python precision_scheduler.py --target 09:26:00
           fi
 
       # ----------------------------------------------------------------------
-      # 🚀 运行【终极神王体 · 70矛主板种业神皇版】早盘决策雷达并推送企业微信
+      # 阶段 1: 09:26 准点触发【终极神王体 · 苍穹七十矛主板种业神皇版】早盘决策雷达
       # ----------------------------------------------------------------------
-      - name: 🚀 执行早盘 09:26 态势速查并推送企业微信
+      - name: 🚀 [阶段 1] 执行 终极神王体 70矛主板种业神皇版 早盘决策速查
         env:
           WECOM_WEBHOOK: ${{ secrets.WECOM_WEBHOOK }}
           GODKING_WEBHOOK: ${{ secrets.GODKING_WEBHOOK }}
@@ -67,12 +67,29 @@ jobs:
           python godking_ultimate_notifier.py --morning --push
 
       # ----------------------------------------------------------------------
-      # 💾 原子化同步并持久化早盘状态与去重缓存 (防 Git 冲突)
+      # 阶段 2: 09:26 准点触发【科创-银行轮动ETF策略 (V5.9 Apex-Master)】开盘态势速查
+      # ----------------------------------------------------------------------
+      - name: 🚀 [阶段 2] 执行 科创-银行轮动ETF策略 早盘开盘态势速查
+        env:
+          CHINEXT_BANK_WEBHOOK: ${{ secrets.CHINEXT_BANK_WEBHOOK }}
+          WECOM_WEBHOOK: ${{ secrets.WECOM_WEBHOOK }}
+        run: |
+          python chinext_bank_strategy_notifier.py --push
+
+      # ----------------------------------------------------------------------
+      # 阶段 3: 09:29:00 看门狗哨兵健康巡检与自愈兜底
+      # ----------------------------------------------------------------------
+      - name: 🐕 [阶段 3] 早盘看门狗健康巡检 (Dead Man's Switch Watchdog)
+        run: |
+          python morning_watchdog_sentinel.py || echo "Watchdog completed with warnings"
+
+      # ----------------------------------------------------------------------
+      # 阶段 4: 原子化持久化同步状态与缓存
       # ----------------------------------------------------------------------
       - name: 💾 原子化同步并持久化早盘状态与推送缓存
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add .godking_ultimate_state.json .godking_ultimate_cache.json || true
-          git commit -m "chore(godking): auto sync morning 09:26 portfolio state [skip ci]" || echo "无状态变更"
+          git add .godking_ultimate_morning_cache.json .chinext_bank_push_cache.json || true
+          git commit -m "chore(morning): auto sync morning 09:26 states and watchdog logs [skip ci]" || echo "无状态变更"
           git push || echo "Git push skipped"

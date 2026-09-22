@@ -632,6 +632,13 @@ class StarBankOmniV59Notifier:
         print("👑 正在执行【科创-银行轮动 · V5.9 Apex-Master · 14大长矛全域直接平铺版】决策雷达...")
         print("=" * 80)
 
+        is_morning = datetime.now().hour < 12
+        now_h, now_m = datetime.now().hour, datetime.now().minute
+        # 🛑 策略级时间窗口硬守卫：防范任何云端极端滞后排队唤醒误发
+        if is_morning and not (now_h == 9 and now_m >= 15):
+            print(f"🛑 [早盘窗口硬守卫拦截] 当前时间 {datetime.now().strftime('%H:%M:%S')} 非 09:15~09:59 早盘窗口，硬锁拒绝发射早盘卡！")
+            return
+
         decision = self.calculate_strategy_signal()
         card_md = self.format_markdown_card(decision)
         print("\n" + card_md + "\n")
@@ -640,8 +647,9 @@ class StarBankOmniV59Notifier:
             print("💡 [Dry-run 演练模式] 不执行实际企业微信推送。")
             return
 
-        # 去重检查 (基于目标权重和决策内容哈希)
-        summary_str = f"{decision['target_weights']}_{decision['stage_desc']}_{datetime.now().strftime('%Y-%m-%d')}"
+        # 去重检查 (基于时段、目标权重和决策内容哈希，早盘与尾盘完全解耦)
+        period_tag = "MORNING_0926" if is_morning else "AFTERNOON_1448"
+        summary_str = f"{period_tag}_{decision['target_weights']}_{decision['stage_desc']}_{datetime.now().strftime('%Y-%m-%d')}"
         curr_hash = hashlib.md5(summary_str.encode('utf-8')).hexdigest()
 
         if not force_push and os.path.exists(self.cache_path):
