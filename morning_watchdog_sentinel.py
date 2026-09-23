@@ -98,10 +98,10 @@ def run_watchdog():
 
     missing_tasks = []
     if not godking_ok:
-        log("⚠️ 警报: 检测到【终极神王体 · 70矛早盘雷达】今日尚未完成推送！")
+        log("⚠️ 警报: 检测到【终极神王体 · 89矛早盘雷达】今日尚未完成推送！")
         missing_tasks.append(("godking_ultimate_notifier.py", ["--morning", "--push", "--force"]))
     else:
-        log("✅ 巡检通过: 【终极神王体 · 70矛早盘雷达】已成功交付。")
+        log("✅ 巡检通过: 【终极神王体 · 89矛早盘雷达】已成功交付。")
 
     if not chinext_ok:
         log("⚠️ 警报: 检测到【科创-银行轮动 (V5.9 Apex-Master)】今日尚未完成推送！")

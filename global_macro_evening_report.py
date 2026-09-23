@@ -4,7 +4,7 @@
 🏛️【全球宏观大势与量化全景战略研报 · 全舰队实盘共振终极版】
 ====================================================================================================
 全舰队最新精准持仓实况：
-  1. 👑 终极神王体 · 苍穹七十矛主板种业神皇版 (70矛)：100% 华瓷股份 (001216) [多头全域共振顶格]
+  1. 👑 终极神王体 · 苍穹八十九矛顶峰天王版 (89矛)：100% 华瓷股份 (001216) [多头全域共振顶格]
   2. 👑 科创-银行轮动 (V5.9 Apex-Master 终极巅峰版 · 14大长矛全域平铺版)：100% 科创100ETF (588170) [全域共振进攻]
   3. 纳指-双核银行策略：50% 纳指100 (513100) + 11.9% 农行 + 18.1% 招行 + 20% 黄金 [平稳收息]
   4. ⚔️ 五福 5.2/7.3 日内趋势：华安黄金ETF (518880) [止盈纳指生物(+6.57%)，切换黄金龙头]
@@ -643,12 +643,12 @@ def collect_macro_dataset() -> dict:
     except Exception as e:
         pass
 
-    # 0. 动态加载终极神王体 · 苍穹七十矛主板种业神皇版状态 (70矛 全域最高统率)
+    # 0. 动态加载终极神王体 · 苍穹八十九矛顶峰天王版状态 (89矛 全域最高统率)
     godking_state_file = os.path.join(SCRIPT_DIR, ".godking_ultimate_state.json")
     godking_status_str = "🌟 多头全域共振顶格 (100% 进攻 · 领涨: 华瓷股份)"
     godking_holdings_str = "100% 华瓷股份 (001216)"
     godking_weights = {"001216": 100.0}
-    godking_highlight_str = "10年5,860载倍 👑 (卡玛 24,985.89 🏆 · 夏普 9.00)，2026实战 +185,207.64%！"
+    godking_highlight_str = "10年4,156秭倍 👑 (562.69倍净增厚 · 夏普 9.35 · 回撤 -18.21%)，2026实战 +476,234.46%！"
     if os.path.exists(godking_state_file):
         try:
             with open(godking_state_file, "r", encoding="utf-8") as f:
@@ -929,7 +929,7 @@ def collect_macro_dataset() -> dict:
 
     strategy_positions = [
         {
-            'name': '👑 终极神王体 · 苍穹七十矛主板种业神皇版 (70矛)',
+            'name': '👑 终极神王体 · 苍穹八十九矛顶峰天王版 (89矛)',
             'tag': '全域旗舰最高统率',
             'status': godking_status_str,
             'holdings': godking_holdings_str,

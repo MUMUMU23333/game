@@ -71,7 +71,7 @@ def main():
         ("五福 5.2 动量策略", os.path.join("quant_strategies", "wufu_5_2", "wufu_5_2_local_bot.py"), ["--force"]),
         ("七星量化动量策略", os.path.join("quant_strategies", "seven_stars", "local_etf_quant_bot.py"), ["--now"]),
         ("科创-银行轮动 (V5.9 Apex-Master)", "chinext_bank_strategy_notifier.py", ["--push"]),
-        ("终极神王体 · 苍穹七十矛主板种业神皇版 (70矛)", "godking_ultimate_notifier.py", ["--push"]),
+        ("终极神王体 · 苍穹八十九矛顶峰天王版 (89矛)", "godking_ultimate_notifier.py", ["--push"]),
         ("场外公募基金轮动 (006503)", "fund_rotation_notifier.py", ["--check-cloud"])
     ]
     

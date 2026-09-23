@@ -76,7 +76,7 @@ jobs:
             python precision_scheduler.py --target 14:48
           fi
           python chinext_bank_strategy_notifier.py --push
-          # 👑【终极神王体 · 苍穹七十矛主板种业神皇版】14:48 尾盘黄金决断:
+          # 👑【终极神王体 · 苍穹八十九矛顶峰天王版】14:48 尾盘黄金决断:
           python godking_ultimate_notifier.py --push
           # 🚀【云端先发制人 (首选发车引擎)】:
           python fund_rotation_notifier.py
