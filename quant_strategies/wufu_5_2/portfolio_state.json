@@ -1,10 +1,10 @@
 {
-  "current_holding": "159981.XSHE",
-  "entry_price": 1.743,
-  "holding_shares": 1981700,
-  "cash": 52611.69999999972,
-  "entry_date": "2026-09-18",
-  "is_a_share_weak": false,
+  "current_holding": "159509.XSHE",
+  "entry_price": 3.073,
+  "holding_shares": 1127800,
+  "cash": 52875.60000000009,
+  "entry_date": "2026-09-25",
+  "is_a_share_weak": true,
   "weak_start_date": null,
   "weak_days_count": 0
 }
