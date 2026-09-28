@@ -56,6 +56,19 @@ def run_script(script_path, args=None):
         return False, cost_s
 
 def main():
+    # 🛑 尾盘黄金时间窗口硬守卫：严防系统开机补跑、休眠唤醒误触发 (零网络开销秒级拦截)
+    now_dt = datetime.now()
+    now_time = now_dt.time()
+    from datetime import time as dt_time
+    is_force = any(arg in sys.argv for arg in ["--force", "-f", "--now"])
+    if not is_force:
+        window_start = dt_time(14, 35)
+        window_end = dt_time(15, 10)
+        if not (window_start <= now_time <= window_end):
+            log(f"🛑 [尾盘窗口硬守卫拦截] 当前时间 {now_dt.strftime('%H:%M:%S')} 非 14:35~15:10 尾盘决策窗口！")
+            log(f"⏸️ [全量量化策略 14:48 总调度总线] 硬锁拒绝非尾盘时段发射策略战报 (如需测试请附加 --force)。自动退出。")
+            return
+
     # 🛑 交易日休市熔断守卫：非交易日不运行、不计算、不更新
     try:
         from trade_day_guard import guard_and_exit_if_not_trade_day
@@ -71,7 +84,7 @@ def main():
         ("五福 5.2 动量策略", os.path.join("quant_strategies", "wufu_5_2", "wufu_5_2_local_bot.py"), ["--force"]),
         ("七星量化动量策略", os.path.join("quant_strategies", "seven_stars", "local_etf_quant_bot.py"), ["--now"]),
         ("科创-银行轮动 (V5.9 Apex-Master)", "chinext_bank_strategy_notifier.py", ["--push"]),
-        ("终极神王体 · 苍穹八十九矛顶峰天王版 (89矛)", "godking_ultimate_notifier.py", ["--push"]),
+        ("终极神王体 · 苍穹九十一矛顶峰天王版 (91矛)", "godking_ultimate_notifier.py", ["--push"]),
         ("场外公募基金轮动 (006503)", "fund_rotation_notifier.py", ["--check-cloud"])
     ]
     
