@@ -4,7 +4,7 @@
 🏛️【全球宏观大势与量化全景战略研报 · 全舰队实盘共振终极版】
 ====================================================================================================
 全舰队最新精准持仓实况：
-  1. 👑 终极神王体 · 苍穹八十九矛顶峰天王版 (89矛)：100% 华瓷股份 (001216) [多头全域共振顶格]
+  1. 👑 终极神王体 · 苍穹九十一矛顶峰天王版 (91矛)：100% 华瓷股份 (001216) [多头全域共振顶格]
   2. 👑 科创-银行轮动 (V5.9 Apex-Master 终极巅峰版 · 14大长矛全域平铺版)：100% 科创100ETF (588170) [全域共振进攻]
   3. 纳指-双核银行策略：50% 纳指100 (513100) + 11.9% 农行 + 18.1% 招行 + 20% 黄金 [平稳收息]
   4. ⚔️ 五福 5.2/7.3 日内趋势：华安黄金ETF (518880) [止盈纳指生物(+6.57%)，切换黄金龙头]
@@ -643,7 +643,7 @@ def collect_macro_dataset() -> dict:
     except Exception as e:
         pass
 
-    # 0. 动态加载终极神王体 · 苍穹八十九矛顶峰天王版状态 (89矛 全域最高统率)
+    # 0. 动态加载终极神王体 · 苍穹九十一矛顶峰天王版状态 (91矛 全域最高统率)
     godking_state_file = os.path.join(SCRIPT_DIR, ".godking_ultimate_state.json")
     godking_status_str = "🌟 多头全域共振顶格 (100% 进攻 · 领涨: 华瓷股份)"
     godking_holdings_str = "100% 华瓷股份 (001216)"
@@ -714,7 +714,19 @@ def collect_macro_dataset() -> dict:
     fund_holding_str = "100% 前海开源金银珠宝A/C (002207 · 3.5x黄金龙头)"
     fund_status_str = "🚀 黄金大宗超级主升态 (100% 满仓进攻矛)"
     fund_highlight_str = "十年累计 +2593.58% 🏆(翻27倍) · 2026实战 +197.00% 🚀，大宗主升加速+科技自愈急刹车！"
-    if os.path.exists(fund_state_file):
+    fund_locked_file = os.path.join(SCRIPT_DIR, ".fund_rotation_locked_decision.json")
+    if os.path.exists(fund_locked_file):
+        try:
+            with open(fund_locked_file, "r", encoding="utf-8") as lf:
+                d_obj = json.load(lf).get("decision")
+                if d_obj and d_obj.get("target_fund"):
+                    tf_code = str(d_obj["target_fund"]).strip()
+                    tf_name = str(d_obj.get("target_name", resolve_etf_name(tf_code))).strip()
+                    fund_holding_str = f"100% {tf_name} ({tf_code})"
+                    fund_status_str = str(d_obj.get("state", fund_status_str)).strip()
+        except Exception:
+            pass
+    elif os.path.exists(fund_state_file):
         try:
             with open(fund_state_file, "r", encoding="utf-8") as f:
                 f_state = json.load(f)
@@ -884,20 +896,21 @@ def collect_macro_dataset() -> dict:
     fund_status = "🚀 全天候大动量单边主升 (100% 满仓第一主攻矛)"
     fund_highlight = "【方案3全天候无界大动量】以 14:48 最终锁定 [国联煤炭C (016814)] · 2026实战 +293.41% 💥 · 10年 +2529.79% 🏆！"
 
-    # 优先读取今日 14:48:32 最终锁定决策文件
+    # 优先读取 14:48:32 最终锁定决策文件 (支持最新有效交易日决策回溯)
     beijing_today = datetime.now().strftime("%Y-%m-%d")
     loaded_from_lock = False
     if os.path.exists(fund_locked_file):
         try:
             with open(fund_locked_file, "r", encoding="utf-8") as f:
                 lock_rec = json.load(f)
-                if lock_rec.get("date") == beijing_today and lock_rec.get("decision"):
-                    dec = lock_rec["decision"]
+                dec = lock_rec.get("decision")
+                if dec and dec.get("target_fund"):
                     fund_code = str(dec.get("target_fund", fund_code)).strip()
                     fund_name = str(dec.get("target_name", fund_name)).strip()
                     fund_status = str(dec.get("state", fund_status)).strip()
                     fund_reason = dec.get("reason", "")
-                    fund_highlight = f"{fund_reason} · 2026实战 +293.41% 💥 · 10年 +2529.79% 🏆！" if fund_reason else f"【方案3全天候无界大动量】以 14:48 最终决策锁定 [{fund_name} ({fund_code})] · 2026实战 +293.41% 💥 · 10年 +2529.79% 🏆！"
+                    lock_d = lock_rec.get("date", beijing_today)
+                    fund_highlight = f"{fund_reason} · 2026实战 +293.41% 💥 · 10年 +2529.79% 🏆！" if fund_reason else f"【方案3全天候无界大动量】以 {lock_d} 14:48 决策锁定 [{fund_name} ({fund_code})] · 2026实战 +293.41% 💥 · 10年 +2529.79% 🏆！"
                     loaded_from_lock = True
         except Exception as e:
             print(f"⚠️ [场外决策锁读取异常] {e}")
@@ -929,7 +942,7 @@ def collect_macro_dataset() -> dict:
 
     strategy_positions = [
         {
-            'name': '👑 终极神王体 · 苍穹八十九矛顶峰天王版 (89矛)',
+            'name': '👑 终极神王体 · 苍穹九十一矛顶峰天王版 (91矛)',
             'tag': '全域旗舰最高统率',
             'status': godking_status_str,
             'holdings': godking_holdings_str,
@@ -1610,7 +1623,8 @@ def check_cloud_report_status(max_wait_seconds: int = 40):
                     status = run.get('status')
                     conclusion = run.get('conclusion')
 
-                    if run_date == today_str:
+                    # 必须是晚间时段 (北京时间 19:30 及以后) 成功执行的，才算做今日晚报推送；凌晨或白天的历史运行不予采纳！
+                    if run_date == today_str and (up_dt.hour > 19 or (up_dt.hour == 19 and up_dt.minute >= 30)):
                         found_today = True
                         if status == 'completed' and conclusion == 'success':
                             return True, f"云端 GitHub Actions 今日晚报已于 {up_dt.strftime('%H:%M:%S')} 成功执行并完成推送 (Run ID: {run.get('id')})"
@@ -1636,12 +1650,15 @@ def check_cloud_report_status(max_wait_seconds: int = 40):
 
 
 def run_macro_evening_pipeline(webhook_url: str = MACRO_EVENING_WEBHOOK, force: bool = False, dry_run: bool = False):
-    # 🛑 交易日休市熔断守卫：非A股交易日不运行、不更新、不推送
-    try:
-        from trade_day_guard import guard_and_exit_if_not_trade_day
-        guard_and_exit_if_not_trade_day("全球宏观量化战略晚报")
-    except Exception as e:
-        print(f"⚠️ [交易日守卫警告] {e}")
+    # 🛑 交易日休市熔断守卫：非A股交易日不运行、不更新、不推送 (若显式传入 force 则跳过守卫直接执行)
+    if not force:
+        try:
+            from trade_day_guard import guard_and_exit_if_not_trade_day
+            guard_and_exit_if_not_trade_day("全球宏观量化战略晚报")
+        except Exception as e:
+            print(f"⚠️ [交易日守卫警告] {e}")
+    else:
+        print("⚡ [强制执行模式] 已启用 --force 参数，跳过交易日休市熔断守卫，强制刷新全量数据与大屏！")
 
     # 🛡️ 双机热备探针（仅在本地运行且未显式开启 --force / --dry-run 时生效）
     if not is_cloud_environment() and not force and not dry_run:
