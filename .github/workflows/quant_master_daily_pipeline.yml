@@ -43,7 +43,7 @@ jobs:
       # 🛑 前置交易日休市熔断守卫：非交易日自动优雅退出，不执行后续任何计算与推送
       # ----------------------------------------------------------------------
       - name: 🛑 A股交易日休市熔断检测 (周末/法定节假日优雅阻断)
-        if: "${{ github.event_name == 'schedule' || !inputs.skip_wait }}"
+        id: guard
         run: |
           python trade_day_guard.py --assert-trade-day
 
@@ -51,6 +51,7 @@ jobs:
       # 阶段 1: 14:47 准点触发 七星量化动量策略
       # ----------------------------------------------------------------------
       - name: ⏳ [阶段 1] 等待至 14:47:00 并执行 七星量化动量策略
+        if: "${{ (steps.guard.outputs.is_trade_day == 'true' || inputs.skip_wait) }}"
         env:
           WECOM_WEBHOOK: ${{ secrets.WECOM_WEBHOOK }}
         run: |
@@ -64,6 +65,7 @@ jobs:
       # 阶段 2: 14:48 准点触发 科创-银行轮动 (场外公募轮动已剥离由本地权威执行)
       # ----------------------------------------------------------------------
       - name: ⏳ [阶段 2] 等待至 14:48:00 并执行 科创-银行轮动
+        if: "${{ (steps.guard.outputs.is_trade_day == 'true' || inputs.skip_wait) }}"
         env:
           WECOM_WEBHOOK: ${{ secrets.WECOM_WEBHOOK }}
           CHINEXT_BANK_WEBHOOK: ${{ secrets.CHINEXT_BANK_WEBHOOK }}
@@ -91,6 +93,7 @@ jobs:
       # 阶段 3: 14:55 准点触发 五福 5.2 策略 (尾盘黄金决断)
       # ----------------------------------------------------------------------
       - name: ⏳ [阶段 3] 等待至 14:55:00 并执行 五福 5.2 动量策略
+        if: "${{ (steps.guard.outputs.is_trade_day == 'true' || inputs.skip_wait) }}"
         env:
           WECOM_WEBHOOK: ${{ secrets.WECOM_WEBHOOK }}
         run: |
@@ -104,6 +107,7 @@ jobs:
       # 阶段 4: 原子化同步所有策略持仓与状态缓存 (防 Git 冲突)
       # ----------------------------------------------------------------------
       - name: 💾 原子化同步并持久化全策略持仓状态与14:48锁定决策
+        if: "${{ (steps.guard.outputs.is_trade_day == 'true' || inputs.skip_wait) }}"
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"

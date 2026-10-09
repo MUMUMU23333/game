@@ -43,7 +43,7 @@ jobs:
       # 🛑 前置交易日休市熔断守卫：非交易日自动优雅退出，不执行后续任何计算与推送
       # ----------------------------------------------------------------------
       - name: 🛑 A股交易日休市熔断检测 (周末/法定节假日优雅阻断)
-        if: "${{ github.event_name == 'schedule' || !inputs.skip_wait }}"
+        id: guard
         run: |
           python trade_day_guard.py --assert-trade-day
 
@@ -51,6 +51,7 @@ jobs:
       # ⏳ 毫秒级准点对齐至北京时间 09:26:00 (集合竞价撮合完毕，留足4分钟决策时间)
       # ----------------------------------------------------------------------
       - name: ⏳ 毫秒级对齐至早盘 09:26:00 (超时自动硬阻断退出 88)
+        if: "${{ (steps.guard.outputs.is_trade_day == 'true' || inputs.skip_wait) }}"
         run: |
           if [ "${{ github.event_name == 'schedule' || !inputs.skip_wait }}" = "true" ]; then
             python precision_scheduler.py --target 09:26:00
@@ -60,6 +61,7 @@ jobs:
       # 阶段 1: 09:26 准点触发【终极神王体 · 苍穹七十矛主板种业神皇版】早盘决策雷达
       # ----------------------------------------------------------------------
       - name: 🚀 [阶段 1] 执行 终极神王体 89矛顶峰天王版 早盘决策速查
+        if: "${{ (steps.guard.outputs.is_trade_day == 'true' || inputs.skip_wait) }}"
         env:
           WECOM_WEBHOOK: ${{ secrets.WECOM_WEBHOOK }}
           GODKING_WEBHOOK: ${{ secrets.GODKING_WEBHOOK }}
@@ -70,6 +72,7 @@ jobs:
       # 阶段 2: 09:26 准点触发【科创-银行轮动ETF策略 (V5.9 Apex-Master)】开盘态势速查
       # ----------------------------------------------------------------------
       - name: 🚀 [阶段 2] 执行 科创-银行轮动ETF策略 早盘开盘态势速查
+        if: "${{ (steps.guard.outputs.is_trade_day == 'true' || inputs.skip_wait) }}"
         env:
           CHINEXT_BANK_WEBHOOK: ${{ secrets.CHINEXT_BANK_WEBHOOK }}
           WECOM_WEBHOOK: ${{ secrets.WECOM_WEBHOOK }}
@@ -80,6 +83,7 @@ jobs:
       # 阶段 3: 09:29:00 看门狗哨兵健康巡检与自愈兜底
       # ----------------------------------------------------------------------
       - name: 🐕 [阶段 3] 早盘看门狗健康巡检 (Dead Man's Switch Watchdog)
+        if: "${{ (steps.guard.outputs.is_trade_day == 'true' || inputs.skip_wait) }}"
         run: |
           python morning_watchdog_sentinel.py || echo "Watchdog completed with warnings"
 
@@ -87,6 +91,7 @@ jobs:
       # 阶段 4: 原子化持久化同步状态与缓存
       # ----------------------------------------------------------------------
       - name: 💾 原子化同步并持久化早盘状态与推送缓存
+        if: "${{ (steps.guard.outputs.is_trade_day == 'true' || inputs.skip_wait) }}"
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"

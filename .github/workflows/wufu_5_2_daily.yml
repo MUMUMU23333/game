@@ -32,8 +32,16 @@ jobs:
         run: |
           pip install requests numpy pandas schedule
 
+      # ----------------------------------------------------------------------
+      # 🛑 前置交易日休市熔断守卫：非交易日自动优雅退出，不执行后续任何计算与推送
+      # ----------------------------------------------------------------------
+      - name: 🛑 A股交易日休市熔断检测 (周末/法定节假日优雅阻断)
+        id: guard
+        run: |
+          python trade_day_guard.py --assert-trade-day
+
       - name: ⏳ 毫秒级准点对齐 (智能判定 13:10 或 14:55)
-        if: "${{ github.event_name == 'schedule' || !inputs.skip_wait }}"
+        if: "${{ (steps.guard.outputs.is_trade_day == 'true' || inputs.skip_wait) }}"
         run: |
           python -c "
           from precision_scheduler import wait_until_target_beijing_time, get_beijing_now
@@ -45,6 +53,7 @@ jobs:
           "
 
       - name: 执行五福 5.2 策略计算与企业微信推送
+        if: "${{ (steps.guard.outputs.is_trade_day == 'true' || inputs.skip_wait) }}"
         env:
           WECOM_WEBHOOK: ${{ secrets.WECOM_WEBHOOK }}
         run: |
@@ -52,6 +61,7 @@ jobs:
           python wufu_5_2_local_bot.py --force
 
       - name: 自动同步并持久化持仓状态
+        if: "${{ (steps.guard.outputs.is_trade_day == 'true' || inputs.skip_wait) }}"
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"

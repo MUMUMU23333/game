@@ -57,7 +57,7 @@ ETF_ATTACK_POOL = [
     '513100', '501046'
 ]
 
-# 68 大神王个股阿尔法龙头池 (89矛顶峰天王版 · 87只神王股票 + 2大核心ETF · 已剔除英方软件)
+# 89 大神王个股阿尔法龙头池 (91矛顶峰天王版 · 89只神王股票 + 2大核心ETF · 已剔除英方软件)
 STOCK_ATTACK_POOL = [
     # === 原51矛基准49只 ===
     '000002', '000063', '000636', '000657', '000831',
@@ -103,7 +103,10 @@ STOCK_ATTACK_POOL = [
     '600176',  # 中国巨石 (特种玻纤新材料出海)
     '301526',  # 国际复材 (特种风电/低空轻量化材料)
     '301396',  # 宏景科技 (算力中心集成/智慧城市)
-    '600489'   # 中金黄金 (央企黄金矿业/宏观避险盾)
+    '600489',  # 中金黄金 (央企黄金矿业/宏观避险盾)
+    # === 91矛增补双星神将 (10年跨周期实测强烈推荐Alpha长矛) ===
+    '601339',  # 百隆东方 (全球色纺纱龙头/10年Alpha+98.69%翻倍增益)
+    '601233'   # 桐昆股份 (大炼化/涤纶长丝周期龙头/10年Alpha+8.84%大波段捕获)
 ]
 
 # 全量数据拉取标的 (70 进攻 + 3 防守 + 2 宏观基准 159680 / 510300)
@@ -153,7 +156,9 @@ ASSET_NAMES = {
     '301308': '江波龙', '002466': '天齐锂业', '301013': '利和兴',
     '300475': '香农芯创', '002603': '以岭药业', '300857': '协创数据',
     '600176': '中国巨石', '301526': '国际复材', '301396': '宏景科技',
-    '600489': '中金黄金'
+    '600489': '中金黄金',
+    # === 91矛增补双星神将 ===
+    '601339': '百隆东方', '601233': '桐昆股份'
 }
 
 # 个股标记集合 (用于推送卡片中区分 ETF 与个股龙头)
@@ -161,7 +166,7 @@ STOCK_SET = set(STOCK_ATTACK_POOL)
 
 
 class GodKingUltimateNotifier:
-    """👑 终极神王体 · 苍穹八十九矛顶峰天王版 (GodKing-Ultimate 89-Spears · 87只神王股票 + 2大核心ETF)"""
+    """👑 终极神王体 · 苍穹九十一矛顶峰天王版 (GodKing-Ultimate 91-Spears · 89只神王股票 + 2大核心ETF)"""
 
     def __init__(self, webhook_url: str = CHINEXT_BANK_WEBHOOK, cache_path: str = CACHE_FILE, state_path: str = STATE_FILE):
         self.webhook_url = webhook_url
@@ -627,9 +632,9 @@ class GodKingUltimateNotifier:
             cand_lines.append(f"> {i}. **[{tag}] {name} ({code})**: 动量分 `{score:.2f}` | 3/8/20日: `{r3:+.1f}%` / `{r8:+.1f}%` / `{r20:+.1f}%`")
         cand_text = "\n".join(cand_lines) if cand_lines else "> 暂无多头达标标的"
 
-        card = f"""### 👑【终极神王体 · 苍穹八十九矛顶峰天王版 (89矛)】
-> ⏰ **决策时间**: `{ts}` (89苍穹神皇长矛顶峰天王竞技版)
-> ⚔️ **全域阵列**: **87大神王股票 + 2大全球宏观对冲ETF** (共 89 苍穹长矛顶峰天王矩阵)
+        card = f"""### 👑【终极神王体 · 苍穹九十一矛顶峰天王版 (91矛)】
+> ⏰ **决策时间**: `{ts}` (91苍穹神皇长矛顶峰天王竞技版)
+> ⚔️ **全域阵列**: **89大神王股票 + 2大全球宏观对冲ETF** (共 91 苍穹长矛顶峰天王矩阵)
 > 🏛️ **宏观战况**: {scissors['status_str']}
 > 🚦 **状态判定**: **{stage_desc}**
 
@@ -814,9 +819,9 @@ class GodKingUltimateNotifier:
             hot_lines.append(f"> {i}. **{h['name']} ({h['code']})**: 今开 `¥{h['open_price']:.2f}` (`{h['open_chg']:+.2f}%`)")
         hot_text = "\n".join(hot_lines) if hot_lines else "> 早盘暂无显著高开异动标的"
 
-        card = f"""### 🌅【终极神王体 · 苍穹八十九矛顶峰天王版】早盘 09:26 开盘态势速查卡
+        card = f"""### 🌅【终极神王体 · 苍穹九十一矛顶峰天王版】早盘 09:26 开盘态势速查卡
 > ⏰ **时钟定型**: `{ts}` (集合竞价撮合完毕 · 距连续竞价还有 4 分钟)
-> ⚔️ **全域阵列**: **87大神王股票 + 2大宏观对冲ETF** (89 苍穹长矛)
+> ⚔️ **全域阵列**: **89大神王股票 + 2大宏观对冲ETF** (91 苍穹长矛)
 
 ---
 {pending_box}
@@ -829,7 +834,7 @@ class GodKingUltimateNotifier:
 {holding_section}
 
 ---
-#### 🚀 【89 矛全域早盘高开异动 TOP 5】
+#### 🚀 【91 矛全域早盘高开异动 TOP 5】
 {hot_text}
 
 ---
@@ -852,25 +857,38 @@ class GodKingUltimateNotifier:
             resp = self.session.post(self.webhook_url, json=payload, timeout=10)
             res_json = resp.json()
             if res_json.get("errcode") == 0:
-                print("✅ [终极神王体 · 89矛顶峰天王版] 企业微信消息推送成功！")
+                print("✅ [终极神王体 · 91矛顶峰天王版] 企业微信消息推送成功！")
                 return True
             else:
-                print(f"[-] [终极神王体 · 89矛顶峰天王版] 推送失败: {res_json}")
+                print(f"[-] [终极神王体 · 91矛顶峰天王版] 推送失败: {res_json}")
                 return False
         except Exception as e:
-            print(f"[!] [终极神王体 · 89矛顶峰天王版] 推送网络异常: {e}")
+            print(f"[!] [终极神王体 · 91矛顶峰天王版] 推送网络异常: {e}")
             return False
 
     def run_morning(self, force_push: bool = False, dry_run: bool = False):
         """早盘 09:26 专属执行流程"""
         now_dt = datetime.now()
+
+        # 🛑 交易日休市熔断守卫：非交易日不运行、不计算、不推送
+        is_force_trade = "--force-trade-day" in sys.argv or os.environ.get("FORCE_TRADE_DAY")
+        if not is_force_trade:
+            try:
+                from trade_day_guard import is_trade_day
+                trading, reason = is_trade_day()
+                if not trading:
+                    print(f"🛑 [神王体策略·休市熔断] 今日非 A 股交易日: {reason}，跳过早盘计算与推送！")
+                    return
+            except Exception as e:
+                print(f"⚠️ [交易日守卫检测警告] {e}")
+
         # 🛑 策略级时间窗口硬守卫：严防云端队列积压滞后唤醒误发早盘卡
         if not (now_dt.hour == 9 and now_dt.minute >= 15):
             print(f"🛑 [早盘窗口硬守卫拦截] 当前时间 {now_dt.strftime('%H:%M:%S')} 非 09:15~09:59 早盘窗口，硬锁拒绝发射早盘卡！")
             return
 
         print("=" * 80)
-        print("🌅 正在执行【终极神王体 · 89矛顶峰天王版】早盘 09:26:00 开盘决策雷达...")
+        print("🌅 正在执行【终极神王体 · 91矛顶峰天王版】早盘 09:26:00 开盘决策雷达...")
         print("=" * 80)
 
         diag = self.calculate_morning_signal()
@@ -908,8 +926,20 @@ class GodKingUltimateNotifier:
 
     def run(self, force_push: bool = False, dry_run: bool = False):
         """主入口执行流程 (尾盘 14:48 执行)"""
+        # 🛑 交易日休市熔断守卫：非交易日不运行、不计算、不推送
+        is_force_trade = "--force-trade-day" in sys.argv or os.environ.get("FORCE_TRADE_DAY")
+        if not is_force_trade:
+            try:
+                from trade_day_guard import is_trade_day
+                trading, reason = is_trade_day()
+                if not trading:
+                    print(f"🛑 [神王体策略·休市熔断] 今日非 A 股交易日: {reason}，跳过尾盘计算与推送！")
+                    return
+            except Exception as e:
+                print(f"⚠️ [交易日守卫检测警告] {e}")
+
         print("=" * 80)
-        print("👑 正在执行【终极神王体 · 苍穹八十九矛顶峰天王版 (89矛)】尾盘 14:48 决策雷达...")
+        print("👑 正在执行【终极神王体 · 苍穹九十一矛顶峰天王版 (91矛)】尾盘 14:48 决策雷达...")
         print("=" * 80)
 
         decision = self.calculate_strategy_signal()
@@ -947,7 +977,7 @@ class GodKingUltimateNotifier:
 
 def main():
     import argparse
-    parser = argparse.ArgumentParser(description="终极神王体 · 苍穹八十九矛顶峰天王版 (89矛) 决策雷达")
+    parser = argparse.ArgumentParser(description="终极神王体 · 苍穹九十一矛顶峰天王版 (91矛) 决策雷达")
     parser.add_argument('--morning', action='store_true', help='早盘 09:26:00 专属开盘诊断与买入指引模式')
     parser.add_argument('--push', action='store_true', help='强制执行企业微信推送')
     parser.add_argument('--force', action='store_true', help='忽略重复推送缓存限制')

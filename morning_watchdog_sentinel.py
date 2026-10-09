@@ -77,11 +77,12 @@ def run_watchdog():
     try:
         sys.path.insert(0, REPO_DIR)
         from trade_day_guard import is_trade_day
-        if not is_trade_day():
-            log("今日非交易日，看门狗守望哨兵休眠。")
+        trading, reason = is_trade_day()
+        if not trading:
+            log(f"🛑 今日非交易日 ({reason})，看门狗守望哨兵休眠。")
             return
-    except Exception:
-        pass
+    except Exception as e:
+        log(f"⚠️ 交易日守卫检测异常: {e}")
 
     log("=" * 70)
     log(f"🐕 开始执行早盘 09:29 看门狗健康巡检 (Dead Man's Switch)...")
@@ -98,10 +99,10 @@ def run_watchdog():
 
     missing_tasks = []
     if not godking_ok:
-        log("⚠️ 警报: 检测到【终极神王体 · 89矛早盘雷达】今日尚未完成推送！")
+        log("⚠️ 警报: 检测到【终极神王体 · 91矛早盘雷达】今日尚未完成推送！")
         missing_tasks.append(("godking_ultimate_notifier.py", ["--morning", "--push", "--force"]))
     else:
-        log("✅ 巡检通过: 【终极神王体 · 89矛早盘雷达】已成功交付。")
+        log("✅ 巡检通过: 【终极神王体 · 91矛早盘雷达】已成功交付。")
 
     if not chinext_ok:
         log("⚠️ 警报: 检测到【科创-银行轮动 (V5.9 Apex-Master)】今日尚未完成推送！")

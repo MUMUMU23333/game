@@ -63,11 +63,14 @@ KNOWN_HOLIDAYS = {
 }
 
 
+_http_session = requests.Session()
+_http_session.trust_env = False  # 彻底隔离系统死代理干扰
+
 def check_eastmoney_trading_day(dt_str: str) -> tuple[bool, str]:
     """通过东方财富上证指数日 K 线获取最新权威交易日"""
     try:
         url = "https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=1.000001&fields1=f1,f2,f3,f4,f5,f6&fields2=f51&klt=101&fqt=1&end=20500101&lmt=10"
-        resp = requests.get(url, timeout=3, headers={"User-Agent": "Mozilla/5.0"})
+        resp = _http_session.get(url, timeout=2.5, headers={"User-Agent": "Mozilla/5.0"})
         if resp.status_code == 200:
             data = resp.json().get("data", {})
             klines = data.get("klines", [])
@@ -81,7 +84,7 @@ def check_eastmoney_trading_day(dt_str: str) -> tuple[bool, str]:
                 elif dt_str > latest_trade_day:
                     # 盘前或交易日早上尚未收盘产生日K，继续参考其他信号
                     pass
-    except Exception as e:
+    except Exception:
         pass
     return None, ""
 
@@ -90,7 +93,7 @@ def check_tencent_trading_time(dt_str_nodash: str) -> tuple[bool, str]:
     """通过腾讯行情接口上证指数实时行情时间戳判别"""
     try:
         url = "http://qt.gtimg.cn/q=sh000001"
-        resp = requests.get(url, timeout=3, headers={"User-Agent": "Mozilla/5.0"})
+        resp = _http_session.get(url, timeout=2.5, headers={"User-Agent": "Mozilla/5.0"})
         if resp.status_code == 200 and '="' in resp.text:
             parts = resp.text.split('="')[1].split("~")
             if len(parts) > 30:
@@ -102,10 +105,22 @@ def check_tencent_trading_time(dt_str_nodash: str) -> tuple[bool, str]:
     return None, ""
 
 
-def is_trade_day(target_dt: datetime = None) -> tuple[bool, str]:
+class TradeDayResult(tuple):
+    """
+    针对 is_trade_day() 返回值的抗穿透元组：
+    - 完全保持 (bool, str) 的二元元组解包兼容性：trading, reason = is_trade_day()
+    - 在布尔上下文中（如 `if not is_trade_day():` 或 `if is_trade_day():`），
+      其求值严格等价于第 0 个布尔元素 `self[0]`！
+    - 彻底免疫 Python 中 `bool((False, "...")) == True` 导致的看门狗/调度器休市穿透！
+    """
+    def __bool__(self):
+        return bool(self[0])
+
+
+def is_trade_day(target_dt: datetime = None) -> TradeDayResult:
     """
     判断指定日期（默认今日北京时间）是否为 A 股交易日。
-    返回: (is_trading, reason_description)
+    返回: TradeDayResult(is_trading, reason_description)
     """
     if target_dt is None:
         target_dt = get_beijing_now()
@@ -116,36 +131,52 @@ def is_trade_day(target_dt: datetime = None) -> tuple[bool, str]:
     
     # 1. 周末硬过滤（周六、周日 100% 不交易）
     if weekday == 5:
-        return False, f"周六休市 (日期: {dt_str})"
+        return TradeDayResult((False, f"周六休市 (日期: {dt_str})"))
     if weekday == 6:
-        return False, f"周日休市 (日期: {dt_str})"
+        return TradeDayResult((False, f"周日休市 (日期: {dt_str})"))
         
     # 2. 离线法定节假日清单过滤
     if dt_str in KNOWN_HOLIDAYS:
         h_name = KNOWN_HOLIDAYS[dt_str]
-        return False, f"法定节假日休市: {h_name} (日期: {dt_str})"
+        return TradeDayResult((False, f"法定节假日休市: {h_name} (日期: {dt_str})"))
         
     # 3. 在线实时校验（针对盘中/盘后执行）
     # 3.1 东方财富校验
     em_ok, em_desc = check_eastmoney_trading_day(dt_str)
     if em_ok is True:
-        return True, em_desc
+        return TradeDayResult((True, em_desc))
         
     # 3.2 腾讯行情校验
     tx_ok, tx_desc = check_tencent_trading_time(dt_str_nodash)
     if tx_ok is True:
-        return True, tx_desc
+        return TradeDayResult((True, tx_desc))
         
     # 4. 常规工作日（周一至周五且不在已知假日清单中）
-    return True, f"常规工作日交易日 (周{weekday+1}, 日期: {dt_str})"
+    return TradeDayResult((True, f"常规工作日交易日 (周{weekday+1}, 日期: {dt_str})"))
+
+
+def write_github_output(is_trading: bool, reason: str):
+    """如果处于 GitHub Actions 环境，将判别结果写入 $GITHUB_OUTPUT 供后续 steps 条件控制"""
+    github_output_path = os.environ.get("GITHUB_OUTPUT")
+    if github_output_path:
+        try:
+            with open(github_output_path, "a", encoding="utf-8") as f:
+                f.write(f"is_trade_day={'true' if is_trading else 'false'}\n")
+                clean_reason = reason.replace("\n", " ")
+                f.write(f"reason={clean_reason}\n")
+        except Exception as e:
+            print(f"⚠️ [GitHub Output 写入警告] {e}")
 
 
 def guard_and_exit_if_not_trade_day(strategy_name: str = "量化策略"):
     """
     守卫函数：若非交易日，输出醒目提示并立即以 0 状态码优雅退出进程。
+    同步将结果写入 GitHub Actions outputs（若在 CI/CD 中）。
     """
     now = get_beijing_now()
     trading, reason = is_trade_day(now)
+    write_github_output(trading, reason)
+    
     if not trading:
         print("=" * 80)
         print(f"🛑 [交易日守卫] 检测到今日非 A 股交易日: {reason}")
@@ -157,14 +188,16 @@ def guard_and_exit_if_not_trade_day(strategy_name: str = "量化策略"):
 
 
 if __name__ == "__main__":
+    import os
     import argparse
     parser = argparse.ArgumentParser(description="A-Share Trade Day Guard")
-    parser.add_argument("--assert-trade-day", action="store_true", help="若非交易日则以退出码0终止")
+    parser.add_argument("--assert-trade-day", action="store_true", help="若非交易日则以退出码0终止并设置 GITHUB_OUTPUT")
     parser.add_argument("--name", type=str, default="全量策略", help="策略模块名称")
     args = parser.parse_args()
 
     now = get_beijing_now()
     trading, reason = is_trade_day(now)
+    write_github_output(trading, reason)
     
     if args.assert_trade_day:
         guard_and_exit_if_not_trade_day(args.name)

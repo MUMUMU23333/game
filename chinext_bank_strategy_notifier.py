@@ -634,6 +634,19 @@ class StarBankOmniV59Notifier:
 
         is_morning = datetime.now().hour < 12
         now_h, now_m = datetime.now().hour, datetime.now().minute
+
+        # 🛑 交易日休市熔断守卫：非交易日不运行、不计算、不推送
+        is_force_trade = "--force-trade-day" in sys.argv or os.environ.get("FORCE_TRADE_DAY")
+        if not is_force_trade:
+            try:
+                from trade_day_guard import is_trade_day
+                trading, reason = is_trade_day()
+                if not trading:
+                    print(f"🛑 [科创-银行策略·休市熔断] 今日非 A 股交易日: {reason}，跳过计算与推送！")
+                    return
+            except Exception as e:
+                print(f"⚠️ [交易日守卫检测警告] {e}")
+
         # 🛑 策略级时间窗口硬守卫：防范任何云端极端滞后排队唤醒误发
         if is_morning and not (now_h == 9 and now_m >= 15):
             print(f"🛑 [早盘窗口硬守卫拦截] 当前时间 {datetime.now().strftime('%H:%M:%S')} 非 09:15~09:59 早盘窗口，硬锁拒绝发射早盘卡！")

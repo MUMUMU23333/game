@@ -39,6 +39,21 @@ def wait_until_target_beijing_time(
     - 若等待时间超过 max_wait_seconds：安全退出等待，直接执行
     """
     now = get_beijing_now()
+    
+    # 🛑 交易日休市快速阻断：盘中任务遇到休市日直接优雅退出，不空耗 CPU 等待
+    is_intraday_target = (target_hour < 15) or (target_hour == 15 and target_minute == 0)
+    is_force = any(arg in sys.argv for arg in ["--force", "-f", "--skip-guard"]) or os.environ.get("FORCE_TRADE_DAY")
+    if is_intraday_target and not is_force:
+        try:
+            from trade_day_guard import is_trade_day
+            trading, reason = is_trade_day(now)
+            if not trading:
+                print(f"🛑 [精准调度器·交易日熔断] 今日非 A 股交易日: {reason}")
+                print(f"⏸️ 今日休市，终止目标时间 {target_hour:02d}:{target_minute:02d} 的等待与发射！")
+                sys.exit(0)
+        except Exception as e:
+            print(f"⚠️ [精准调度器·交易日守卫检测警告] {e}")
+
     target_dt = now.replace(hour=target_hour, minute=target_minute, second=target_second, microsecond=0)
     
     delta_seconds = (target_dt - now).total_seconds()

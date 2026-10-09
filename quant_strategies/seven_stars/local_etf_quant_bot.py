@@ -252,6 +252,21 @@ def run_strategy_check():
     today_str = now.strftime("%Y-%m-%d")
     time_str = now.strftime("%Y-%m-%d %H:%M:%S")
     
+    # 🛑 交易日硬熔断第一道防线：休市日立即优雅退出，绝不执行计算与推送
+    is_force_trade = "--force-trade-day" in sys.argv or os.environ.get("FORCE_TRADE_DAY")
+    if not is_force_trade:
+        try:
+            root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+            if root_dir not in sys.path:
+                sys.path.insert(0, root_dir)
+            from trade_day_guard import is_trade_day
+            trading, reason = is_trade_day(now)
+            if not trading:
+                print(f"🛑 [七星量化·休市熔断] 今日非 A 股交易日: {reason}，跳过计算与推送！")
+                return
+        except Exception as e:
+            print(f"⚠️ [交易日守卫检测警告] {e}")
+
     print(f"\n🚀 开始执行【七星量化 ETF 原版策略】本地计算与盈亏透视: {time_str}")
     
     state = load_state()
