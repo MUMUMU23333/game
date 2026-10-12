@@ -106,7 +106,9 @@ STOCK_ATTACK_POOL = [
     '600489',  # 中金黄金 (央企黄金矿业/宏观避险盾)
     # === 91矛增补双星神将 (10年跨周期实测强烈推荐Alpha长矛) ===
     '601339',  # 百隆东方 (全球色纺纱龙头/10年Alpha+98.69%翻倍增益)
-    '601233'   # 桐昆股份 (大炼化/涤纶长丝周期龙头/10年Alpha+8.84%大波段捕获)
+    '601233',  # 桐昆股份 (大炼化/涤纶长丝周期龙头/10年Alpha+8.84%大波段捕获)
+    # === 92矛顶峰天王神将 ===
+    '600825'   # 新华传媒 (重组传媒题材龙头/92矛核心标的)
 ]
 
 # 全量数据拉取标的 (70 进攻 + 3 防守 + 2 宏观基准 159680 / 510300)
@@ -157,8 +159,8 @@ ASSET_NAMES = {
     '300475': '香农芯创', '002603': '以岭药业', '300857': '协创数据',
     '600176': '中国巨石', '301526': '国际复材', '301396': '宏景科技',
     '600489': '中金黄金',
-    # === 91矛增补双星神将 ===
-    '601339': '百隆东方', '601233': '桐昆股份'
+    # === 91/92矛顶峰神将 ===
+    '601339': '百隆东方', '601233': '桐昆股份', '600825': '新华传媒'
 }
 
 # 个股标记集合 (用于推送卡片中区分 ETF 与个股龙头)
@@ -320,7 +322,7 @@ class GodKingUltimateNotifier:
         }
 
     def calculate_strategy_signal(self) -> dict:
-        """执行 👑 V2.0 GodKing-Ultimate 终极决策"""
+        """执行 👑 V2.5 GodKing-Ultimate 【真·攻防一体 · 口径 A 稳健版】"""
         raw_dfs = {}
         quotes = {}
         for c in ALL_CODES:
@@ -329,6 +331,31 @@ class GodKingUltimateNotifier:
                 raw_dfs[c] = df_k
             q = self.fetch_realtime_quote(c)
             quotes[c] = q
+
+        # 👑【核心升级 1：零时滞动态烛线缝合 (消灭 T-1 时滞)】
+        today_str = datetime.now().strftime('%Y-%m-%d')
+        for c in ALL_CODES:
+            if c in raw_dfs and not raw_dfs[c].empty:
+                q = quotes.get(c, {})
+                q_price = q.get('price', 0.0)
+                if q_price > 0:
+                    df = raw_dfs[c].copy()
+                    last_date_str = str(df['date'].iloc[-1])[:10]
+                    if last_date_str < today_str:
+                        prev_close = q.get('prev_close', df['close'].iloc[-1])
+                        open_p = q.get('open_price', q_price)
+                        high_p = max(open_p, q_price, prev_close)
+                        low_p = min(open_p, q_price, prev_close)
+                        vol = q.get('volume', 0.0)
+                        today_row = pd.DataFrame([{
+                            'date': pd.to_datetime(today_str),
+                            'open': open_p, 'close': q_price,
+                            'high': high_p, 'low': low_p,
+                            'volume': vol
+                        }])
+                        raw_dfs[c] = pd.concat([df, today_row], ignore_index=True)
+                    elif last_date_str == today_str:
+                        raw_dfs[c].loc[raw_dfs[c].index[-1], 'close'] = q_price
 
         # 0. 1000/300 大小盘风格剪刀差宏观雷达
         scissors_info = {
@@ -359,7 +386,7 @@ class GodKingUltimateNotifier:
                     'status_str': status_str
                 }
 
-        # 1. 扫描 44 大全域长矛攻击池
+        # 1. 扫描 92 大长矛攻击池
         candidates = []
         for code in self.attack_pool:
             if code not in raw_dfs or raw_dfs[code].empty:
@@ -378,12 +405,7 @@ class GodKingUltimateNotifier:
 
         candidates.sort(key=lambda x: x['score'], reverse=True)
 
-        # 方案 B 涨停流动性闭锁与降级顺延检测
-        selected_lead = None
-        pending_open_buy = None
-        fallback_desc = ""
-
-        # 读取持久化状态与 ATR 动态吊灯 + MAE 早期快速止损风控
+        # 读取持久化状态
         state = {}
         if os.path.exists(self.state_path):
             try:
@@ -393,163 +415,103 @@ class GodKingUltimateNotifier:
                 state = {}
 
         curr_holding = state.get('exec_code')
+        defense_cooldown = state.get('defense_cooldown', 0)
 
-        if candidates:
-            top1 = candidates[0]
-            top1_code = top1['code']
-            top1_q = quotes.get(top1_code, {})
-            top1_chg = top1_q.get('change_pct', 0.0)
-            top1_limit = 19.85 if top1_code.startswith(('30', '68')) else 9.85
-            top1_is_limit_up = (top1_chg >= top1_limit)
-
-            # 若当前持仓已在车上，继续享有涨停收益
-            if curr_holding == top1_code or not top1_is_limit_up:
-                selected_lead = top1
-            else:
-                # Top 1 涨停无法买入，方案 B 顺延检查 Top 2
-                top2 = candidates[1] if len(candidates) > 1 else None
-                if top2:
-                    top2_code = top2['code']
-                    top2_q = quotes.get(top2_code, {})
-                    top2_chg = top2_q.get('change_pct', 0.0)
-                    top2_limit = 19.85 if top2_code.startswith(('30', '68')) else 9.85
-                    top2_is_limit_up = (top2_chg >= top2_limit)
-
-                    if curr_holding == top2_code or not top2_is_limit_up:
-                        selected_lead = top2
-                        fallback_desc = f"⚠️ 【方案 B 顺延】Top 1 {top1['name']}({top1_code}) 尾盘涨停闭锁，顺延买入 Top 2 【{top2['name']} ({top2_code})】"
-                    else:
-                        # Top 1 与 Top 2 均涨停，触发方案 B 终极兜底：挂起 Top 1 次日 09:26 开盘买入
-                        pending_open_buy = {
-                            'code': top1_code,
-                            'name': top1['name'],
-                            'reason': 'Top1与Top2均封死涨停，次日09:26开盘买入',
-                            'date': datetime.now().strftime('%Y-%m-%d')
-                        }
-                        fallback_desc = f"🚨 【方案 B 兜底】Top 1 与 Top 2 均封死涨停！今日避险，锁定次日 09:26 开盘买入【{top1['name']} ({top1_code})】"
-                else:
-                    pending_open_buy = {
-                        'code': top1_code,
-                        'name': top1['name'],
-                        'reason': 'Top1封死涨停，次日09:26开盘买入',
-                        'date': datetime.now().strftime('%Y-%m-%d')
-                    }
-                    fallback_desc = f"🚨 【方案 B 兜底】Top 1 封死涨停！今日避险，锁定次日 09:26 开盘买入【{top1['name']} ({top1_code})】"
-
+        # 👑【核心升级 2：真实持仓一票否决风控检查】
+        should_stop_to_defense = False
+        stop_reason = ""
         loss_from_entry = 0.0
         signal_drop = 0.0
         stop_thresh = 0.05
         mae_triggered = False
-        is_stopped = False
+
+        if curr_holding and curr_holding in quotes:
+            h_p = quotes[curr_holding].get('price', 0.0)
+            if h_p > 0:
+                h_peak = max(state.get(f'peak_{curr_holding}', h_p), h_p)
+                h_entry = state.get(f'entry_{curr_holding}', h_p)
+                loss_from_entry = (h_p / h_entry - 1.0) if h_entry > 0 else 0.0
+                signal_drop = (h_p / h_peak - 1.0) if h_peak > 0 else 0.0
+
+                h_info = self.evaluate_asset(raw_dfs.get(curr_holding, pd.DataFrame()))
+                h_atr_pct = h_info.get('atr_pct', 0.05) if h_info.get('valid') else 0.05
+                h_ema8 = h_info.get('ema8', h_p) if h_info.get('valid') else h_p
+                stop_thresh = max(0.040, min(0.070, h_atr_pct * self.atr_multiplier))
+
+                if signal_drop < -stop_thresh:
+                    should_stop_to_defense = True
+                    stop_reason = f"🛡️ 触发 ATR 动态吊灯跳车 (距峰值回撤 {signal_drop*100:.2f}% · 红线 {-stop_thresh*100:.2f}%)"
+                elif loss_from_entry < -0.038 and h_p < h_ema8:
+                    should_stop_to_defense = True
+                    mae_triggered = True
+                    stop_reason = f"⚡ 触发 MAE 早期失效断路 (浮亏 {loss_from_entry*100:.2f}% 且跌破 EMA8 · 果断止损)"
+
+        # 👑【核心升级 3：口径 A 波段门槛 (Score >= 12.0) 与 5分持仓缓冲】
+        target_asset = None
         stage_desc = ""
+        stage_exp = 0.0
+        top1 = candidates[0] if candidates else None
 
-        if selected_lead:
-            lead = selected_lead
-            lead_code = lead['code']
-            lead_p = lead['price']
-
-            highest = state.get(f'peak_{lead_code}', lead_p)
-            if lead_p > highest:
-                highest = lead_p
-
-            entry_p = state.get(f'entry_{lead_code}', lead_p)
-            loss_from_entry = (lead_p / entry_p - 1.0) if entry_p > 0 else 0.0
-
-            stop_thresh = max(0.040, min(0.070, lead['atr_pct'] * self.atr_multiplier))
-            signal_drop = (lead_p / highest - 1.0) if highest > 0 else 0.0
-
-            if signal_drop < -stop_thresh:
-                is_stopped = True
-                stage_desc = f"🛡️ 触发 ATR 动态吊灯跳车 (距离峰值回撤 {signal_drop*100:.2f}% · 保护红线 {-stop_thresh*100:.2f}%)"
-            elif loss_from_entry < -0.038 and lead_p < lead['ema8']:
-                is_stopped = True
-                mae_triggered = True
-                stage_desc = f"⚡ 触发 MAE 早期失效断路 (浮亏 {loss_from_entry*100:.2f}% 且跌破 EMA8 · 果断止损)"
-
-            if is_stopped:
-                stage_exp = 0.00
-                exec_code = None
-            else:
-                exec_code = lead_code
-                macro_score = 0.0
-                if lead_p > lead['ma20']: macro_score += 25.0
-                if lead_p > lead['ma60']: macro_score += 25.0
-                if lead['ema8'] > lead['ema20']: macro_score += 25.0
-                if lead_p > lead['ema8']: macro_score += 25.0
-
-                if fallback_desc:
-                    prefix = f"{fallback_desc} | "
-                else:
-                    prefix = ""
-
-                if len(candidates) >= 2 and lead['score'] > 2.5:
-                    stage_exp = 1.00
-                    stage_desc = f"{prefix}🌟 多头全域共振顶格 (100% 进攻 · 领涨: {lead['name']})"
-                elif macro_score >= 75.0:
-                    stage_exp = 1.00
-                    stage_desc = f"{prefix}🌟 超级顺风主升 (100% 进攻 · 宏观: {macro_score:.0f}分)"
-                elif macro_score >= 50.0:
-                    stage_exp = 0.70
-                    stage_desc = f"{prefix}🟡 震荡偏强态 (70% 进攻 + 30% 防御减震)"
-                elif macro_score >= 25.0:
-                    stage_exp = 0.35
-                    stage_desc = f"{prefix}🟠 弱势试探态 (35% 进攻 + 65% 防御试仓)"
-                else:
-                    stage_exp = 0.00
-                    stage_desc = f"{prefix}🔴 弱势防守态 (0% 权益敞口)"
+        if should_stop_to_defense:
+            # 真实止损跳车进银行
+            target_asset = None
+            defense_cooldown = 2
+            stage_exp = 0.0
+            stage_desc = f"{stop_reason} ➔ 100% 切换至农业银行/黄金防御壁垒"
+        elif defense_cooldown > 0:
+            defense_cooldown -= 1
+            target_asset = None
+            stage_exp = 0.0
+            stage_desc = f"🛡️ 处于风控防御冷却期 (剩余 {defense_cooldown+1} 天) · 坚守农业银行防守"
         else:
-            stage_exp = 0.00
-            exec_code = None
-            stage_desc = fallback_desc or "🛡️ 空仓防守态 (进攻池无有效多头信号 · 100% 避险配置)"
-
-        # 3. 动态防守端资产分配
-        def_assets = {'gold': '518880', 'bank': '601288', 'gold_in_crunch': False}
-        if '518880' in raw_dfs:
-            gold_df = raw_dfs['518880']
-            if len(gold_df) >= 20:
-                gold_p = gold_df['close'].iloc[-1]
-                gold_ma20 = gold_df['close'].iloc[-20:].mean()
-                if gold_p < gold_ma20 * 0.985:
-                    def_assets['gold_in_crunch'] = True
-
-        if '601288' in raw_dfs and '600036' in raw_dfs:
-            abc_df = raw_dfs['601288']
-            cmb_df = raw_dfs['600036']
-            if len(abc_df) >= 20 and len(cmb_df) >= 20:
-                abc_r20 = (abc_df['close'].iloc[-1] / abc_df['close'].iloc[-20] - 1.0) * 100.0
-                cmb_r20 = (cmb_df['close'].iloc[-1] / cmb_df['close'].iloc[-20] - 1.0) * 100.0
-                cmb_v5 = cmb_df['volume'].iloc[-5:].mean()
-                cmb_v20 = cmb_df['volume'].iloc[-20:].mean()
-                if cmb_r20 > abc_r20 + 3.0 and cmb_v5 > cmb_v20:
-                    def_assets['bank'] = '600036'
-
-        # 4. 组装最终权重
-        target_weights = {}
-        if stage_exp > 0.0 and exec_code:
-            target_weights[exec_code] = round(stage_exp * 100.0, 1)
-
-        def_budget = 1.0 - stage_exp
-        if def_budget > 0.0:
-            if def_assets['gold_in_crunch']:
-                target_weights[def_assets['bank']] = target_weights.get(def_assets['bank'], 0.0) + round(def_budget * 100.0, 1)
+            if top1 and top1['score'] >= 12.0:
+                # 检查持仓缓冲：已有持仓只要未破位，新龙头必须超额 5 分才换仓
+                if curr_holding and curr_holding in [c['code'] for c in candidates]:
+                    curr_cand = next(c for c in candidates if c['code'] == curr_holding)
+                    if top1['code'] != curr_holding and (top1['score'] < curr_cand['score'] + 5.0):
+                        target_asset = curr_holding
+                        stage_desc = f"👑 稳健持仓续航 (当前持仓 {curr_cand['name']} 动量 {curr_cand['score']:.1f}分 · 缓冲保护中)"
+                    else:
+                        target_asset = top1['code']
+                        stage_desc = f"🌟 零时滞动量爆发 (换仓/买入龙头: {top1['name']} · 动量分: {top1['score']:.1f})"
+                else:
+                    target_asset = top1['code']
+                    stage_desc = f"🌟 零时滞多头共振开仓 (领涨龙头: {top1['name']} · 动量分: {top1['score']:.1f})"
+                stage_exp = 1.0
             else:
-                half = round(def_budget * 50.0, 1)
-                target_weights[def_assets['gold']] = target_weights.get(def_assets['gold'], 0.0) + half
-                target_weights[def_assets['bank']] = target_weights.get(def_assets['bank'], 0.0) + (round(def_budget * 100.0, 1) - half)
+                target_asset = None
+                stage_exp = 0.0
+                score_str = f"{top1['score']:.1f}" if top1 else "无"
+                stage_desc = f"🛡️ 市场无达标主升浪标的 (最高分 {score_str} < 12分门槛) · 100% 避险配置银行"
 
-        # 5. 持久化最新状态 (含方案 B 挂起买单)
+        # 4. 动态防守端标的选择 (优先农业银行 601288)
+        def_assets = {'gold': '518880', 'bank': '601288', 'gold_in_crunch': False}
+        if '601288' in raw_dfs:
+            def_assets['bank'] = '601288'
+
+        target_weights = {}
+        if stage_exp > 0.0 and target_asset:
+            target_weights[target_asset] = 100.0
+            exec_code = target_asset
+        else:
+            exec_code = None
+            # 100% 防御配置
+            target_weights[def_assets['bank']] = 100.0
+
+        # 持久化新状态
         new_state = {
             'last_update': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             'stage_desc': stage_desc,
             'exec_code': exec_code,
             'target_weights': target_weights,
-            'pending_open_buy': pending_open_buy,
-            'fallback_desc': fallback_desc
+            'defense_cooldown': defense_cooldown,
+            'caliber': '口径A_真攻防一体_稳健6.25倍'
         }
-        if exec_code and not is_stopped:
-            new_state[f'peak_{exec_code}'] = max(state.get(f'peak_{exec_code}', 0.0), quotes.get(exec_code, {}).get('price', 0.0))
-            if f'entry_{exec_code}' not in state or is_stopped:
-                new_state[f'entry_{exec_code}'] = quotes.get(exec_code, {}).get('price', 0.0)
+        if exec_code:
+            p = quotes.get(exec_code, {}).get('price', 0.0)
+            new_state[f'peak_{exec_code}'] = max(state.get(f'peak_{exec_code}', p), p)
+            if f'entry_{exec_code}' not in state or exec_code != curr_holding:
+                new_state[f'entry_{exec_code}'] = p
             else:
                 new_state[f'entry_{exec_code}'] = state[f'entry_{exec_code}']
 
