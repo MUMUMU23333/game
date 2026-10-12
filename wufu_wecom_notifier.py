@@ -96,10 +96,38 @@ class WuFuWeComNotifier:
             raw = resp.get('data', {}).get(f"{market}{code}", {})
             k_data = raw.get('qfqday') or raw.get('day', [])
             if k_data and len(k_data) >= 20:
-                closes = np.array([float(x[2]) for x in k_data])
-                curr_price = closes[-1]
-                prev_close = closes[-2]
-                chg = (curr_price / prev_close - 1.0) * 100.0
+                closes_list = [float(x[2]) for x in k_data]
+                last_date_str = str(k_data[-1][0])[:10]
+                today_str = datetime.now().strftime("%Y-%m-%d")
+
+                # 拉取毫秒级实时快照消灭 T-1 滞后
+                snap_price = 0.0
+                snap_chg = 0.0
+                try:
+                    q_url = f"http://qt.gtimg.cn/q={market}{code}"
+                    q_resp = self.session.get(q_url, timeout=3)
+                    if q_resp.status_code == 200 and '="' in q_resp.text:
+                        parts = q_resp.text.split('="')[1].split('~')
+                        if len(parts) > 32 and parts[3]:
+                            snap_price = float(parts[3])
+                            prev_close = float(parts[4]) if parts[4] else closes_list[-1]
+                            snap_chg = float(parts[32]) if parts[32] else ((snap_price / prev_close - 1.0) * 100.0 if prev_close > 0 else 0.0)
+                except Exception:
+                    pass
+
+                if snap_price > 0:
+                    if last_date_str < today_str:
+                        closes_list.append(snap_price)
+                    elif last_date_str == today_str:
+                        closes_list[-1] = snap_price
+                    curr_price = snap_price
+                    chg = snap_chg
+                else:
+                    curr_price = closes_list[-1]
+                    prev_close = closes_list[-2] if len(closes_list) > 1 else curr_price
+                    chg = (curr_price / prev_close - 1.0) * 100.0
+
+                closes = np.array(closes_list)
                 return closes, curr_price, round(chg, 2)
         except Exception:
             pass

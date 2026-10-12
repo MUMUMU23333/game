@@ -158,7 +158,7 @@ class StarBankOmniV59Notifier:
         return pd.DataFrame()
 
     def fetch_realtime_quote(self, code: str) -> dict:
-        """拉取腾讯实时行情 (含自动重试机制)"""
+        """拉取腾讯实时行情 (含自动重试机制与全量高开低收字段)"""
         market = 'sh' if code.startswith(('51', '58', '60', '000')) else 'sz'
         url = f"http://qt.gtimg.cn/q={market}{code}"
         for attempt in range(3):
@@ -170,14 +170,26 @@ class StarBankOmniV59Notifier:
                 parts = text.split('="')[1].split('~')
                 if len(parts) > 32:
                     name = parts[1]
-                    price = float(parts[3])
-                    prev_close = float(parts[4])
-                    chg = float(parts[32]) if parts[32] else ((price / prev_close - 1) * 100 if prev_close > 0 else 0.0)
+                    price = float(parts[3]) if parts[3] else 0.0
+                    prev_close = float(parts[4]) if parts[4] else 0.0
+                    open_p = float(parts[5]) if len(parts) > 5 and parts[5] else price
+                    vol = float(parts[6]) if len(parts) > 6 and parts[6] else 0.0
+                    high_p = float(parts[33]) if len(parts) > 33 and parts[33] else max(price, open_p)
+                    low_p = float(parts[34]) if len(parts) > 34 and parts[34] else min(price, open_p)
+                    amt = float(parts[37]) * 10000.0 if len(parts) > 37 and parts[37] else (vol * price * 100.0)
+                    chg = float(parts[32]) if len(parts) > 32 and parts[32] else ((price / prev_close - 1) * 100 if prev_close > 0 else 0.0)
+                    open_chg = round((open_p / prev_close - 1) * 100, 2) if prev_close > 0 and open_p > 0 else 0.0
                     return {
                         'code': code,
                         'name': name,
                         'price': price,
                         'prev_close': prev_close,
+                        'open_price': open_p,
+                        'high_price': high_p,
+                        'low_price': low_p,
+                        'volume': vol,
+                        'amount': amt,
+                        'open_change_pct': open_chg,
                         'change_pct': round(chg, 2)
                     }
             except Exception as e:
@@ -190,6 +202,12 @@ class StarBankOmniV59Notifier:
             'name': ASSET_NAMES.get(code, code),
             'price': 0.0,
             'prev_close': 0.0,
+            'open_price': 0.0,
+            'high_price': 0.0,
+            'low_price': 0.0,
+            'volume': 0.0,
+            'amount': 0.0,
+            'open_change_pct': 0.0,
             'change_pct': 0.0
         }
 
@@ -259,6 +277,37 @@ class StarBankOmniV59Notifier:
                 raw_dfs[c] = df_k
             q = self.fetch_realtime_quote(c)
             quotes[c] = q
+
+        # 👑【核心升级：零时滞动态烛线热缝合 (彻底消灭 T-1 滞后与历史虚假数据误判死穴)】
+        today_str = datetime.now().strftime('%Y-%m-%d')
+        for c in ALL_CODES:
+            if c in raw_dfs and not raw_dfs[c].empty:
+                q = quotes.get(c, {})
+                q_price = q.get('price', 0.0)
+                if q_price > 0:
+                    df = raw_dfs[c].copy()
+                    last_date_str = str(df['date'].iloc[-1])[:10]
+                    if last_date_str < today_str:
+                        prev_close = q.get('prev_close', df['close'].iloc[-1])
+                        open_p = q.get('open_price', q_price)
+                        high_p = max(q.get('high_price', q_price), open_p, q_price, prev_close)
+                        low_p = min(q.get('low_price', q_price), open_p, q_price, prev_close)
+                        vol = q.get('volume', 0.0)
+                        today_row = pd.DataFrame([{
+                            'date': pd.to_datetime(today_str),
+                            'open': open_p,
+                            'close': q_price,
+                            'high': high_p,
+                            'low': low_p,
+                            'volume': vol
+                        }])
+                        raw_dfs[c] = pd.concat([df, today_row], ignore_index=True)
+                    elif last_date_str == today_str:
+                        raw_dfs[c].loc[raw_dfs[c].index[-1], 'close'] = q_price
+                        if 'high' in raw_dfs[c].columns:
+                            raw_dfs[c].loc[raw_dfs[c].index[-1], 'high'] = max(raw_dfs[c].loc[raw_dfs[c].index[-1], 'high'], q_price)
+                        if 'low' in raw_dfs[c].columns:
+                            raw_dfs[c].loc[raw_dfs[c].index[-1], 'low'] = min(raw_dfs[c].loc[raw_dfs[c].index[-1], 'low'], q_price)
 
         # 0. 计算 1000/300 大小盘风格剪刀差宏观雷达
         scissors_info = {

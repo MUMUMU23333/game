@@ -178,7 +178,7 @@ def get_etf_data(etf_code: str, count: int = 35):
         except Exception as e:
             print(f"jqdatasdk 获取 {etf_code} 异常: {e}，切换备用高保真行情源")
 
-    # 腾讯前复权日K线接口 (高保真日线数据，精准支持 A股/ETF/LOF)
+    # 腾讯前复权日K线接口 (高保真日线数据，精准支持 A股/ETF/LOF，含盘中零时滞快照热缝合)
     try:
         prefix = "sh" if etf_code.endswith(".XSHG") else "sz"
         symbol = prefix + etf_code[:6]
@@ -190,9 +190,32 @@ def get_etf_data(etf_code: str, count: int = 35):
             sec_data = data["data"][symbol]
             kline = sec_data.get("qfqday", sec_data.get("day", []))
             if kline and len(kline) >= count:
-                closes = np.array([float(x[2]) for x in kline])
-                curr_price = closes[-1]
-                hist_prices = closes[:-1] if len(closes) > count else closes
+                closes_list = [float(x[2]) for x in kline]
+                last_date_str = str(kline[-1][0])[:10]
+                today_str = datetime.datetime.now().strftime("%Y-%m-%d")
+
+                # 拉取盘中实时快照消灭 T-1 滞后
+                realtime_price = 0.0
+                try:
+                    q_url = f"http://qt.gtimg.cn/q={symbol}"
+                    q_resp = requests.get(q_url, headers=headers, timeout=3)
+                    if q_resp.status_code == 200 and '="' in q_resp.text:
+                        parts = q_resp.text.split('="')[1].split('~')
+                        if len(parts) > 3 and parts[3]:
+                            realtime_price = float(parts[3])
+                except Exception:
+                    pass
+
+                if realtime_price > 0:
+                    curr_price = realtime_price
+                    if last_date_str < today_str:
+                        hist_prices = np.array(closes_list)
+                    else:
+                        hist_prices = np.array(closes_list[:-1])
+                else:
+                    curr_price = closes_list[-1]
+                    hist_prices = np.array(closes_list[:-1] if len(closes_list) > count else closes_list)
+
                 return hist_prices, curr_price
     except Exception as e:
         print(f"腾讯行情获取 {etf_code} 异常: {e}")
