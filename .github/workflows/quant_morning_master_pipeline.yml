@@ -58,13 +58,14 @@ jobs:
           fi
 
       # ----------------------------------------------------------------------
-      # 阶段 1: 09:26 准点触发【终极神王体 · 苍穹七十矛主板种业神皇版】早盘决策雷达
+      # 阶段 1: 09:26 准点触发【终极神王体 · 苍穹七十九矛·纳指科技巅峰版】早盘决策雷达
       # ----------------------------------------------------------------------
-      - name: 🚀 [阶段 1] 执行 终极神王体 89矛顶峰天王版 早盘决策速查
+      - name: 🚀 [阶段 1] 执行 终极神王体 79矛顶峰天王版 早盘决策速查
         if: "${{ (steps.guard.outputs.is_trade_day == 'true' || inputs.skip_wait) }}"
         env:
-          WECOM_WEBHOOK: ${{ secrets.WECOM_WEBHOOK }}
           GODKING_WEBHOOK: ${{ secrets.GODKING_WEBHOOK }}
+          WECOM_WEBHOOK: ${{ secrets.WECOM_WEBHOOK }}
+          CHINEXT_BANK_WEBHOOK: ${{ secrets.CHINEXT_BANK_WEBHOOK }}
         run: |
           python godking_ultimate_notifier.py --morning --push
 

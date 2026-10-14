@@ -75,12 +75,19 @@ def main():
     except Exception as e:
         log(f"⚠️ [交易日守卫警告] {e}")
 
+    # 🛑 早盘时间窗口硬守卫 (09:15~09:40，严防开机休眠补跑误发)
+    now_dt = datetime.now()
+    is_force = any(arg in sys.argv for arg in ["--force", "-f", "--skip-guard"])
+    if not is_force and not (now_dt.hour == 9 and 15 <= now_dt.minute <= 40):
+        log(f"🛑 [早盘窗口硬守卫拦截] 当前时间 {now_dt.strftime('%H:%M:%S')} 非 09:15~09:40 早盘窗口，硬锁拒绝发射早盘卡！")
+        return
+
     log("================================================================================")
-    log("🌅 开始执行【终极神王体 · 苍穹九十一矛顶峰天王版】早盘 09:26 开盘态势决策雷达 (本地引擎)...")
+    log("🌅 开始执行【终极神王体 · 苍穹七十九矛·纳指科技巅峰版】早盘 09:26 开盘态势决策雷达 (本地引擎)...")
     log("================================================================================")
     
     tasks = [
-        ("终极神王体 · 91矛早盘雷达", "godking_ultimate_notifier.py", ["--morning", "--push"]),
+        ("终极神王体 · 79矛早盘雷达", "godking_ultimate_notifier.py", ["--morning", "--push"]),
         ("科创-银行轮动 (V5.9 Apex-Master)", "chinext_bank_strategy_notifier.py", ["--push"]),
     ]
     

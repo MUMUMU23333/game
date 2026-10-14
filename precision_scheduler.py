@@ -4,9 +4,11 @@
 精准时钟调度器：用于 GitHub Actions 提前预热与准点对齐发射
 ================================================================================
 """
+import os
 import sys
 import time
 import argparse
+import traceback
 from datetime import datetime, timezone, timedelta
 
 # 修复 Windows 控制台编码
@@ -136,6 +138,8 @@ if __name__ == "__main__":
         th = int(parts[0])
         tm = int(parts[1])
         ts = int(parts[2]) if len(parts) > 2 else 0
-        wait_until_target_beijing_time(th, tm, ts, max_overdue_seconds=args.max_overdue)
     except Exception as e:
-        print(f"⚠️ [时钟调度] 解析目标时间失败: {e}，默认立即执行！")
+        print(f"🛑 [时钟调度] 解析目标时间失败: {e}，退出执行！")
+        sys.exit(1)
+
+    wait_until_target_beijing_time(th, tm, ts, max_overdue_seconds=args.max_overdue)

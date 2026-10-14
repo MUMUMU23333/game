@@ -14,6 +14,7 @@ A股交易日权威判别与休市熔断守卫 (Trade Day Guard)
 ================================================================================
 """
 
+import os
 import sys
 import json
 import time

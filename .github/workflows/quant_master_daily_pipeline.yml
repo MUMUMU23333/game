@@ -68,6 +68,7 @@ jobs:
         if: "${{ (steps.guard.outputs.is_trade_day == 'true' || inputs.skip_wait) }}"
         env:
           WECOM_WEBHOOK: ${{ secrets.WECOM_WEBHOOK }}
+          GODKING_WEBHOOK: ${{ secrets.GODKING_WEBHOOK }}
           CHINEXT_BANK_WEBHOOK: ${{ secrets.CHINEXT_BANK_WEBHOOK }}
           PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
           SERVERCHAN_KEY: ${{ secrets.SERVERCHAN_KEY }}
@@ -78,7 +79,7 @@ jobs:
             python precision_scheduler.py --target 14:48
           fi
           python chinext_bank_strategy_notifier.py --push
-          # 👑【终极神王体 · 苍穹八十九矛顶峰天王版】14:48 尾盘黄金决断:
+          # 👑【终极神王体 · 苍穹七十九矛·纳指科技巅峰版 (79矛)】14:48 尾盘黄金决断:
           python godking_ultimate_notifier.py --push
           # 🚀【云端先发制人 (首选发车引擎)】:
           python fund_rotation_notifier.py

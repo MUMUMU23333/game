@@ -84,6 +84,13 @@ def run_watchdog():
     except Exception as e:
         log(f"⚠️ 交易日守卫检测异常: {e}")
 
+    # 2. 早盘看门狗窗口硬守卫 (09:25~09:40 准点巡检，防开机休眠补跑)
+    now_dt = datetime.now()
+    is_force = any(arg in sys.argv for arg in ["--force", "-f", "--skip-guard"])
+    if not is_force and not (now_dt.hour == 9 and 25 <= now_dt.minute <= 40):
+        log(f"🛑 [看门狗窗口拦截] 当前时间 {now_dt.strftime('%H:%M:%S')} 非 09:25~09:40 早盘看门狗窗口，硬锁拒绝运行。")
+        return
+
     log("=" * 70)
     log(f"🐕 开始执行早盘 09:29 看门狗健康巡检 (Dead Man's Switch)...")
     log(f"📁 策略工作区: {REPO_DIR}")
@@ -99,10 +106,10 @@ def run_watchdog():
 
     missing_tasks = []
     if not godking_ok:
-        log("⚠️ 警报: 检测到【终极神王体 · 91矛早盘雷达】今日尚未完成推送！")
+        log("⚠️ 警报: 检测到【终极神王体 · 79矛早盘雷达】今日尚未完成推送！")
         missing_tasks.append(("godking_ultimate_notifier.py", ["--morning", "--push", "--force"]))
     else:
-        log("✅ 巡检通过: 【终极神王体 · 91矛早盘雷达】已成功交付。")
+        log("✅ 巡检通过: 【终极神王体 · 79矛早盘雷达】已成功交付。")
 
     if not chinext_ok:
         log("⚠️ 警报: 检测到【科创-银行轮动 (V5.9 Apex-Master)】今日尚未完成推送！")

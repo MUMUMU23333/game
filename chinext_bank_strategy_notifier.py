@@ -675,7 +675,7 @@ class StarBankOmniV59Notifier:
             print(f"[!] 推送网络异常: {e}")
             return False
 
-    def run(self, force_push: bool = False, dry_run: bool = False):
+    def run(self, send_push: bool = False, force_push: bool = False, dry_run: bool = False):
         """主入口执行流程"""
         print("=" * 80)
         print("👑 正在执行【科创-银行轮动 · V5.9 Apex-Master · 14大长矛全域直接平铺版】决策雷达...")
@@ -697,9 +697,14 @@ class StarBankOmniV59Notifier:
                 print(f"⚠️ [交易日守卫检测警告] {e}")
 
         # 🛑 策略级时间窗口硬守卫：防范任何云端极端滞后排队唤醒误发
-        if is_morning and not (now_h == 9 and now_m >= 15):
-            print(f"🛑 [早盘窗口硬守卫拦截] 当前时间 {datetime.now().strftime('%H:%M:%S')} 非 09:15~09:59 早盘窗口，硬锁拒绝发射早盘卡！")
-            return
+        is_force = force_push or "--force" in sys.argv or "-f" in sys.argv or dry_run
+        if not is_force:
+            if is_morning and not (now_h == 9 and now_m >= 15):
+                print(f"🛑 [早盘窗口硬守卫拦截] 当前时间 {datetime.now().strftime('%H:%M:%S')} 非 09:15~09:59 早盘窗口，硬锁拒绝发射早盘卡！")
+                return
+            if not is_morning and not ((now_h == 14 and now_m >= 35) or (now_h == 15 and now_m <= 10)):
+                print(f"🛑 [尾盘窗口硬守卫拦截] 当前时间 {datetime.now().strftime('%H:%M:%S')} 非 14:35~15:10 尾盘决策窗口，硬锁拒绝发射尾盘卡！")
+                return
 
         decision = self.calculate_strategy_signal()
         card_md = self.format_markdown_card(decision)
@@ -707,6 +712,10 @@ class StarBankOmniV59Notifier:
 
         if dry_run:
             print("💡 [Dry-run 演练模式] 不执行实际企业微信推送。")
+            return
+
+        if not send_push:
+            print("💡 [本地计算模式] 未附加 --push，仅在控制台输出卡片，不发送网络推送。")
             return
 
         # 去重检查 (基于时段、目标权重和决策内容哈希，早盘与尾盘完全解耦)
@@ -742,13 +751,14 @@ StarBankOmniV58Notifier = StarBankOmniV59Notifier  # 保持向后兼容性别名
 def main():
     import argparse
     parser = argparse.ArgumentParser(description="科创-银行轮动 V5.9 Apex-Master 决策雷达")
-    parser.add_argument('--push', action='store_true', help='强制执行企业微信推送')
-    parser.add_argument('--force', action='store_true', help='忽略重复推送缓存限制')
+    parser.add_argument('--push', action='store_true', help='执行企业微信推送')
+    parser.add_argument('--force', action='store_true', help='忽略重复推送缓存限制与时间窗口硬锁')
+    parser.add_argument('--force-trade-day', action='store_true', help='忽略交易日检查')
     parser.add_argument('--dry-run', action='store_true', help='仅计算并打印卡片，不发送网络请求')
     args = parser.parse_args()
 
     notifier = StarBankOmniV59Notifier()
-    notifier.run(force_push=(args.push or args.force), dry_run=args.dry_run)
+    notifier.run(send_push=(args.push or args.force), force_push=args.force, dry_run=args.dry_run)
 
 
 if __name__ == '__main__':
