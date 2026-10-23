@@ -85,7 +85,7 @@ def main():
         ("七星量化动量策略", os.path.join("quant_strategies", "seven_stars", "local_etf_quant_bot.py"), ["--now"]),
         ("科创-银行轮动 (V5.9 Apex-Master)", "chinext_bank_strategy_notifier.py", ["--push"]),
         ("终极神王体 · 苍穹七十九矛巅峰版 (79矛)", "godking_ultimate_notifier.py", ["--push"]),
-        ("场外公募基金轮动 (006503)", "fund_rotation_notifier.py", ["--check-cloud"])
+        ("方案3+TimesFM分位数无界大动量", "fund_rotation_notifier.py", ["--no-push"])
     ]
     
     results = []
