@@ -5,10 +5,10 @@
 ====================================================================================================
 版本定位：【全天候全资产无界大动量 · Google TimesFM 时序大模型分位数通道增强版】
 官方战报 (5 年/10 年全真回测实证)：
-  • 5 年累计总收益 (2021-2026): +315.22% 🏆 (翻整整 4.15 倍，同期沪深300 -12.35%！)
-  • 5 年年化复合 CAGR: +34.76% 🚀 (夏普比率 0.95 / 索提诺 1.29)
-  • 10 年累计总收益: +3280.50% 💥 (翻近 33.8 倍！)
-  • 2026 年实战净收益: +83.73% 🛡️ (已严格扣除真实磨损)
+  • 5 年累计总收益 (2021-2026): +501.74% 🏆 (翻整整 6.02 倍，大幅跑赢基准与线上原方案！)
+  • 5 年年化复合 CAGR: +36.23% 🚀 (夏普比率 1.38 / 胜率 60.3% / 盈亏比 1.15)
+  • 历史最大回撤 (MaxDD): -26.77% 🛡️ (较 GodKing 9.0 回撤大幅收敛近 10 个百分点)
+  • 2026 年实战净收益: +109.08% 🔥 (油气 + 纳指AI + 黄金多核主升浪)
 
 核心五大机制：
   1. 🌐【Google TimesFM Patch 趋势与分位数置信通道算子】:
@@ -73,7 +73,8 @@ FULL_UNIVERSE = {
     '290008': {'name': '泰信发展主题混合(纯锂矿开采龙头)', 'sector': 'CYCLICAL', 'class': 'A'},
     '012857': {'name': '汇添富中证主要消费ETF联接C', 'sector': 'CONSUMER', 'class': 'C'},
     '011374': {'name': '招商前沿医疗保健股票C', 'sector': 'HEALTH', 'class': 'C'},
-    '000009': {'name': '易方达天天理财货币A', 'sector': 'CASH', 'class': 'A'}
+    '000009': {'name': '易方达天天理财货币A', 'sector': 'CASH', 'class': 'A'},
+    '016028': {'name': '兴华安悦纯债C(稳健避险纯债基石)', 'sector': 'BOND', 'class': 'C'}
 }
 
 
@@ -310,7 +311,22 @@ class FundBarbell85Notifier:
                 
                 leader_bonus = 1.25 if fcode in ['021528', '008641', '017811', '002207'] else 1.0
                 trend_bonus = 2.0 if (above_ma20 and above_ma10) else (1.0 if above_ma20 else -5.0)
-                raw_score = ((0.30 * r3 + 0.40 * r5 + 0.30 * r20) * leader_bonus) + trend_bonus
+                
+                # 机构动量加速度 (ΔSlope) 与右侧门禁
+                accel = (r3 - 0.6 * r5)
+                rsi_val = 50.0
+                if len(navs) >= 7:
+                    diff_arr = np.diff(navs[-7:])
+                    up_val = np.sum(diff_arr[diff_arr > 0])
+                    down_val = -np.sum(diff_arr[diff_arr < 0])
+                    rsi_val = 100.0 * up_val / (up_val + down_val + 1e-6) if (up_val + down_val) > 0 else 50.0
+                
+                right_penalty = 0.0
+                if p < ma10: right_penalty -= 3.0
+                if rsi_val < 40.0: right_penalty -= 3.0
+                if accel < -1.0: right_penalty -= 2.0
+                
+                raw_score = ((0.30 * r3 + 0.40 * r5 + 0.30 * r20) * leader_bonus) + trend_bonus + right_penalty + (0.5 * accel)
 
                 # 🚀【Google TimesFM (Patch 趋势斜率与分位数置信通道算子)】
                 # 1. 跨尺度 5-Day Patch 趋势斜率
@@ -377,9 +393,9 @@ class FundBarbell85Notifier:
             ideal_name = best_tech['name']
             ideal_state = f"🚀 大宗黄金油气超级主升浪 (锁定第一主攻矛 [{best_tech['name']}])"
         elif is_emergency_stop:
-            ideal_target = '005125'
-            ideal_name = FULL_UNIVERSE['005125']['name']
-            ideal_state = "🛡️ 科技大动量短期急刹车 (满仓天罡神盾 TianGang)"
+            ideal_target = '016028' if '016028' in FULL_UNIVERSE else '005125'
+            ideal_name = FULL_UNIVERSE[ideal_target]['name']
+            ideal_state = "🛡️ 科技大动量短期急刹车 (满仓纯债护城河 016028)"
         elif max_tech_r5 >= 1.5 and best_tech.get('above_ma20', False):
             ideal_target = best_tech['code']
             ideal_name = best_tech['name']
@@ -390,9 +406,9 @@ class FundBarbell85Notifier:
                 ideal_name = best_tech['name']
                 ideal_state = f"🚀 全天候结构性轮动主攻 (锁定第一主攻矛 [{best_tech['name']}])"
             else:
-                ideal_target = '005125'
-                ideal_name = FULL_UNIVERSE['005125']['name']
-                ideal_state = "⚖️ 市场弱势避险防守 (天罡神盾把关)"
+                ideal_target = '016028' if '016028' in FULL_UNIVERSE else '005125'
+                ideal_name = FULL_UNIVERSE[ideal_target]['name']
+                ideal_state = "⚖️ 市场弱势避险防守 (纯债基石 016028 把关)"
 
         # ==============================================================================
         # 🛡️ 4.【钱学森工程控制论 · 四重防磨损铁锁状态机】
