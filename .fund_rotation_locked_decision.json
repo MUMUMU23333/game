@@ -1,23 +1,23 @@
 {
   "date": "2026-10-26",
-  "lock_time": "2026-10-26 14:48:50",
+  "lock_time": "2026-10-26 14:48:38",
   "decision": {
-    "check_time": "2026-10-26 14:48:50",
+    "check_time": "2026-10-26 14:48:38",
     "state": "🚀 全天候结构性轮动主攻 (锁定第一主攻矛 [华夏动漫游戏ETF联接C])",
     "gold_desc": "黄金处于常态",
-    "timesfm_tag": "🚀 TimesFM Patch多头加速(+10%)",
-    "action_type": "HOLD_BUFFER",
-    "action_title": "🟢【动量缓冲区生效 · 保持持仓】",
-    "friction_status": "✅ 已满 7 天 (持有第 18 天) · 缓冲区阻断同赛道左右横跳 · 0损耗稳坐钓鱼台",
-    "holding_days": 18,
-    "target_fund": "004243",
-    "target_name": "广发道琼斯石油指数C(美股炼油开采一体化霸主)",
-    "est_pct": 2.54,
-    "est_nav": 3.3178,
-    "reason": "挑战者 [华夏动漫游戏ETF联接C] (得分 +4.14) 领先原标的仅 +0.91分，未达到 2.0 分换仓门槛。继续持有当前标的，避免无谓震荡损耗。",
+    "timesfm_tag": "常态通道",
+    "action_type": "HOLD_LOCKED",
+    "action_title": "🔒【7天免赎锁生效 · 保持持仓】",
+    "friction_status": "🔒 距免赎仅剩 4 天 (已持仓 3/7 天) · 成功拦截 1.5% 提前卖出惩罚 (立省约 ¥1,500元)",
+    "holding_days": 3,
+    "target_fund": "025489",
+    "target_name": "中邮北证50成份指数增强发起C",
+    "est_pct": -2.67,
+    "est_nav": 0.7151,
+    "reason": "挑战者 [华夏动漫游戏ETF联接C] 虽以 +4.14 分暂列榜首，但当前持仓 [中邮北证50成份指数增强发起C] 未满 7 天免赎期。控制论铁锁拦截微小躁动，杜绝 1.5% 倒菜惩罚磨损！",
     "us_premarket": {
-      "avg_pct": 1.84,
-      "detail": "XOM(埃克森美孚): +2.79% | COP(康菲石油): +3.55% | OXY(西方石油): +2.67% | VLO(瓦莱罗能源): -1.64%"
+      "avg_pct": 0.0,
+      "detail": ""
     }
   }
 }

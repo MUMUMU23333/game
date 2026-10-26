@@ -1,0 +1,11 @@
+{
+  "strategy": "Fund-Sovereign Apex Barbell 8.5",
+  "holding_code": "025489",
+  "holding_name": "中邮北证50成份指数增强发起C",
+  "entry_date": "2026-10-23",
+  "entry_nav": 3.1747,
+  "peak_nav": 3.2817,
+  "last_action": "ROTATE_FROM_004243_TO_025489",
+  "last_action_date": "2026-10-23 14:48:53",
+  "is_in_position": true
+}
