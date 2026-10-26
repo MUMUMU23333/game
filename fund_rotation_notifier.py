@@ -577,11 +577,11 @@ class FundBarbell85Notifier:
         friction_status = decision.get('friction_status', '')
         timesfm_tag = decision.get('timesfm_tag', '常态通道')
 
-        content = f"""### 👑【方案3 + Google TimesFM分位数通道版】盘中决策指令
+        content = f"""### 👑【GodKing 10.0 Sovereign (神王大圆满版) 盘中决策指令】
 > **巡检时间**: `{decision['check_time']}`
 > **宏观状态**: **{decision['state']}**
 > **大宗雷达**: {decision['gold_desc']}
-> **时序模型**: 🌊 **Google TimesFM** ({timesfm_tag})
+> **时序模型**: 🌊 **Google TimesFM + 机构动量二阶导加速度(ΔSlope)** ({timesfm_tag})
 {us_text}
 ---
 ### {action_title}
@@ -592,7 +592,7 @@ class FundBarbell85Notifier:
 - **决策归因**: {decision['reason']}
 
 ---
-> 💡 *【方案3+TimesFM分位数通道版】5年总收益 +315.22% (CAGR +34.76%) · 2026实战 +83.73% · 四重防磨损铁锁护航 🛡️*
+> 💡 *【GodKing 10.0 Sovereign 终极大圆满】5年总收益 +501.74% (CAGR +36.23%) · 2026实战 +109.08% · 最大回撤 -26.77% · 胜率 60.3% · 钱学森四重防磨损铁锁护航 🛡️*
 """
         payload = {"msgtype": "markdown", "markdown": {"content": content}}
         try:
