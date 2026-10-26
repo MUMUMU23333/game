@@ -84,9 +84,12 @@ def wait_until_target_beijing_time(
         return
     
     if delta_seconds > max_wait_seconds:
-        print(f"⚠️ [时钟调度] 距离目标时间还有 {delta_seconds/60:.1f} 分钟，超过最大安全等待上限 ({max_wait_seconds/60:.1f}分钟)，立即执行！")
-        return
-        
+        # 🛑 若当前时间距离目标发射时间远大于预热上限 (如跨日、凌晨提前了数小时启动)
+        # 必须判定为非法提前启动或定时器时区错配，绝对硬熔断阻断退出 (Exit 88)，严禁提前早跑！
+        print(f"🛑 [严重提前启动熔断] 当前北京时间 {now.strftime('%H:%M:%S')} 距离目标时间 {target_hour:02d}:{target_minute:02d}:{target_second:02d} 尚有 {delta_seconds/60:.1f} 分钟！")
+        print(f"   ⚠️ 远超最大允许预热窗口 ({max_wait_seconds/60:.1f} 分钟)，判定为非法时区/跨日错配触发！")
+        print(f"   🛡️ 钱学森控制论安全守卫生效：系统立即硬熔断退出 (Exit 88)，杜绝半夜幽灵早跑误发。")
+        sys.exit(88)
     print(f"⏳ [时钟调度] 提前预热就绪！当前北京时间: {now.strftime('%H:%M:%S.%f')[:-3]}")
     print(f"🎯 [时钟调度] 目标发射时间: {target_hour:02d}:{target_minute:02d}:{target_second:02d} (需精准等待 {delta_seconds:.1f} 秒)")
     
