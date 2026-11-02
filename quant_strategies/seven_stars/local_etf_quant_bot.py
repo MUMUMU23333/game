@@ -35,6 +35,8 @@ os.environ.pop("HTTPS_PROXY", None)
 os.environ.pop("http_proxy", None)
 os.environ.pop("https_proxy", None)
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # ==================== 1. 原版配置与参数 ====================
 CONFIG = {
     # 企业微信群机器人 Webhook 地址
@@ -85,7 +87,7 @@ CONFIG = {
     },
     
     # 本地持仓状态文件
-    "state_file": "portfolio_state.json"
+    "state_file": os.path.join(BASE_DIR, "portfolio_state.json")
 }
 
 

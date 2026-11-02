@@ -101,7 +101,7 @@ CONFIG = {
         '512690.XSHG': '酒ETF', '511880.XSHG': '银华日利'
     },
     
-    "state_file": "portfolio_state.json"
+    "state_file": os.path.join(os.path.dirname(os.path.abspath(__file__)), "portfolio_state.json")
 }
 
 
