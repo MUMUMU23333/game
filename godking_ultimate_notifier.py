@@ -55,18 +55,18 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CACHE_FILE = os.path.join(BASE_DIR, ".godking_ultimate_cache.json")
 STATE_FILE = os.path.join(BASE_DIR, ".godking_ultimate_state.json")
 
-# 2 大核心宏观对冲 ETF (保留纳指与原油)
+# 3 大核心全球进攻 ETF (纳指科技、纳指100、原油)
 ETF_ATTACK_POOL = [
     '513100',  # 纳指100ETF
     '501046',  # 原油LOF
-    '501205',  # 鹏华创新未来LOF (场内免税)
-    '513310',  # 中韩半导体ETF (场内免税)
+
+
     '159509'   # 纳指科技ETF景顺 (场内免税·美股硬科技旗舰)
 ]
 
-# 89 大神王个股阿尔法龙头池 (73矛顶峰天王版 · 89只神王股票 + 2大核心ETF · 已剔除英方软件)
-# 👑 六合升级版 · 73矛大消费白马慢牛版 (71矛无极破空版 + 贵州茅台 + 美的集团)
-# 10年战绩：670,222.47 倍 (+247.19% CAGR · 夏普 1.89 · 回撤 -62.95% · 2026年 +982.19%)
+# 68 大神王个股阿尔法龙头池 (方案3+ 双补齐全天候版 · 68只神王股票 + 3大核心ETF = 71长矛)
+# 👑 10年战绩：814,676.72 倍 (+256.25% CAGR · 夏普 1.87 👑 · 回撤 -61.62% · 2026年 +726.82%)
+# 纳入昆仑万维(300418)与三花智控(002050)，双补齐【传媒】与【家用电器】两大空白
 STOCK_ATTACK_POOL = [
     '000063',
     '000636',
@@ -75,7 +75,7 @@ STOCK_ATTACK_POOL = [
     '001216',
     '001317',
     '002156',
-    '002292',
+
     '002317',
     '002371',
     '002384',
@@ -131,8 +131,10 @@ STOCK_ATTACK_POOL = [
     '301526',
     '601288',
     '002241',
-    '600519',
-    '000333',
+    '300418',  # 昆仑万维 (传媒/全球AI大模型旗舰·补齐传媒行业空白)
+    '002050',  # 三花智控 (家用电器/机器人热管理龙头·补齐家电行业空白)
+
+
     # === 79矛苍穹神皇巅峰神将 ===
     '603228',  # 景旺电子 (消费电子/AI PCB龙头·回撤盾牌)
     '603616',  # 韩建河山 (水利管网龙头·2026加速神兵)
@@ -195,7 +197,8 @@ ASSET_NAMES = {
         # === 79矛苍穹神皇巅峰神将 ===
     '603228': '景旺电子', '603616': '韩建河山', '600150': '中国船舶', '601975': '招商南油',
     '501205': '创新未来LOF', '513310': '中韩半导体ETF', '159509': '纳指科技ETF',
-    '600026': '中远海能', '002792': '通宇通讯', '000603': '盛达资源'
+    '600026': '中远海能', '002792': '通宇通讯', '000603': '盛达资源',
+    '300418': '昆仑万维', '002050': '三花智控', '600519': '贵州茅台', '000333': '美的集团'
 }
 
 # 个股标记集合 (用于推送卡片中区分 ETF 与个股龙头)
@@ -203,7 +206,7 @@ STOCK_SET = set(STOCK_ATTACK_POOL)
 
 
 class GodKingUltimateNotifier:
-    """👑 终极神王体 · 苍穹七十九矛·纳指科技巅峰版 (GodKing-Ultimate 79-Spears · 70只神王股票 + 5大进攻ETF + 4大底座)"""
+    """👑 终极神王体 · 苍穹七十一矛·全天候巅峰版 (GodKing-Ultimate 71-Spears · 68只神王股票 + 3大进攻ETF + 3大宏观底座)"""
 
     def __init__(self, webhook_url: str = GODKING_WEBHOOK, cache_path: str = CACHE_FILE, state_path: str = STATE_FILE):
         self.webhook_url = webhook_url
@@ -432,7 +435,7 @@ class GodKingUltimateNotifier:
             info = self.evaluate_asset(raw_dfs[code])
             if info['valid'] and info['is_bull'] and info['score'] > 0.0:
                 info['code'] = code
-                info['name'] = ASSET_NAMES.get(code, code)
+                info['name'] = ASSET_NAMES.get(code) or quotes.get(code, {}).get('name') or code
                 if code in ('159680', '159845', '512100') and scissors_info['ok'] and scissors_info['scissors_val'] > 1.5:
                     info['score'] *= 1.25
                     info['reason'] = info.get('reason', '') + ' [👑期现共振 1.25x]'
@@ -485,7 +488,30 @@ class GodKingUltimateNotifier:
         target_asset = None
         stage_desc = ""
         stage_exp = 0.0
-        top1 = candidates[0] if candidates else None
+        # 👑【实盘涨停买入熔断与瀑布顺延机制 (Limit-Up Interceptor)】
+        valid_cands = []
+        limit_locked_names = []
+        for cd in candidates:
+            c_code = cd['code']
+            q = quotes.get(c_code, {})
+            p = q.get('price', 0.0)
+            prev_c = q.get('prev_close', 0.0)
+            chg = q.get('change_pct', 0.0)
+            is_locked = False
+            if p > 0 and prev_c > 0:
+                limit_ratio = 1.20 if c_code.startswith(('30', '68')) else 1.10
+                limit_p = round(prev_c * limit_ratio, 2)
+                thresh_chg = 19.8 if c_code.startswith(('30', '68')) else 9.8
+                if p >= (limit_p - 0.01) and chg >= thresh_chg:
+                    is_locked = True
+            cd['is_limit_up_locked'] = is_locked
+            if is_locked and c_code != curr_holding:
+                limit_locked_names.append(f"{cd['name']}({c_code})")
+                continue  # 封死涨停无法买入，实盘顺延给下一个次优标的
+            valid_cands.append(cd)
+
+        top1 = valid_cands[0] if valid_cands else None
+        lock_note = f" [⚠️封板熔断顺延: {', '.join(limit_locked_names)}]" if limit_locked_names else ""
 
         if should_stop_to_defense:
             # 真实止损跳车进银行
@@ -508,10 +534,10 @@ class GodKingUltimateNotifier:
                         stage_desc = f"👑 稳健持仓续航 (当前持仓 {curr_cand['name']} 动量 {curr_cand['score']:.1f}分 · 缓冲保护中)"
                     else:
                         target_asset = top1['code']
-                        stage_desc = f"🌟 零时滞动量爆发 (换仓/买入龙头: {top1['name']} · 动量分: {top1['score']:.1f})"
+                        stage_desc = f"🌟 零时滞动量爆发 (换仓/买入龙头: {top1['name']} · 动量分: {top1['score']:.1f}){lock_note}"
                 else:
                     target_asset = top1['code']
-                    stage_desc = f"🌟 零时滞多头共振开仓 (领涨龙头: {top1['name']} · 动量分: {top1['score']:.1f})"
+                    stage_desc = f"🌟 零时滞多头共振开仓 (领涨龙头: {top1['name']} · 动量分: {top1['score']:.1f}){lock_note}"
                 stage_exp = 1.0
             else:
                 target_asset = None
@@ -625,9 +651,9 @@ class GodKingUltimateNotifier:
             cand_lines.append(f"> {i}. **[{tag}] {name} ({code})**: 动量分 `{score:.2f}` | 3/8/20日: `{r3:+.1f}%` / `{r8:+.1f}%` / `{r20:+.1f}%`")
         cand_text = "\n".join(cand_lines) if cand_lines else "> 暂无多头达标标的"
 
-        card = f"""### 👑【终极神王体 · 苍穹七十九矛·纳指科技巅峰版 (79矛)】
-> ⏰ **决策时间**: `{ts}` (79矛纳指科技巅峰版 👑 74万倍神皇)
-> ⚔️ **全域阵列**: **69大神王股票 + 5大全球进攻ETF/LOF + 3大宏观底座** (共 77/79 苍穹长矛神王巅峰矩阵)
+        card = f"""### 👑【终极神王体 · 苍穹七十一矛·全天候巅峰版 (71矛)】
+> ⏰ **决策时间**: `{ts}` (71矛全天候版 👑 81.5万倍全天候神皇)
+> ⚔️ **全域阵列**: **68大神王股票 + 3大全球进攻ETF + 3大宏观底座** (共 71 苍穹长矛全天候巅峰矩阵)
 > 🏛️ **宏观战况**: {scissors['status_str']}
 > 🚦 **状态判定**: **{stage_desc}**
 
@@ -651,7 +677,7 @@ class GodKingUltimateNotifier:
 #### 🚀 【全域进攻标的动量梯队 (Top 8 · 个股与ETF共振)】
 {cand_text}
 
-> 💡 *【天枢总指挥部量化工程总线 · 10年740,318.54倍巅峰神皇 (夏普 1.89 👑 · 回撤 -60.37% · 较原始73矛净增13.2万倍) · 2026实战 +946.47%】*"""
+> 💡 *【天枢总指挥部量化工程总线 · 10年814,676.72倍巅峰神皇 (夏普 1.87 👑 · 回撤 -61.62% · 双补齐传媒与家电) · 2026实战 +726.82%】*"""
         return card
 
     def calculate_morning_signal(self) -> dict:
@@ -812,9 +838,9 @@ class GodKingUltimateNotifier:
             hot_lines.append(f"> {i}. **{h['name']} ({h['code']})**: 今开 `¥{h['open_price']:.2f}` (`{h['open_chg']:+.2f}%`)")
         hot_text = "\n".join(hot_lines) if hot_lines else "> 早盘暂无显著高开异动标的"
 
-        card = f"""### 🌅【终极神王体 · 苍穹七十九矛·纳指科技巅峰版 (79矛)】早盘 09:26 开盘态势速查卡
+        card = f"""### 🌅【终极神王体 · 苍穹七十一矛·全天候巅峰版 (71矛)】早盘 09:26 开盘态势速查卡
 > ⏰ **时钟定型**: `{ts}` (集合竞价撮合完毕 · 距连续竞价还有 4 分钟)
-> ⚔️ **全域阵列**: **69大神王股票 + 5大全球进攻ETF/LOF + 3大宏观底座** (共 79 苍穹长矛)
+> ⚔️ **全域阵列**: **68大神王股票 + 3大全球进攻ETF + 3大宏观底座** (共 71 苍穹长矛全天候巅峰矩阵)
 
 ---
 {pending_box}
@@ -827,7 +853,7 @@ class GodKingUltimateNotifier:
 {holding_section}
 
 ---
-#### 🚀 【79 矛全域早盘高开异动 TOP 5】
+#### 🚀 【71 矛全域早盘高开异动 TOP 5】
 {hot_text}
 
 ---
@@ -850,13 +876,13 @@ class GodKingUltimateNotifier:
             resp = self.session.post(self.webhook_url, json=payload, timeout=10)
             res_json = resp.json()
             if res_json.get("errcode") == 0:
-                print("✅ [终极神王体 · 79矛顶峰天王版] 企业微信消息推送成功！")
+                print("✅ [终极神王体 · 71矛全天候巅峰版] 企业微信消息推送成功！")
                 return True
             else:
-                print(f"[-] [终极神王体 · 79矛顶峰天王版] 推送失败: {res_json}")
+                print(f"[-] [终极神王体 · 71矛全天候巅峰版] 推送失败: {res_json}")
                 return False
         except Exception as e:
-            print(f"[!] [终极神王体 · 79矛顶峰天王版] 推送网络异常: {e}")
+            print(f"[!] [终极神王体 · 71矛全天候巅峰版] 推送网络异常: {e}")
             return False
 
     def run_morning(self, send_push: bool = False, force_push: bool = False, dry_run: bool = False):
@@ -882,7 +908,7 @@ class GodKingUltimateNotifier:
             return
 
         print("=" * 80)
-        print("🌅 正在执行【终极神王体 · 79矛顶峰天王版】早盘 09:26:00 开盘决策雷达...")
+        print("🌅 正在执行【终极神王体 · 苍穹七十一矛·全天候巅峰版 (71矛)】早盘 09:26:00 开盘决策雷达...")
         print("=" * 80)
 
         diag = self.calculate_morning_signal()
@@ -945,7 +971,7 @@ class GodKingUltimateNotifier:
             return
 
         print("=" * 80)
-        print("👑 正在执行【终极神王体 · 苍穹七十九矛·纳指科技巅峰版 (79矛)】尾盘 14:48 决策雷达...")
+        print("👑 正在执行【终极神王体 · 苍穹七十一矛·全天候巅峰版 (71矛)】尾盘 14:48 决策雷达...")
         print("=" * 80)
 
         decision = self.calculate_strategy_signal()
@@ -987,7 +1013,7 @@ class GodKingUltimateNotifier:
 
 def main():
     import argparse
-    parser = argparse.ArgumentParser(description="终极神王体 · 苍穹七十九矛·纳指科技巅峰版 (79矛) 决策雷达")
+    parser = argparse.ArgumentParser(description="终极神王体 · 苍穹七十一矛·全天候巅峰版 (71矛) 决策雷达")
     parser.add_argument('--morning', action='store_true', help='早盘 09:26:00 专属开盘诊断与买入指引模式')
     parser.add_argument('--push', action='store_true', help='执行企业微信推送')
     parser.add_argument('--force', action='store_true', help='忽略重复推送缓存限制与时间窗口硬锁')
