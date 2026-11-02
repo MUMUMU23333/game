@@ -38,7 +38,7 @@ os.environ.pop("https_proxy", None)
 # ==================== 1. 原版配置与参数 ====================
 CONFIG = {
     # 企业微信群机器人 Webhook 地址
-    "wecom_webhook_url": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=46012c55-7fd0-4060-baa8-fc110bb3ca5d",
+    "wecom_webhook_url": (os.environ.get("WECOM_WEBHOOK") or "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=46012c55-7fd0-4060-baa8-fc110bb3ca5d"),
     
     # 聚宽 jqdatasdk 账号（可选，未配置则自动使用免费高保真行情源）
     "jq_username": "",
@@ -93,7 +93,7 @@ CONFIG = {
 def send_wecom_markdown(webhook_url: str, title: str, content: str, max_retries: int = 3) -> bool:
     """向企业微信群机器人发送 Markdown 消息（内置 3 次指数退避重试）"""
     # 优先使用环境变量中的 WECOM_WEBHOOK
-    target_url = os.environ.get("WECOM_WEBHOOK", webhook_url)
+    target_url = (os.environ.get("WECOM_WEBHOOK") or webhook_url or "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=46012c55-7fd0-4060-baa8-fc110bb3ca5d")
     if not target_url or "YOUR_BOT_KEY" in target_url or not target_url.startswith("http"):
         print(f"⚠️ [提示] 未配置有效的企业微信 Webhook URL，消息将在控制台展示：")
         print("\n" + "="*55)

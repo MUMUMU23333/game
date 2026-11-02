@@ -143,7 +143,7 @@ def record_push_cache(push_key: str):
         pass
 
 def send_wecom_markdown(webhook_url: str, title: str, content: str, push_key: str = "daily_signal", force: bool = False, max_retries: int = 3) -> bool:
-    target_url = os.environ.get("WECOM_WEBHOOK", webhook_url)
+    target_url = (os.environ.get("WECOM_WEBHOOK") or webhook_url or "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=8b74cac3-9fc2-497c-a287-b591246e3393")
     if not target_url or "YOUR_BOT_KEY" in target_url or not target_url.startswith("http"):
         print(f"⚠️ 未配置有效的企业微信 Webhook URL:\n{content}")
         return False
