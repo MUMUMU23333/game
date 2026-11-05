@@ -197,6 +197,52 @@ class CrossMarketApexEngine:
             print(f"[!] 拉取行情异常 {market}{code}: {e}")
         return {}
 
+    def fetch_batch_a_quotes(self, items: list) -> dict:
+        """批量拉取 A 股 / ETF 实时行情 (单次 HTTP 请求批量获取，毫秒级响应)"""
+        if not items:
+            return {}
+        q_str = ",".join(items)
+        url = f"http://qt.gtimg.cn/q={q_str}"
+        quotes = {}
+        try:
+            resp = self.session.get(url, timeout=5)
+            for line in resp.text.strip().split(";"):
+                if "=" not in line:
+                    continue
+                k, v = line.split("=", 1)
+                sec_id = k.strip().replace("v_", "")
+                parts = v.strip('"').split("~")
+                if len(parts) > 34:
+                    name = parts[1]
+                    code = parts[2]
+                    price = float(parts[3]) if parts[3] else 0.0
+                    prev_close = float(parts[4]) if parts[4] else price
+                    open_p = float(parts[5]) if len(parts) > 5 and parts[5] else price
+                    vol = float(parts[6]) if len(parts) > 6 and parts[6] else 0.0
+                    high = float(parts[33]) if len(parts) > 33 and parts[33] else price
+                    low = float(parts[34]) if len(parts) > 34 and parts[34] else price
+                    amt = float(parts[37]) * 10000.0 if len(parts) > 37 and parts[37] else (vol * price * 100.0)
+                    chg = float(parts[32]) if parts[32] else ((price / prev_close - 1) * 100 if prev_close > 0 else 0.0)
+                    gap = round((open_p / prev_close - 1) * 100, 2) if prev_close > 0 and open_p > 0 else 0.0
+                    vwap = round(amt / (vol * 100.0), 3) if vol > 0 else price
+                    quotes[sec_id] = {
+                        'code': code,
+                        'name': name,
+                        'price': price,
+                        'prev_close': prev_close,
+                        'open_price': open_p,
+                        'high': high,
+                        'low': low,
+                        'chg': chg,
+                        'gap': gap,
+                        'volume': vol,
+                        'amount': amt,
+                        'vwap': vwap
+                    }
+        except Exception as e:
+            print(f"[!] 批量拉取行情异常: {e}")
+        return quotes
+
     def fetch_global_macro_snapshot(self) -> dict:
         """
         拉取全球隔夜风向标快照 (新浪/腾讯多通道):
@@ -227,9 +273,9 @@ class CrossMarketApexEngine:
             }
         }
         
-        # 1. 从新浪外盘接口拉取指数与大宗
+        # 1. 从新浪外盘接口拉取指数与大宗 (含权威实时 VIX 恐慌指数 znb_VIX)
         try:
-            sina_url = "http://hq.sinajs.cn/list=gb_ixic,gb_inx,gb_nvda,hf_GC,fx_susdcnh,rt_hkHSTECH,rt_hkHSI"
+            sina_url = "http://hq.sinajs.cn/list=gb_ixic,gb_inx,gb_nvda,hf_GC,fx_susdcnh,rt_hkHSTECH,rt_hkHSI,znb_VIX"
             headers = {"Referer": "https://finance.sina.com.cn"}
             resp = self.session.get(sina_url, headers=headers, timeout=5)
             lines = resp.text.strip().split("\n")
@@ -246,6 +292,15 @@ class CrossMarketApexEngine:
                     parts = line.split('="')[1].split(",")
                     if len(parts) > 2 and parts[2]:
                         macro["nvda_chg"] = float(parts[2])
+                elif "znb_VIX" in line and '="' in line:  # 新浪实时 VIX 恐慌指数
+                    parts = line.split('="')[1].split(",")
+                    if len(parts) > 1 and parts[1]:
+                        try:
+                            macro["vix"] = float(parts[1])
+                            if len(parts) > 3 and parts[3]:
+                                macro["vix_chg"] = float(parts[3])
+                        except Exception:
+                            pass
                 elif "hf_GC" in line and '="' in line:  # COMEX 黄金
                     parts = line.split('="')[1].split(",")
                     if len(parts) > 7:
@@ -269,9 +324,9 @@ class CrossMarketApexEngine:
         except Exception as e:
             print(f"[!] 全球宏观快照拉取异常: {e}")
 
-        # 2. 从腾讯接口拉取实时 VIX 恐慌指数、美债基准 TLT 以及美股映射核心龙头
+        # 2. 从腾讯接口拉取实时美债基准 TLT 以及美股映射核心龙头
         try:
-            tx_url = "http://qt.gtimg.cn/q=usVIX,usTLT,usNVDA,usTSLA,usAMZN,usFCX,usENPH,usXBI"
+            tx_url = "http://qt.gtimg.cn/q=usTLT,usNVDA,usTSLA,usAMZN,usFCX,usENPH,usXBI"
             t_resp = self.session.get(tx_url, timeout=5)
             for line in t_resp.text.strip().split(";"):
                 if "=" not in line:
@@ -279,9 +334,7 @@ class CrossMarketApexEngine:
                 k, v = line.split("=", 1)
                 ticker = k.strip().replace("v_us", "").replace("us", "")
                 parts = v.strip('"').split("~")
-                if ticker == "VIX" and len(parts) > 3 and parts[3]:
-                    macro["vix"] = float(parts[3])
-                elif ticker == "TLT" and len(parts) > 4 and parts[3] and parts[4]:
+                if ticker == "TLT" and len(parts) > 4 and parts[3] and parts[4]:
                     curr = float(parts[3])
                     prev = float(parts[4])
                     if prev > 0:
@@ -297,7 +350,7 @@ class CrossMarketApexEngine:
                         except Exception:
                             pass
         except Exception as e:
-            print(f"[!] VIX/TLT/美股龙头拉取异常: {e}")
+            print(f"[!] TLT/美股龙头拉取异常: {e}")
             
         return macro
 
@@ -374,7 +427,15 @@ class CrossMarketApexEngine:
                 if info["group_key"] not in banned_sectors:
                     banned_sectors.append(info["group_key"])
 
-        # 2. 扫描八大映射板块，计算微观承接与胜率得分
+        # 2. 批量拉取所有候选 A股 / ETF 实时行情 (单次 HTTP 请求毫秒级搞定)
+        sec_keys = []
+        for cfg in MAPPING_RADAR_POOL.values():
+            for t_k in ["top_etf", "top_stock", "top_stock_2"]:
+                item = cfg.get(t_k)
+                if item:
+                    sec_keys.append(f"{item['market']}{item['code']}")
+        quotes_map = self.fetch_batch_a_quotes(list(set(sec_keys)))
+
         candidate_signals = []
         for key, config in MAPPING_RADAR_POOL.items():
             # 宏观状态机一票否决
@@ -385,8 +446,11 @@ class CrossMarketApexEngine:
             primary_target = config.get("top_etf") or config.get("top_stock")
             secondary_target = config.get("top_stock_2") or config.get("top_stock") or config.get("top_etf")
             
-            quote_1 = self.fetch_realtime_a_quote(primary_target["code"], primary_target["market"])
-            quote_2 = self.fetch_realtime_a_quote(secondary_target["code"], secondary_target["market"]) if secondary_target else {}
+            p_key = f"{primary_target['market']}{primary_target['code']}"
+            s_key = f"{secondary_target['market']}{secondary_target['code']}" if secondary_target else None
+            
+            quote_1 = quotes_map.get(p_key) or self.fetch_realtime_a_quote(primary_target["code"], primary_target["market"])
+            quote_2 = quotes_map.get(s_key) or {} if s_key else {}
             
             if not quote_1:
                 continue
