@@ -129,6 +129,20 @@ MAPPING_RADAR_POOL = {
 }
 
 # ==========================================
+# 1.1 资产异质性动态冲击阈值表 (根据资产真实波动率 ATR/Sigma 机构级校准)
+# ==========================================
+DYNAMIC_SHOCK_THRESHOLDS = {
+    "COMMODITY_GOLD": -1.0,    # 黄金低波敏感：跌幅超过 -1.0% 即触发异动警报
+    "COMMODITY_COPPER": -2.3,  # 铜/工业金属：跌幅超过 -2.3% 触发
+    "GRID_EXPORT": -2.5,       # 电网设备出海：跌幅超过 -2.5% 触发
+    "CLOUD": -2.5,             # 亚马逊/微软云计算：跌幅超过 -2.5% 触发
+    "CHINA_CORE": -2.8,        # 中概/离岸中国资产：跌幅超过 -2.8% 触发
+    "HIGH_TECH": -3.0,         # 英伟达算力芯片：高贝塔品种，跌幅超过 -3.0% 触发
+    "SOLAR_BATTERY": -3.8,     # 特斯拉/Enphase高波动赛道：日均振幅大，跌幅超过 -3.8% 触发
+    "BIOTECH": -3.5            # 标普生科XBI高弹品种：跌幅超过 -3.5% 触发
+}
+
+# ==========================================
 # 2. 策略环境与状态参数锁
 # ==========================================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -264,12 +278,12 @@ class CrossMarketApexEngine:
             "regime": "GOLDILOCKS",
             "status": "NORMAL",
             "us_anchors": {
-                "NVDA": {"name": "英伟达/算力", "chg": 0.0, "a_sector": "AI算力通信", "group_key": "AI_COMPUTE_CHAIN"},
-                "TSLA": {"name": "特斯拉/储能车", "chg": 0.0, "a_sector": "光伏储能出海", "group_key": "SOLAR_STORAGE_EXPORT"},
-                "ENPH": {"name": "Enphase/光伏", "chg": 0.0, "a_sector": "光伏逆变器", "group_key": "SOLAR_STORAGE_EXPORT"},
-                "FCX": {"name": "自由港/铜金属", "chg": 0.0, "a_sector": "工业金属/铜", "group_key": "COPPER_METAL"},
-                "XBI": {"name": "标普生科XBI", "chg": 0.0, "a_sector": "医药创新药", "group_key": "MEDICAL_BIOTECH"},
-                "AMZN": {"name": "亚马逊/云算力", "chg": 0.0, "a_sector": "云计算与液冷", "group_key": "CLOUD_COMPUTING"},
+                "NVDA": {"name": "英伟达/算力", "chg": 0.0, "a_sector": "AI算力通信", "group_key": "AI_COMPUTE_CHAIN", "type": "HIGH_TECH"},
+                "TSLA": {"name": "特斯拉/储能车", "chg": 0.0, "a_sector": "光伏储能出海", "group_key": "SOLAR_STORAGE_EXPORT", "type": "SOLAR_BATTERY"},
+                "ENPH": {"name": "Enphase/光伏", "chg": 0.0, "a_sector": "光伏逆变器", "group_key": "SOLAR_STORAGE_EXPORT", "type": "SOLAR_BATTERY"},
+                "FCX": {"name": "自由港/铜金属", "chg": 0.0, "a_sector": "工业金属/铜", "group_key": "COPPER_METAL", "type": "COMMODITY_COPPER"},
+                "XBI": {"name": "标普生科XBI", "chg": 0.0, "a_sector": "医药创新药", "group_key": "MEDICAL_BIOTECH", "type": "BIOTECH"},
+                "AMZN": {"name": "亚马逊/云算力", "chg": 0.0, "a_sector": "云计算与液冷", "group_key": "CLOUD_COMPUTING", "type": "CLOUD"},
             }
         }
         
@@ -416,13 +430,14 @@ class CrossMarketApexEngine:
             if macro["hstech_chg"] < -1.5:
                 hk_sentry_confirmed = False
                 
-        # 扫描隔夜美股核心映射板块是否有重挫/大跌标的 (动态生成排雷警报并加入一票否决名单)
+        # 扫描隔夜美股核心映射板块是否有重挫/大跌标的 (采用资产异质性分层动态阈值)
         us_drop_warnings = []
         for ticker, info in macro.get("us_anchors", {}).items():
             chg = info.get("chg", 0.0)
-            if chg <= -1.8:  # 跌幅超过 -1.8% 判定为重挫传导风险
+            thresh = DYNAMIC_SHOCK_THRESHOLDS.get(info.get("type", "HIGH_TECH"), -2.5)
+            if chg <= thresh:
                 us_drop_warnings.append(
-                    f"❌ 隔夜美股【{info['name']}】重挫 {chg:+.1f}% ➔ 警惕A股【{info['a_sector']}】开盘大跌，坚决规避！"
+                    f"❌ 隔夜美股【{info['name']}】大跌 {chg:+.1f}% 触及异动阈值({thresh:.1f}%) ➔ 警惕A股【{info['a_sector']}】开盘大跌！"
                 )
                 if info["group_key"] not in banned_sectors:
                     banned_sectors.append(info["group_key"])
@@ -438,11 +453,6 @@ class CrossMarketApexEngine:
 
         candidate_signals = []
         for key, config in MAPPING_RADAR_POOL.items():
-            # 宏观状态机一票否决
-            if key in banned_sectors:
-                continue
-                
-            # 获取该板块的 Top 1 旗舰标的 (ETF 或 个股)
             primary_target = config.get("top_etf") or config.get("top_stock")
             secondary_target = config.get("top_stock_2") or config.get("top_stock") or config.get("top_etf")
             
@@ -454,6 +464,20 @@ class CrossMarketApexEngine:
             
             if not quote_1:
                 continue
+
+            # ---------------------------------------------------------
+            # 核心创新：【逆势强承接豁免开锁 (Resilient VWAP Reversal Absorption)】
+            # ---------------------------------------------------------
+            is_unlocked_by_resilience = False
+            if key in banned_sectors:
+                # 即使所属板块被美股大跌报警，但如果 A股该标的早盘拒绝跟随跳水 (Gap >= -1.5%)
+                # 且 09:35 分时逆势放量站稳均线上方 (Price >= VWAP * 1.004 且实体走红 Price > Open)
+                if (quote_1["gap"] >= -1.5 and 
+                    quote_1["price"] >= quote_1["vwap"] * 1.004 and 
+                    quote_1["price"] > quote_1["open_price"]):
+                    is_unlocked_by_resilience = True
+                else:
+                    continue  # 确实跟随外盘大跌受累，维持一票否决
                 
             gap = quote_1["gap"]
             curr_p = quote_1["price"]
@@ -461,7 +485,7 @@ class CrossMarketApexEngine:
             chg = quote_1["chg"]
             
             # 微观结构健康度打分
-            is_gap_safe = (0.3 <= gap <= 2.8)          # 黄金射击区 (严禁高开 > 3.0%)
+            is_gap_safe = (0.3 <= gap <= 2.8) or is_unlocked_by_resilience # 黄金射击区 (严禁高开 > 3.0%)
             is_above_vwap = (curr_p >= vwap * 0.999)    # 站上分时均线
             
             score = 0.0
@@ -480,6 +504,8 @@ class CrossMarketApexEngine:
                 score += 10.0
             if key in preferred_sectors:
                 score += 15.0  # 宏观顺风奖分
+            if is_unlocked_by_resilience:
+                score += 20.0  # 逆势强承接特等奖分 (利空出尽反包)
                 
             candidate_signals.append({
                 "group_key": key,
@@ -490,7 +516,8 @@ class CrossMarketApexEngine:
                 "secondary_meta": secondary_target,
                 "score": score,
                 "is_gap_safe": is_gap_safe,
-                "is_above_vwap": is_above_vwap
+                "is_above_vwap": is_above_vwap,
+                "is_unlocked": is_unlocked_by_resilience
             })
             
         # 按得分降序排列
