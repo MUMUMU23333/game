@@ -68,6 +68,8 @@ MAPPING_RADAR_POOL = {
         "name": "LME铜与工业金属链",
         "tier": "T0 绝对统治级",
         "win_rate_exp": "75.00%",
+        "gap_min": 0.4,
+        "gap_max": 3.5,
         "us_anchors": ["FCX", "SCCO", "AA"],
         "top_stock": {"code": "603993", "name": "洛阳钼业", "market": "sh", "win_rate": "75.00%", "plr": 2.13},
         "top_etf": {"code": "512400", "name": "有色金属ETF", "market": "sh", "win_rate": "74.42%", "plr": 2.19},
@@ -103,6 +105,8 @@ MAPPING_RADAR_POOL = {
         "name": "云计算与液冷智算底座",
         "tier": "T1 产业主升浪",
         "win_rate_exp": "74.19%",
+        "gap_min": 0.4,
+        "gap_max": 3.5,
         "us_anchors": ["AMZN", "MSFT", "GOOGL"],
         "top_stock": {"code": "002837", "name": "英维克", "market": "sz", "win_rate": "74.19%", "plr": 3.22},
         "top_stock_2": {"code": "300442", "name": "润泽科技", "market": "sz", "win_rate": "73.08%", "plr": 2.65},
@@ -125,6 +129,8 @@ MAPPING_RADAR_POOL = {
         "name": "医疗器械底座与创新药出海",
         "tier": "T2 防守反击级",
         "win_rate_exp": "77.78%",
+        "gap_min": 0.2,
+        "gap_max": 2.5,
         "us_anchors": ["XBI", "MRK", "LLY"],
         "top_etf": {"code": "512170", "name": "医疗ETF", "market": "sh", "win_rate": "77.78%", "plr": 1.55},
         "top_stock": {"code": "002422", "name": "科伦药业", "market": "sz", "win_rate": "72.73%", "plr": 1.69},
@@ -137,13 +143,13 @@ MAPPING_RADAR_POOL = {
 # ==========================================
 DYNAMIC_SHOCK_THRESHOLDS = {
     "COMMODITY_GOLD": -0.8,    # 黄金低波敏感：跌幅超过 -0.8% 即触发异动警报 (网格寻优帕累托最优，胜率75.00%，回撤仅3.56%)
-    "COMMODITY_COPPER": -2.3,  # 铜/工业金属：跌幅超过 -2.3% 触发
+    "COMMODITY_COPPER": -2.3,  # 铜/工业金属：跌幅超过 -2.3% 触发 (网格寻优最优解，胜率75.00%，盈亏比2.38)
     "GRID_EXPORT": -2.5,       # 电网设备出海：跌幅超过 -2.5% 触发
-    "CLOUD": -2.5,             # 亚马逊/微软云计算：跌幅超过 -2.5% 触发
+    "CLOUD": -1.8,             # 亚马逊/微软云计算：跌幅超过 -1.8% 触发 (网格寻优最优解，胜率从58.3%跃升至61.54%，盈亏比2.47)
     "CHINA_CORE": -2.0,        # 中概/离岸中国资产：跌幅超过 -2.0% 触发 (网格寻优最优解，胜率跃升至73.33%，盈亏比2.25)
     "HIGH_TECH": -3.0,         # 英伟达算力芯片：高贝塔品种，跌幅超过 -3.0% 触发
     "SOLAR_BATTERY": -3.8,     # 特斯拉/Enphase高波动赛道：日均振幅大，跌幅超过 -3.8% 触发
-    "BIOTECH": -3.5            # 标普生科XBI高弹品种：跌幅超过 -3.5% 触发
+    "BIOTECH": -2.5            # 标普生科XBI高弹品种：跌幅超过 -2.5% 触发 (网格寻优最优解，胜率从76.3%暴增至81.48%，盈亏比1.79)
 }
 
 # ==========================================
