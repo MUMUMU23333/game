@@ -216,7 +216,15 @@ class CrossMarketApexEngine:
             "copper_chg": 0.0,
             "nvda_chg": 0.0,
             "regime": "GOLDILOCKS",
-            "status": "NORMAL"
+            "status": "NORMAL",
+            "us_anchors": {
+                "NVDA": {"name": "英伟达/算力", "chg": 0.0, "a_sector": "AI算力通信", "group_key": "AI_COMPUTE_CHAIN"},
+                "TSLA": {"name": "特斯拉/储能车", "chg": 0.0, "a_sector": "光伏储能出海", "group_key": "SOLAR_STORAGE_EXPORT"},
+                "ENPH": {"name": "Enphase/光伏", "chg": 0.0, "a_sector": "光伏逆变器", "group_key": "SOLAR_STORAGE_EXPORT"},
+                "FCX": {"name": "自由港/铜金属", "chg": 0.0, "a_sector": "工业金属/铜", "group_key": "COPPER_METAL"},
+                "XBI": {"name": "标普生科XBI", "chg": 0.0, "a_sector": "医药创新药", "group_key": "MEDICAL_BIOTECH"},
+                "AMZN": {"name": "亚马逊/云算力", "chg": 0.0, "a_sector": "云计算与液冷", "group_key": "CLOUD_COMPUTING"},
+            }
         }
         
         # 1. 从新浪外盘接口拉取指数与大宗
@@ -261,25 +269,35 @@ class CrossMarketApexEngine:
         except Exception as e:
             print(f"[!] 全球宏观快照拉取异常: {e}")
 
-        # 2. 从腾讯接口拉取实时 VIX 恐慌指数与美债基准 TLT
+        # 2. 从腾讯接口拉取实时 VIX 恐慌指数、美债基准 TLT 以及美股映射核心龙头
         try:
-            tx_url = "http://qt.gtimg.cn/q=usVIX,usTLT"
-            t_resp = self.session.get(tx_url, timeout=4)
+            tx_url = "http://qt.gtimg.cn/q=usVIX,usTLT,usNVDA,usTSLA,usAMZN,usFCX,usENPH,usXBI"
+            t_resp = self.session.get(tx_url, timeout=5)
             for line in t_resp.text.strip().split(";"):
-                if "usVIX=" in line and '="' in line:
-                    parts = line.split('="')[1].split("~")
-                    if len(parts) > 3 and parts[3]:
-                        macro["vix"] = float(parts[3])
-                elif "usTLT=" in line and '="' in line:
-                    parts = line.split('="')[1].split("~")
-                    if len(parts) > 4 and parts[3] and parts[4]:
-                        curr = float(parts[3])
-                        prev = float(parts[4])
-                        if prev > 0:
-                            macro["tlt_chg"] = round((curr / prev - 1) * 100, 2)
-                            macro["tlt_price"] = curr
+                if "=" not in line:
+                    continue
+                k, v = line.split("=", 1)
+                ticker = k.strip().replace("v_us", "").replace("us", "")
+                parts = v.strip('"').split("~")
+                if ticker == "VIX" and len(parts) > 3 and parts[3]:
+                    macro["vix"] = float(parts[3])
+                elif ticker == "TLT" and len(parts) > 4 and parts[3] and parts[4]:
+                    curr = float(parts[3])
+                    prev = float(parts[4])
+                    if prev > 0:
+                        macro["tlt_chg"] = round((curr / prev - 1) * 100, 2)
+                        macro["tlt_price"] = curr
+                elif ticker in macro["us_anchors"]:
+                    if len(parts) > 32 and parts[32]:
+                        try:
+                            val = float(parts[32])
+                            macro["us_anchors"][ticker]["chg"] = val
+                            if ticker == "NVDA":
+                                macro["nvda_chg"] = val
+                        except Exception:
+                            pass
         except Exception as e:
-            print(f"[!] VIX/TLT 拉取异常: {e}")
+            print(f"[!] VIX/TLT/美股龙头拉取异常: {e}")
             
         return macro
 
@@ -345,6 +363,17 @@ class CrossMarketApexEngine:
             if macro["hstech_chg"] < -1.5:
                 hk_sentry_confirmed = False
                 
+        # 扫描隔夜美股核心映射板块是否有重挫/大跌标的 (动态生成排雷警报并加入一票否决名单)
+        us_drop_warnings = []
+        for ticker, info in macro.get("us_anchors", {}).items():
+            chg = info.get("chg", 0.0)
+            if chg <= -1.8:  # 跌幅超过 -1.8% 判定为重挫传导风险
+                us_drop_warnings.append(
+                    f"❌ 隔夜美股【{info['name']}】重挫 {chg:+.1f}% ➔ 警惕A股【{info['a_sector']}】开盘大跌，坚决规避！"
+                )
+                if info["group_key"] not in banned_sectors:
+                    banned_sectors.append(info["group_key"])
+
         # 2. 扫描八大映射板块，计算微观承接与胜率得分
         candidate_signals = []
         for key, config in MAPPING_RADAR_POOL.items():
@@ -467,100 +496,74 @@ class CrossMarketApexEngine:
                 "cost": actual_cost,
                 "cash_left": cash_left
             },
-            "candidates": candidate_signals
+            "candidates": candidate_signals,
+            "us_drop_warnings": us_drop_warnings
         }
         
         return decision_result
 
     def format_wecom_markdown(self, decision: dict) -> str:
-        """生成符合顶级对冲基金/外资大行晨会标准的极简高质感企业微信 Markdown 战报"""
+        """生成极简高质感企业微信 Markdown 战报 (动态排雷·拒绝废话版)"""
         now_str = decision["timestamp"]
         macro = decision["macro"]
         t = decision["target"]
         action = decision["action"]
         
-        if "BUY" in action:
-            status_badge = "🌟 跨市场黄金动量爆发 (触发真突破买单)"
-            status_color = "🟢"
-        elif "DEFENSE" in action:
-            status_badge = "🛡️ 全球宏观风暴防御 (防守空仓/货币避险)"
-            status_color = "🔴"
-        else:
-            status_badge = "⚖️ 预期差过滤等待期 (未过09:35均线前严禁抢跑)"
-            status_color = "🟡"
+        status_badge = "🟢 触发买单" if "BUY" in action else ("🔴 防御避险" if "DEFENSE" in action else "🟡 观望等待")
             
         md = []
-        md.append("👑【天枢总指挥部 · 全球跨市场夜盘映射决策晨报 (CrossMarket-Apex)】")
-        md.append(f"⏰ 决策时刻: `{now_str}` | 架构: `对冲基金五重闭环防收割版`")
-        md.append(f"{status_color} 战术状态: **{status_badge}**")
-        md.append(f"📝 战术成因: *{decision['reason']}*")
+        md.append("👑【天枢总指挥部 · 跨市场夜盘映射晨报】")
+        md.append(f"⏰ 时间: `{now_str}` | 状态: **{status_badge}**")
+        md.append(f"📝 成因: *{decision['reason']}*")
         md.append("---")
         
-        # ─────────────────────────────────────────────────────────────
-        # 1. 🚨 机构级排雷风控 · 今日高危/可能暴雷板块与陷阱预警 (放在最前)
-        # ─────────────────────────────────────────────────────────────
-        md.append("🚨 【⚠️ 机构级排雷风控 · 今日高危/暴雷板块与陷阱预警】")
-        md.append("> 顶级机构生存铁律：先排雷避险，再争取阿尔法超额！")
-        md.append("❌ 1. **传统光伏主链与内卷组件 (通威/隆基/光伏ETF 515790)**")
-        md.append("   • 排雷逻辑: 硅料严重过剩、欧美双反加征关税，美股映射严重脱节，严禁盲目抄底！")
-        md.append("❌ 2. **传统政企IT与本地软件 (用友网络/广联达/云计算ETF 516510)**")
-        md.append("   • 排雷逻辑: 地方IT预算削减，缺乏海外AI算力真Capex支撑，反弹即是诱多卖点！")
-        md.append("❌ 3. **隔夜消息刺激高开诱多杂毛 (开盘 Gap > +3.2%)**")
-        md.append("   • 排雷逻辑: 90%概率大单诱多后开盘反手砸盘，历史追高次日大跌概率超 72%！")
-        md.append("❌ 4. **纯地缘与法案压制CXO (药明康德 603259 / 药明生物)**")
-        md.append("   • 排雷逻辑: 美《生物安全法案》压制长线外资，地缘扰动大，冲高回落风险极高！")
-        md.append("🛑 【防割铁律】: 集合竞价高开 **> +3.2%** 或开盘跌破 VWAP **-1.2%** 一票否决！")
+        # 1. 🚨 隔夜美股重挫 · 今日A股暴雷传导排雷预警 (只展示真实大跌)
+        us_warnings = decision.get("us_drop_warnings", [])
+        md.append("🚨 【⚠️ 隔夜美股重挫 · A股暴雷传导排雷预警】")
+        if us_warnings:
+            for w in us_warnings:
+                md.append(w)
+            md.append("🛑 【排雷纪律】: 以上暴跌受累板块今日一票否决，坚决不买！开盘高开 > +3.2% 严禁追高！")
+        else:
+            md.append("✅ 隔夜美股核心映射全线平稳，无单边暴跌传导风险。")
+            md.append("🛑 【防割铁律】: 集合竞价高开 > +3.2% 标的一票否决，严禁追高！")
         md.append("---")
         
-        # ─────────────────────────────────────────────────────────────
         # 2. 🌐 全球宏观状态机与宏观四象限
-        # ─────────────────────────────────────────────────────────────
-        md.append("🌐 【全球宏观状态机与宏观四象限 (Bridgewater/AQR)】")
-        md.append(f"• 🏛️ 宏观状态: **{macro.get('regime_desc', '标准运行')}**")
-        md.append(f"• 🇺🇸 纳指隔夜: `{macro['nasdaq_chg']:+.2f}%` | 恐慌指数 VIX: `{macro['vix']:.2f}` (警戒: 20 / 28)")
-        md.append(f"• 📈 美债基准: 20年+美债TLT `{macro.get('tlt_chg', 0.0):+.2f}%` (现价: ${macro.get('tlt_price', 82.0):.2f} · 折现率锚)")
-        md.append(f"• 🇭🇰 港股前哨: 恒生科技 `{macro['hstech_chg']:+.2f}%` | 恒指 `{macro['hsi_chg']:+.2f}%`")
-        md.append(f"• 💱 离岸汇率: USD/CNH `{macro['cnh_rate']:.4f}` | COMEX黄金: `{macro['gold_chg']:+.2f}%`")
+        md.append("🌐 【全球宏观状态机】")
+        md.append(f"• 宏观状态: **{macro.get('regime_desc', '标准运行')}**")
+        md.append(f"• 纳指: `{macro['nasdaq_chg']:+.2f}%` | 标普: `{macro['spx_chg']:+.2f}%` | VIX恐慌: `{macro['vix']:.1f}` (警戒: 20/28)")
+        md.append(f"• 美债TLT: `{macro.get('tlt_chg', 0.0):+.2f}%` (${macro.get('tlt_price', 82.0):.1f}) | 恒生科技: `{macro['hstech_chg']:+.2f}%` | 离岸CNH: `{macro['cnh_rate']:.4f}`")
         md.append("---")
         
-        # ─────────────────────────────────────────────────────────────
         # 3. 📊 今日实操买单与精确份额
-        # ─────────────────────────────────────────────────────────────
-        md.append("📊 【今日实操买单与精确挂单 (09:35 确认执行)】")
-        md.append(f"🎯 标的名称: **{t['name']} ({t['code']})** | 目标权重: `{t['allocation']}`")
-        md.append(f"💰 最新参考价: `¥{t['price']:.3f}` 元")
-        md.append(f"🛡️ 4万元本金推荐买入: **¥{t['cost']:,.2f} 元** ➔ 挂单 **{t['shares']} 股** ({t['shares']//100} 手)")
+        md.append("📊 【今日实操买单 (09:35 确认执行)】")
+        md.append(f"🎯 标的: **{t['name']} ({t['code']})** | 目标权重: `{t['allocation']}`")
+        md.append(f"🛡️ 4万本金挂单: **¥{t['cost']:,.2f} 元** ➔ 买入 **{t['shares']} 股** ({t['shares']//100} 手) | 参考价: `¥{t['price']:.3f}`")
         md.append(f"💵 预留安全备用金: `¥{t['cash_left']:,.2f} 元`")
         md.append("---")
         
-        # ─────────────────────────────────────────────────────────────
-        # 4. 📋 8大板块 16 顶尖神将天梯榜 (Top 4 动量精锐)
-        # ─────────────────────────────────────────────────────────────
-        md.append("📋 【8大板块精选 16 顶尖神将天梯榜 (Top 4 动量精锐)】")
+        # 4. 📋 8大板块精选天梯榜 (Top 4)
+        md.append("📋 【8大板块精选天梯榜 (Top 4)】")
         for i, c in enumerate(decision["candidates"][:4], 1):
             cfg = c["config"]
             t_q = c["target_quote"]
             t_m = c["target_meta"]
             s_m = c.get("secondary_meta") or {}
-            above_tag = "✅ 站稳均线" if c["is_above_vwap"] else "❌ 跌破均线"
-            gap_tag = "✅ 黄金射击区" if c["is_gap_safe"] else "⚠️ 抢跑透支"
+            above_tag = "✅均线站稳" if c["is_above_vwap"] else "❌均线跌破"
+            gap_tag = "✅黄金射击区" if c["is_gap_safe"] else "⚠️抢跑透支"
             sec_info = f" | 备选: {s_m.get('name','--')}({s_m.get('code','--')})" if s_m else ""
             name_display = t_m.get("name", t_q.get("name", ""))
             md.append(
-                f"{i}. [{cfg['tier'][:2]}] **{cfg['name']}** (期望胜率: `{cfg['win_rate_exp']}`)\n"
-                f"   • 标的: **{name_display}({t_q['code']})** | ¥{t_q['price']:.3f} ({t_q['chg']:+.2f}%) | {above_tag} | {gap_tag}{sec_info}\n"
-                f"   • 逻辑: *{cfg['driver_desc']}*"
+                f"{i}. [{cfg['tier'][:2]}] **{cfg['name']}** (胜率: `{cfg['win_rate_exp']}`)\n"
+                f"   • 标的: **{name_display}({t_q['code']})** | ¥{t_q['price']:.3f} ({t_q['chg']:+.2f}%) | {above_tag} | {gap_tag}{sec_info}"
             )
         md.append("---")
         
-        # ─────────────────────────────────────────────────────────────
         # 5. 🛡️ 机构级动态风控纪律
-        # ─────────────────────────────────────────────────────────────
-        md.append("🛡️ 【机构级动态风控纪律】")
-        md.append("🛑 日内保护: 盘中跌破 VWAP 分时均线 **-1.20%** 自动断路离场")
-        md.append("🎯 动态止盈: **+4.0%** 锁定半仓利润，**+7.5%** 启动移动吊灯止盈")
-        md.append("⚡ 隔夜底线: 收盘破 EMA5 均线或单笔回撤 **-2.50%** 无条件强制止损")
-        md.append("💡 *【天枢总指挥部量化工程总线 · 顶级对冲基金晨会标准 · 敬畏市场，知止而后有定】*")
+        md.append("🛡️ 【风控纪律】")
+        md.append("🛑 日内保护: 破 VWAP 均线 **-1.20%** 断路离场 | 止盈: **+4.0% / +7.5%** | 止损: 破 EMA5 无条件退出")
+        md.append("💡 *【天枢总指挥部量化总线 · 顶级对冲基金晨会标准 · 敬畏市场，知止而后有定】*")
         
         return "\n".join(md)
 
