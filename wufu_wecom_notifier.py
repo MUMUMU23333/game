@@ -22,6 +22,12 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 # 默认企业微信 Webhook 目标地址
 DEFAULT_WUFU_WEBHOOK = os.environ.get(
     'WECOM_WEBHOOK',
@@ -89,12 +95,30 @@ class WuFuWeComNotifier:
         self._save_cache(cache)
 
     def fetch_kline_and_quote(self, code: str, count: int = 30):
-        market = 'sh' if code.startswith(('51', '58', '60', '000', '50')) else 'sz'
-        url = f"http://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param={market}{code},day,2024-01-01,2026-12-31,{count+5},qfq"
+        market = 'sh' if code.startswith(('51', '52', '56', '58', '60', '68', '50')) else 'sz'
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        k_data = []
+        # 1. 主通道：新浪财经高可用 (免疫 501 WAF)
+        sina_url = f"http://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData?symbol={market}{code}&scale=240&ma=no&datalen={count+10}"
         try:
-            resp = self.session.get(url, timeout=5).json()
-            raw = resp.get('data', {}).get(f"{market}{code}", {})
-            k_data = raw.get('qfqday') or raw.get('day', [])
+            resp = self.session.get(sina_url, headers=headers, timeout=5)
+            if resp.status_code == 200:
+                s_data = resp.json()
+                if isinstance(s_data, list) and len(s_data) >= 20:
+                    k_data = [[x['day'], float(x['open']), float(x['close']), float(x['high']), float(x['low']), float(x['volume'])] for x in s_data]
+        except Exception:
+            pass
+
+        # 2. 备用通道：腾讯财经
+        if not k_data:
+            url = f"http://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param={market}{code},day,,,{count+5},qfq"
+            try:
+                resp = self.session.get(url, headers=headers, timeout=5).json()
+                raw = resp.get('data', {}).get(f"{market}{code}", {})
+                k_data = raw.get('qfqday') or raw.get('day', [])
+            except Exception:
+                pass
+        try:
             if k_data and len(k_data) >= 20:
                 closes_list = [float(x[2]) for x in k_data]
                 last_date_str = str(k_data[-1][0])[:10]
@@ -373,12 +397,34 @@ if __name__ == '__main__':
         'buy_date': today_str
     }]
 
-    print(">>> 正在向企业微信发送【五福5.2·纯实时动态计算】实测报告...")
-    notifier.send_notification(
-        stage=f"{today_str} 14:55 尾盘确认",
-        is_weak_regime=True,
-        action_type="HOLD",
-        holds=holds,
-        top_candidates=candidates,
-        force=True
-    )
+    import argparse
+    parser = argparse.ArgumentParser(description="五福5.2企业微信通知器")
+    parser.add_argument('--push', action='store_true', help='执行企业微信推送')
+    parser.add_argument('--force', action='store_true', help='强制忽略重复推送缓存限制与时间窗口硬锁')
+    parser.add_argument('--dry-run', action='store_true', help='仅在控制台演练，不发送企业微信')
+    args = parser.parse_args()
+
+    # 🛑 尾盘窗口硬守卫：严防盘后、半夜非交易时间误触发推送
+    now_dt = datetime.now()
+    now_h, now_m = now_dt.hour, now_dt.minute
+    is_in_window = (now_h == 14 and now_m >= 35) or (now_h == 15 and now_m <= 10)
+
+    if not (args.force or args.dry_run) and not is_in_window:
+        print(f"🛑 [尾盘窗口硬守卫拦截] 当前时间 {now_dt.strftime('%H:%M:%S')} 非 14:35~15:10 尾盘决策窗口！")
+        print("💡 [安全保护生效] 系统已自动终止非交易时段的误发推送。如需测试请加 --dry-run 或 --force。")
+        sys.exit(0)
+
+    if args.dry_run:
+        report = notifier.format_report(f"{today_str} 14:55 尾盘确认 (Dry-Run)", True, "HOLD", holds, candidates)
+        print("\n" + report + "\n")
+        print("💡 [Dry-run 演练模式] 不执行实际企业微信推送。")
+    else:
+        print(">>> 正在向企业微信发送【五福5.2·纯实时动态计算】实测报告...")
+        notifier.send_notification(
+            stage=f"{today_str} 14:55 尾盘确认",
+            is_weak_regime=True,
+            action_type="HOLD",
+            holds=holds,
+            top_candidates=candidates,
+            force=args.force
+        )

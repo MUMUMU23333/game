@@ -23,6 +23,12 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 DEFAULT_QIXING_WEBHOOK = os.environ.get(
     'QIXING_WECOM_WEBHOOK',
     "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=46012c55-7fd0-4060-baa8-fc110bb3ca5d"
@@ -95,10 +101,28 @@ class QiXingWeComNotifier:
         self._save_cache(cache)
 
     def fetch_kline_and_quote(self, code: str, count: int = 35):
-        market = 'sh' if code.startswith(('51', '58', '60', '000', '50')) else 'sz'
-        url = f"http://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param={market}{code},day,2024-01-01,2026-12-31,{count+5},qfq"
+        market = 'sh' if code.startswith(('51', '52', '56', '58', '60', '68', '50')) else 'sz'
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        
+        # 1. 主通道：新浪财经日K线接口 (100% 免疫 501 WAF)
+        sina_url = f"http://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData?symbol={market}{code}&scale=240&ma=no&datalen={count+10}"
         try:
-            resp = self.session.get(url, timeout=5).json()
+            resp = self.session.get(sina_url, headers=headers, timeout=5)
+            if resp.status_code == 200:
+                data = resp.json()
+                if isinstance(data, list) and len(data) >= 30:
+                    closes = np.array([float(x['close']) for x in data])
+                    curr_price = closes[-1]
+                    prev_close = closes[-2]
+                    chg = (curr_price / prev_close - 1.0) * 100.0
+                    return closes, curr_price, round(chg, 2)
+        except Exception:
+            pass
+
+        # 2. 备用通道：腾讯财经
+        url = f"http://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param={market}{code},day,,,{count+5},qfq"
+        try:
+            resp = self.session.get(url, headers=headers, timeout=5).json()
             raw = resp.get('data', {}).get(f"{market}{code}", {})
             k_data = raw.get('qfqday') or raw.get('day', [])
             if k_data and len(k_data) >= 30:
@@ -182,7 +206,8 @@ class QiXingWeComNotifier:
         pnl_pct = round((curr_p / cost_price - 1.0) * 100.0, 2)
         market_val = round(curr_p * amount, 2)
         pnl_amount = round((curr_p - cost_price) * amount, 2)
-        name = quotes_map.get(holding_code, {}).get('name', '华安黄金ETF')
+        ASSET_NAMES_EXT = {'511880': '银华日利货币ETF', '518880': '华安黄金ETF', '159985': '华夏豆粕ETF', '501018': '南方原油LOF', '161226': '国投白银LOF', '513100': '纳指100ETF', '588330': '双创龙头ETF', '159967': '创成长ETF', '588000': '科创50ETF'}
+        name = quotes_map.get(holding_code, {}).get('name', ASSET_NAMES_EXT.get(holding_code, '防御避险ETF'))
         
         stop_price = round(cost_price * 0.95, 3)
         cushion_pct = round((curr_p / stop_price - 1.0) * 100.0, 2)
@@ -341,5 +366,29 @@ class QiXingWeComNotifier:
 
 
 if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser(description="七星量化企业微信通知器")
+    parser.add_argument('--push', action='store_true', help='执行企业微信推送')
+    parser.add_argument('--force', action='store_true', help='强制忽略重复推送缓存限制与时间窗口硬锁')
+    parser.add_argument('--dry-run', action='store_true', help='仅在控制台演练，不发送企业微信')
+    args = parser.parse_args()
+
+    # 🛑 尾盘窗口硬守卫：严防盘后、半夜非交易时间误触发推送
+    now_dt = datetime.now()
+    now_h, now_m = now_dt.hour, now_dt.minute
+    is_in_window = (now_h == 14 and now_m >= 35) or (now_h == 15 and now_m <= 10)
+    
+    if not (args.force or args.dry_run) and not is_in_window:
+        print(f"🛑 [尾盘窗口硬守卫拦截] 当前时间 {now_dt.strftime('%H:%M:%S')} 非 14:35~15:10 尾盘决策窗口！")
+        print("💡 [安全保护生效] 系统已自动终止非交易时段的误发推送。如需测试请加 --dry-run 或 --force。")
+        sys.exit(0)
+
     notifier = QiXingWeComNotifier()
-    notifier.execute_and_send(stage="14:48 尾盘确认", force=True)
+    if args.dry_run:
+        candidates, quotes_map = notifier.scan_realtime_etf_pool()
+        current_pos = notifier.get_real_portfolio_state(quotes_map)
+        md = notifier.format_report("14:48 尾盘确认 (Dry-Run)", "HOLD", current_pos['market_val'] + 775.0, 99.1, current_pos, None, candidates)
+        print("\n" + md + "\n")
+        print("💡 [Dry-run 演练模式] 不执行实际企业微信推送。")
+    else:
+        notifier.execute_and_send(stage="14:48 尾盘确认", force=args.force)

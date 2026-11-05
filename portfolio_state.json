@@ -1,8 +1,9 @@
 {
-  "current_holding": "501018.XSHG",
-  "entry_price": 2.093,
-  "holding_shares": 24800,
-  "cash": 808.1000000000058,
-  "entry_date": "2026-10-15",
-  "stop_loss_blacklist": {}
+  "current_holding": "511880.XSHG",
+  "entry_price": 100.0,
+  "entry_date": "2026-11-05",
+  "stop_loss_blacklist": {},
+  "holding_shares": 24700,
+  "cash": 945.8099999999904,
+  "reason": "原油 501018 触发 5% 止损且全域动量为负，自动切入银华日利避险"
 }

@@ -208,13 +208,29 @@ def save_state(state: dict):
 
 # ==================== 4. 高保真行情数据源 ====================
 def get_kline_data(symbol_code: str, count: int = 35):
-    """获取指定标的前复权日K线收盘价序列与当日最新价"""
+    """获取指定标的前复权日K线收盘价序列与当日最新价 (新浪主通道 + 腾讯备用)"""
     try:
-        prefix = "sh" if symbol_code.endswith(".XSHG") or symbol_code.startswith("sh") else "sz"
         code_num = symbol_code.replace(".XSHG", "").replace(".XSHE", "").replace("sh", "").replace("sz", "")
+        prefix = "sh" if (symbol_code.endswith(".XSHG") or symbol_code.startswith("sh") or code_num.startswith(('51', '52', '56', '58', '60', '68', '50', '000300', '000510'))) else "sz"
         symbol = prefix + code_num
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+
+        # 1. 主通道：新浪财经
+        sina_url = f"http://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData?symbol={symbol}&scale=240&ma=no&datalen={count+10}"
+        try:
+            resp = requests.get(sina_url, headers=headers, timeout=5)
+            if resp.status_code == 200:
+                s_data = resp.json()
+                if isinstance(s_data, list) and len(s_data) >= 10:
+                    closes = np.array([float(x['close']) for x in s_data])
+                    curr_price = closes[-1]
+                    hist_closes = closes[:-1] if len(closes) > count else closes
+                    return hist_closes, curr_price
+        except Exception:
+            pass
+
+        # 2. 备用通道：腾讯财经
         url = f"http://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param={symbol},day,,,{count+5},qfq"
-        headers = {"User-Agent": "Mozilla/5.0"}
         resp = requests.get(url, headers=headers, timeout=6)
         data = resp.json()
         if "data" in data and symbol in data["data"]:

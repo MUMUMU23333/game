@@ -180,47 +180,62 @@ def get_etf_data(etf_code: str, count: int = 35):
         except Exception as e:
             print(f"jqdatasdk 获取 {etf_code} 异常: {e}，切换备用高保真行情源")
 
-    # 腾讯前复权日K线接口 (高保真日线数据，精准支持 A股/ETF/LOF，含盘中零时滞快照热缝合)
+    # 1. 主通道：新浪财经高可用前复权日K线 (免疫 501 WAF)
+    code_raw = etf_code[:6]
+    prefix = "sh" if (etf_code.endswith(".XSHG") or code_raw.startswith(('51', '52', '56', '58', '60', '68', '50'))) else "sz"
+    symbol = prefix + code_raw
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+    
+    kline = []
+    sina_url = f"http://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData?symbol={symbol}&scale=240&ma=no&datalen={count+10}"
     try:
-        prefix = "sh" if etf_code.endswith(".XSHG") else "sz"
-        symbol = prefix + etf_code[:6]
-        url = f"http://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param={symbol},day,,,{count+5},qfq"
-        headers = {"User-Agent": "Mozilla/5.0"}
-        resp = requests.get(url, headers=headers, timeout=6)
-        data = resp.json()
-        if "data" in data and symbol in data["data"]:
-            sec_data = data["data"][symbol]
-            kline = sec_data.get("qfqday", sec_data.get("day", []))
-            if kline and len(kline) >= count:
-                closes_list = [float(x[2]) for x in kline]
-                last_date_str = str(kline[-1][0])[:10]
-                today_str = datetime.datetime.now().strftime("%Y-%m-%d")
+        resp = requests.get(sina_url, headers=headers, timeout=5)
+        if resp.status_code == 200:
+            s_data = resp.json()
+            if isinstance(s_data, list) and len(s_data) >= count:
+                kline = [[x['day'], float(x['open']), float(x['close']), float(x['high']), float(x['low']), float(x['volume'])] for x in s_data]
+    except Exception:
+        pass
 
-                # 拉取盘中实时快照消灭 T-1 滞后
-                realtime_price = 0.0
-                try:
-                    q_url = f"http://qt.gtimg.cn/q={symbol}"
-                    q_resp = requests.get(q_url, headers=headers, timeout=3)
-                    if q_resp.status_code == 200 and '="' in q_resp.text:
-                        parts = q_resp.text.split('="')[1].split('~')
-                        if len(parts) > 3 and parts[3]:
-                            realtime_price = float(parts[3])
-                except Exception:
-                    pass
+    # 2. 备用通道：腾讯财经
+    if not kline:
+        try:
+            url = f"http://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param={symbol},day,,,{count+5},qfq"
+            resp = requests.get(url, headers=headers, timeout=6)
+            data = resp.json()
+            if "data" in data and symbol in data["data"]:
+                sec_data = data["data"][symbol]
+                kline = sec_data.get("qfqday", sec_data.get("day", []))
+        except Exception:
+            pass
 
-                if realtime_price > 0:
-                    curr_price = realtime_price
-                    if last_date_str < today_str:
-                        hist_prices = np.array(closes_list)
-                    else:
-                        hist_prices = np.array(closes_list[:-1])
-                else:
-                    curr_price = closes_list[-1]
-                    hist_prices = np.array(closes_list[:-1] if len(closes_list) > count else closes_list)
+    if kline and len(kline) >= count:
+        closes_list = [float(x[2]) for x in kline]
+        last_date_str = str(kline[-1][0])[:10]
+        today_str = datetime.datetime.now().strftime("%Y-%m-%d")
 
-                return hist_prices, curr_price
-    except Exception as e:
-        print(f"腾讯行情获取 {etf_code} 异常: {e}")
+        realtime_price = 0.0
+        try:
+            q_url = f"http://qt.gtimg.cn/q={symbol}"
+            q_resp = requests.get(q_url, headers=headers, timeout=3)
+            if q_resp.status_code == 200 and '="' in q_resp.text:
+                parts = q_resp.text.split('="')[1].split('~')
+                if len(parts) > 3 and parts[3]:
+                    realtime_price = float(parts[3])
+        except Exception:
+            pass
+
+        if realtime_price > 0:
+            curr_price = realtime_price
+            if last_date_str < today_str:
+                hist_prices = np.array(closes_list)
+            else:
+                hist_prices = np.array(closes_list[:-1])
+        else:
+            curr_price = closes_list[-1]
+            hist_prices = np.array(closes_list[:-1] if len(closes_list) > count else closes_list)
+
+        return hist_prices, curr_price
 
     # 新浪实时行情兜底
     try:

@@ -91,6 +91,7 @@ class StarBankOmniV59Notifier:
         self.state_path = state_path
         self.session = requests.Session()
         self.session.trust_env = False
+        self.session.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
         self.attack_pool = [
             '588170', '159967', '513100', '159363',
             '588000', '159915', '588460', '159680', '513310',
@@ -102,7 +103,7 @@ class StarBankOmniV59Notifier:
 
     def fetch_history_kline(self, code: str, count: int = 400) -> pd.DataFrame:
         """获取日K线数据 (新浪财经主通道 + 腾讯财经备用通道，双重冗余)"""
-        market = 'sh' if code.startswith(('51', '58', '60', '50')) else 'sz'
+        market = 'sh' if code.startswith(('51', '52', '56', '58', '60', '68', '50')) else 'sz'
         
         # 1. 主通道：新浪财经高可用高频日K线接口
         sina_symbol = f"{market}{code}"
@@ -159,7 +160,7 @@ class StarBankOmniV59Notifier:
 
     def fetch_realtime_quote(self, code: str) -> dict:
         """拉取腾讯实时行情 (含自动重试机制与全量高开低收字段)"""
-        market = 'sh' if code.startswith(('51', '58', '60', '000')) else 'sz'
+        market = 'sh' if code.startswith(('51', '52', '56', '58', '60', '68', '50')) else 'sz'
         url = f"http://qt.gtimg.cn/q={market}{code}"
         for attempt in range(3):
             try:

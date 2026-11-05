@@ -220,7 +220,7 @@ class GodKingUltimateNotifier:
 
     def fetch_history_kline(self, code: str, count: int = 400) -> pd.DataFrame:
         """获取日K线数据 (新浪财经主通道 + 腾讯财经备用通道，双重冗余)"""
-        market = 'sh' if code.startswith(('51', '58', '60', '50')) else 'sz'
+        market = 'sh' if code.startswith(('51', '52', '56', '58', '60', '68', '50')) else 'sz'
 
         # 1. 主通道：新浪财经
         sina_symbol = f"{market}{code}"
@@ -277,7 +277,7 @@ class GodKingUltimateNotifier:
 
     def fetch_realtime_quote(self, code: str) -> dict:
         """拉取腾讯实时行情 (含自动重试机制)"""
-        market = 'sh' if code.startswith(('51', '58', '60', '50')) else 'sz'
+        market = 'sh' if code.startswith(('51', '52', '56', '58', '60', '68', '50')) else 'sz'
         url = f"http://qt.gtimg.cn/q={market}{code}"
         for attempt in range(3):
             try:
