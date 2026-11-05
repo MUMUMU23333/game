@@ -288,14 +288,14 @@ class CrossMarketApexEngine:
             "regime": "GOLDILOCKS",
             "status": "NORMAL",
             "us_anchors": {
-                "NVDA": {"name": "英伟达/算力", "chg": 0.0, "a_sector": "AI算力通信", "group_key": "AI_COMPUTE_CHAIN", "type": "HIGH_TECH"},
-                "TSLA": {"name": "特斯拉/储能车", "chg": 0.0, "a_sector": "光伏储能出海", "group_key": "SOLAR_STORAGE_EXPORT", "type": "SOLAR_BATTERY"},
-                "ENPH": {"name": "Enphase/光伏", "chg": 0.0, "a_sector": "光伏逆变器", "group_key": "SOLAR_STORAGE_EXPORT", "type": "SOLAR_BATTERY"},
-                "FCX": {"name": "自由港/铜金属", "chg": 0.0, "a_sector": "工业金属/铜", "group_key": "COPPER_METAL", "type": "COMMODITY_COPPER"},
-                "XBI": {"name": "标普生科XBI", "chg": 0.0, "a_sector": "医药创新药", "group_key": "MEDICAL_BIOTECH", "type": "BIOTECH"},
-                "AMZN": {"name": "亚马逊/云算力", "chg": 0.0, "a_sector": "云计算与液冷", "group_key": "CLOUD_COMPUTING", "type": "CLOUD"},
-                "GC": {"name": "COMEX黄金", "chg": 0.0, "a_sector": "黄金/避险贵金属", "group_key": "GOLD_COMMODITY", "type": "COMMODITY_GOLD"},
-                "HSTECH": {"name": "恒生科技/中概互联", "chg": 0.0, "a_sector": "离岸核心资产", "group_key": "CHINA_CORE_ASSETS", "type": "CHINA_CORE"},
+                "NVDA": {"name": "英伟达/算力", "chg": 0.0, "a_sector": "AI算力通信", "group_key": "AI_COMPUTE_CHAIN", "type": "HIGH_TECH", "death_risk": "北美云Capex支出下修与高估值挤泡沫"},
+                "TSLA": {"name": "特斯拉/储能车", "chg": 0.0, "a_sector": "光伏储能出海", "group_key": "SOLAR_STORAGE_EXPORT", "type": "SOLAR_BATTERY", "death_risk": "新能源价格战与欧美关税壁垒"},
+                "ENPH": {"name": "Enphase/光伏", "chg": 0.0, "a_sector": "光伏逆变器", "group_key": "SOLAR_STORAGE_EXPORT", "type": "SOLAR_BATTERY", "death_risk": "海外分布式装机放缓与组件内卷严重过剩"},
+                "FCX": {"name": "自由港/铜金属", "chg": 0.0, "a_sector": "工业金属/铜", "group_key": "COPPER_METAL", "type": "COMMODITY_COPPER", "death_risk": "大宗商品期货跳水与全球制造业衰退"},
+                "XBI": {"name": "标普生科XBI", "chg": 0.0, "a_sector": "医药创新药", "group_key": "MEDICAL_BIOTECH", "type": "BIOTECH", "death_risk": "美《生物安全法案》长效制裁与高Beta杀估值"},
+                "AMZN": {"name": "亚马逊/云算力", "chg": 0.0, "a_sector": "云计算与液冷", "group_key": "CLOUD_COMPUTING", "type": "CLOUD", "death_risk": "政企IT预算削减与北美云厂商指引下调"},
+                "GC": {"name": "COMEX黄金", "chg": 0.0, "a_sector": "黄金/避险贵金属", "group_key": "GOLD_COMMODITY", "type": "COMMODITY_GOLD", "death_risk": "美元指数急拉与避险溢价消退"},
+                "HSTECH": {"name": "恒生科技/中概互联", "chg": 0.0, "a_sector": "离岸核心资产", "group_key": "CHINA_CORE_ASSETS", "type": "CHINA_CORE", "death_risk": "离岸人民币贬值与外资长线资金被动抽水"},
             }
         }
         
@@ -412,30 +412,61 @@ class CrossMarketApexEngine:
         preferred_sectors = []
         
         is_panic_market = False
+        panic_type = ""
         panic_reason = ""
+        panic_mechanism = ""
+        banned_sectors = []
+        preferred_sectors = []
         
-        # 象限 IV: VIX 极端流动性踩踏熔断 (黑天鹅)
-        if vix_val >= 28.0 or macro["nasdaq_chg"] <= -2.5 or macro["spx_chg"] <= -2.0:
+        cnh_rate = macro.get("cnh_rate", 7.18)
+        cnh_chg = macro.get("cnh_chg", 0.0)
+        nasdaq_chg = macro.get("nasdaq_chg", 0.0)
+        spx_chg = macro.get("spx_chg", 0.0)
+        hstech_chg = macro.get("hstech_chg", 0.0)
+
+        # 🚨 极端风险 A: 流动性黑洞与连环杠杆踩踏熔断 (Margin Call Spiral)
+        if vix_val >= 28.0 or nasdaq_chg <= -2.5 or spx_chg <= -2.0:
             is_panic_market = True
             regime_status = "LIQUIDITY_CRISIS"
-            regime_desc = f"流动性危机踩踏 (VIX: {vix_val:.2f} | 纳指: {macro['nasdaq_chg']:+.2f}%)"
-            panic_reason = regime_desc
-        # 象限 III: 地缘避险态 (VIX >= 20.0)
-        elif vix_val >= 20.0:
-            regime_status = "FLIGHT_TO_SAFETY"
-            regime_desc = f"地缘避险·风暴初显态 (VIX: {vix_val:.2f} >= 20 · 科技禁买，聚焦黄金与医疗)"
-            # 科技成长与高估值全面禁买，只允许黄金与医疗避险
-            banned_sectors.extend(["AI_COMPUTE_CHAIN", "CLOUD_COMPUTING", "SOLAR_STORAGE_EXPORT"])
-            preferred_sectors.extend(["GOLD_COMMODITY", "MEDICAL_BIOTECH"])
-        # 象限 II: 折现率紧缩冲击态 (美债TLT暴跌 <= -0.85% 或 离岸人民币贬值 > 0.35%)
-        elif tlt_chg <= -0.85 or macro["cnh_chg"] > 0.35:
+            panic_type = "流动性黑洞与连环平仓踩踏"
+            panic_reason = f"VIX恐慌({vix_val:.2f})触及28警戒线 / 纳指({nasdaq_chg:+.2f}%)深度破位"
+            panic_mechanism = "全球被动平仓螺旋开启，盘口买单冰冻，全市场个股均面临无差别补跌踩踏！"
+            regime_desc = f"流动性危机踩踏 (VIX: {vix_val:.2f} | 纳指: {nasdaq_chg:+.2f}%)"
+            
+        # 🚨 极端风险 B: 股汇双杀与离岸外资出逃熔断 (Currency Run & Outflow)
+        elif cnh_chg >= 0.40 or (cnh_rate >= 7.32 and cnh_chg >= 0.20):
+            is_panic_market = True
+            regime_status = "CURRENCY_CRISIS"
+            panic_type = "股汇双杀与离岸外资断崖出逃"
+            panic_reason = f"离岸人民币急贬({cnh_rate:.4f} | {cnh_chg:+.2f}%)"
+            panic_mechanism = "中美利差走阔触发长线外资止损线，北向核心权重股面临无差别砸盘提现！"
+            regime_desc = f"股汇双杀外资出逃 (CNH: {cnh_rate:.4f} | 贬值: {cnh_chg:+.2f}%)"
+
+        # 🚨 极端风险 C: 全球折现率风暴与紧缩挤兑 (Discount Rate Shock)
+        elif tlt_chg <= -0.85:
             regime_status = "DISCOUNT_RATE_SHOCK"
-            regime_desc = f"折现率紧缩冲击态 (美债TLT: {tlt_chg:+.2f}% · 离岸长久期承压，转向大宗商品与电网)"
-            # 利率敏感的长久期港股与光伏禁买，偏好工业金属与电网出海
-            banned_sectors.extend(["CHINA_CORE_ASSETS", "SOLAR_STORAGE_EXPORT"])
+            panic_type = "折现率风暴与全球紧缩挤兑"
+            panic_reason = f"美债TLT暴跌({tlt_chg:+.2f}%) · 长端利率无情上行"
+            panic_mechanism = "DCF估值分母激增，杀科技成长估值泡沫，资金强行避险大宗商品与电网！"
+            regime_desc = f"折现率紧缩冲击态 (美债TLT: {tlt_chg:+.2f}% · 科技承压，转向大宗与电网)"
+            banned_sectors.extend(["AI_COMPUTE_CHAIN", "CLOUD_COMPUTING", "CHINA_CORE_ASSETS", "SOLAR_STORAGE_EXPORT"])
             preferred_sectors.extend(["COPPER_METAL", "GRID_EQUIPMENT_EXPORT", "GOLD_COMMODITY"])
+
+        # 🚨 极端风险 D: 地缘动荡与离岸前哨溃败 (Geopolitical & Offshore Route)
+        elif hstech_chg <= -2.5 or vix_val >= 22.0:
+            regime_status = "FLIGHT_TO_SAFETY"
+            panic_type = "地缘动荡与避险防御态"
+            panic_reason = f"恒生科技破位({hstech_chg:+.2f}%) 或 VIX({vix_val:.2f})高企"
+            panic_mechanism = "长久期成长股遭遇离岸资金抽水，全面封杀科技股，仅允许黄金与医药避险！"
+            regime_desc = f"地缘避险·风暴初显态 (VIX: {vix_val:.2f} · 科技禁买，聚焦黄金与医疗)"
+            banned_sectors.extend(["AI_COMPUTE_CHAIN", "CLOUD_COMPUTING", "SOLAR_STORAGE_EXPORT", "CHINA_CORE_ASSETS"])
+            preferred_sectors.extend(["GOLD_COMMODITY", "MEDICAL_BIOTECH"])
+
         else:
             regime_status = "GOLDILOCKS"
+            panic_type = "金发女孩·温和顺风态"
+            panic_reason = f"VIX({vix_val:.2f})低位且全球流动性平稳"
+            panic_mechanism = "微观基本面驱动，全面顺风进攻高胜率主线！"
             regime_desc = f"金发女孩态 (VIX: {vix_val:.2f} < 20 且美债平稳 · 全面顺风进攻)"
             preferred_sectors.extend(["AI_COMPUTE_CHAIN", "CLOUD_COMPUTING", "GRID_EQUIPMENT_EXPORT"])
             
@@ -454,9 +485,10 @@ class CrossMarketApexEngine:
             chg = info.get("chg", 0.0)
             thresh = DYNAMIC_SHOCK_THRESHOLDS.get(info.get("type", "HIGH_TECH"), -2.5)
             if chg <= thresh:
-                us_drop_warnings.append(
-                    f"❌ 隔夜美股【{info['name']}】大跌 {chg:+.1f}% 触及异动阈值({thresh:.1f}%) ➔ 警惕A股【{info['a_sector']}】开盘大跌！"
-                )
+                us_drop_warnings.append({
+                    "text": f"❌ 隔夜美股【{info['name']}】大跌 {chg:+.1f}% 触及异动阈值({thresh:.1f}%) ➔ 警惕A股【{info['a_sector']}】开盘大跌！",
+                    "death_risk": info.get("death_risk", "外盘情绪传导与杀估值")
+                })
                 if info["group_key"] not in banned_sectors:
                     banned_sectors.append(info["group_key"])
 
@@ -597,6 +629,10 @@ class CrossMarketApexEngine:
             "timestamp": now.strftime("%Y-%m-%d %H:%M:%S"),
             "action": target_action,
             "reason": reason,
+            "is_panic_market": is_panic_market,
+            "panic_type": panic_type,
+            "panic_reason": panic_reason,
+            "panic_mechanism": panic_mechanism,
             "macro": macro,
             "principal": principal,
             "target": {
@@ -629,12 +665,24 @@ class CrossMarketApexEngine:
         md.append(f"📝 成因: *{decision['reason']}*")
         md.append("---")
         
-        # 1. 🚨 隔夜美股重挫 · 今日A股暴雷传导排雷预警 (只展示真实大跌)
+        # 1. 🚨 极端风险防空警报 (当触发系统性危机时以最高规格防空警报呈现)
+        if decision.get("is_panic_market"):
+            md.append("🚨 【🔴 全球极端风险防空警报 · 触发强平清仓熔断】")
+            md.append(f"• ⚠️ 触发危机: **【{decision.get('panic_type', '流动性危机')}】** ({decision.get('panic_reason', '--')})")
+            md.append(f"• ⚡ 机构死穴机理: {decision.get('panic_mechanism', '全球被动清盘踩踏')}")
+            md.append("• 🛡️ 机器强平指令: **100% 卖出股票，资金转入货币ETF (银华日利 511880)，严禁任何逆势抄底！**")
+            md.append("---")
+
+        # 2. 🚨 隔夜美股重挫 · 今日A股暴雷传导排雷预警 (只展示真实大跌)
         us_warnings = decision.get("us_drop_warnings", [])
         md.append("🚨 【⚠️ 隔夜美股重挫 · A股暴雷传导排雷预警】")
         if us_warnings:
             for w in us_warnings:
-                md.append(w)
+                if isinstance(w, dict):
+                    md.append(w["text"])
+                    md.append(f"   • 诱发死穴: {w['death_risk']}")
+                else:
+                    md.append(str(w))
             md.append("🛑 【排雷纪律】: 以上暴跌受累板块今日一票否决，坚决不买！开盘高开 > +3.2% 严禁追高！")
         else:
             md.append("✅ 隔夜美股核心映射全线平稳，无单边暴跌传导风险。")
