@@ -665,12 +665,12 @@ class CrossMarketApexEngine:
         md.append(f"📝 成因: *{decision['reason']}*")
         md.append("---")
         
-        # 1. 🚨 极端风险防空警报 (当触发系统性危机时以最高规格防空警报呈现)
+        # 1. 🚨 极端风险防空警报 (当触发系统性危机时以最高规格绿色加黑大字呈现)
         if decision.get("is_panic_market"):
-            md.append("🚨 【🔴 全球极端风险防空警报 · 触发强平清仓熔断】")
+            md.append("# <font color=\"info\">**🚨 极端风险防空警报 · 触发强平清仓熔断**</font>")
             md.append(f"• ⚠️ 触发危机: **【{decision.get('panic_type', '流动性危机')}】** ({decision.get('panic_reason', '--')})")
             md.append(f"• ⚡ 机构死穴机理: {decision.get('panic_mechanism', '全球被动清盘踩踏')}")
-            md.append("• 🛡️ 机器强平指令: **100% 卖出股票，资金转入货币ETF (银华日利 511880)，严禁任何逆势抄底！**")
+            md.append("## <font color=\"info\">**🛡️ 机器强平指令: 100% 卖出股票，资金转入货币ETF (银华日利 511880)，严禁任何逆势抄底！**</font>")
             md.append("---")
 
         # 2. 🚨 隔夜美股重挫 · 今日A股暴雷传导排雷预警 (只展示真实大跌)
@@ -706,8 +706,8 @@ class CrossMarketApexEngine:
         # 4. 📋 8大板块精选天梯榜
         if "DEFENSE" in action:
             md.append("📋 【全域映射监控池 (🔴 全局流动性危机 · 全线封锁)】")
-            md.append("• 🛑 全局风暴熔断中：外盘重挫且VIX飙升，全市场股票与行业ETF全部一票否决，坚决不买！")
-            md.append("• 🛡️ 唯一允许实操指令: **银华日利(511880)** 100% 货币纯化保本避险。")
+            md.append("### <font color=\"info\">**🛑 全局风暴熔断中：全市场股票与行业ETF全部一票否决，坚决不买！**</font>")
+            md.append("• 🛡️ 唯一允许实操指令: **<font color=\"info\">银华日利(511880)</font>** 100% 货币纯化保本避险。")
         else:
             md.append("📋 【8大板块精选天梯榜 (Top 4)】")
             for i, c in enumerate(decision["candidates"][:4], 1):
