@@ -415,6 +415,10 @@ def run_wufu_strategy_check(force: bool = False):
     pnl_emoji = "🔴" if pnl_amount >= 0 else "🟢"
     stop_loss_price = entry_price * CONFIG["stop_loss"]
     stop_loss_buffer_pct = ((curr_hold_price - stop_loss_price) / curr_hold_price) * 100 if curr_hold_price > 0 else 0.0
+    if stop_loss_buffer_pct >= 0:
+        buffer_desc_str = f"安全垫: **`+{stop_loss_buffer_pct:.2f}%`**"
+    else:
+        buffer_desc_str = f"⚠️ **已严重击穿止损线 `{-stop_loss_buffer_pct:.2f}%` · 必须坚决跳车**"
 
     # 4. 生成决策建议
     action_type = "HOLD"
@@ -464,7 +468,7 @@ def run_wufu_strategy_check(force: bool = False):
 • **买入成本**：`¥{entry_price:.3f}` 元 (建仓日期: `{entry_date}`)
 • **最新现价**：`¥{curr_hold_price:.3f}` 元
 • **浮动盈亏**：{pnl_emoji} **`{pnl_sign}¥{pnl_amount:,.2f}` 元 ({pnl_sign}{pnl_pct:.2f}%)**
-• **生死风控**：-5% 硬止损线 `¥{stop_loss_price:.3f}` 元 (安全垫: **`+{stop_loss_buffer_pct:.2f}%`**)
+• **生死风控**：-5% 硬止损线 `¥{stop_loss_price:.3f}` 元 ({buffer_desc_str})
 
 ---
 ### 📈 五福 5.2 动量天梯榜 (前8名)
