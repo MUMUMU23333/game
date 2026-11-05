@@ -450,21 +450,21 @@ def run_wufu_strategy_check(force: bool = False):
 
     # 6. 组装企业微信推送卡片
     hold_name_str = CONFIG["etf_names"].get(current_holding, "现金避险")
-    markdown_content = f"""### 🧧 五福 5.2 日内趋势 ETF 调仓决策报告
-> 📅 **计算时间**：`{time_str}`
-> 🌐 **宏观周期**：**{period_status_str}**
+    markdown_content = f"""# 🧧 五福 5.2 尾盘决策报告 ({today_str} 14:55)
+> 📅 **计算时间**：`{time_str}` | 🌐 **宏观周期**：**{period_status_str}**
 
 ---
-### 📦 【当前持仓与盈亏透视】
+### 🚦 【尾盘核心交易指令 (14:55 执行)】
+{action_msg}
+
+---
+### 📦 【当前持仓与生死线风控】
 • **当前标的**：**{current_holding} {hold_name_str}**
 • **持仓数量**：`{holding_shares:,}` 股 (市值 `¥{holding_value:,.2f}` 元)
 • **买入成本**：`¥{entry_price:.3f}` 元 (建仓日期: `{entry_date}`)
 • **最新现价**：`¥{curr_hold_price:.3f}` 元
 • **浮动盈亏**：{pnl_emoji} **`{pnl_sign}¥{pnl_amount:,.2f}` 元 ({pnl_sign}{pnl_pct:.2f}%)**
-• **风控防线**：`¥{stop_loss_price:.3f}` 元 (距 5% 止损尚有 **`+{stop_loss_buffer_pct:.2f}%`** 安全垫)
-
----
-{action_msg}
+• **生死风控**：-5% 硬止损线 `¥{stop_loss_price:.3f}` 元 (安全垫: **`+{stop_loss_buffer_pct:.2f}%`**)
 
 ---
 ### 📈 五福 5.2 动量天梯榜 (前8名)

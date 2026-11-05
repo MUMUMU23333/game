@@ -576,6 +576,13 @@ class FundBarbell85Notifier:
         action_title = decision.get('action_title', '🎯 今日核心指令')
         friction_status = decision.get('friction_status', '')
         timesfm_tag = decision.get('timesfm_tag', '常态通道')
+        holding_days = decision.get('holding_days', 0)
+        filled = min(holding_days, 7)
+        bar = "■" * filled + "□" * (7 - filled)
+        if holding_days < 7:
+            bar_text = f"🔒 免赎锁定期 `[{bar}]` 已持仓 {holding_days}/7 天 (剩余 {7-holding_days} 天 · 规避 1.5% 倒菜磨损)"
+        else:
+            bar_text = f"🔓 自由作战区 `[{bar}]` 已持仓 {holding_days} 天 (已享受 0% 免赎费无摩擦换仓)"
 
         content = f"""### 👑【GodKing 10.0 Sovereign (神王大圆满版) 盘中决策指令】
 > **巡检时间**: `{decision['check_time']}`
@@ -587,8 +594,9 @@ class FundBarbell85Notifier:
 ### {action_title}
 - **标的代码**: **`{decision['target_fund']}`**
 - **标的名称**: **{decision['target_name']}**
-- **盘中实时估值**: **{decision['est_pct']:+.2f}%** (估算净值: `{decision['est_nav']:.4f}`)
-- **🛡️ 磨损防护状态**: **{friction_status}**
+- **免赎进度**: **{bar_text}**
+- **实时预估**: **{decision['est_pct']:+.2f}%** (天天基金盘中估算净值: `{decision['est_nav']:.4f}`)
+- **防护状态**: **{friction_status}**
 - **决策归因**: {decision['reason']}
 
 ---

@@ -548,7 +548,7 @@ class StarBankOmniV59Notifier:
 
         is_morning = datetime.now().hour < 12
         time_mode_desc = "(集合竞价撮合完毕 · 距连续竞价还有 4 分钟)" if is_morning else "(尾盘 14:48 黄金决策时钟)"
-        title_prefix = "🌅【科创-银行轮动 · V5.9 Apex-Master】早盘 09:26 开盘态势速查卡" if is_morning else "👑【科创-银行轮动 · V5.9 Apex-Master · 14大长矛全域直接平铺版】"
+        title_prefix = "🌅【科创-银行轮动 · V5.9】早盘 09:26 态势哨兵 (⚠️仅供观察·严禁抢跑)" if is_morning else "👑【科创-银行轮动 · V5.9 Apex-Master】尾盘 14:48 最终实操指令卡"
 
         # 针对早盘提取主要持仓或第一攻击标的的开盘水温
         primary_code = list(target_weights.keys())[0] if target_weights else '588170'
@@ -620,7 +620,15 @@ class StarBankOmniV59Notifier:
             r3 = cd.get('r3', 0.0)
             r8 = cd.get('r8', 0.0)
             r20 = cd.get('r20', 0.0)
-            cand_lines.append(f"> {i}. **{name} ({code})**: 动量分 `{score:.2f}` | 3/8/20日: `{r3:+.1f}%` / `{r8:+.1f}%` / `{r20:+.1f}%`")
+            if score > 4.0:
+                s_tag = "🚀 单边主升"
+            elif score > 2.0:
+                s_tag = "📈 稳步攀升"
+            elif score > 0:
+                s_tag = "📉 震荡蓄势"
+            else:
+                s_tag = "🔴 弱势下行"
+            cand_lines.append(f"> {i}. **{name} ({code})**: 动量分 `{score:.2f}` ({s_tag}) | 3/8/20日: `{r3:+.1f}%` / `{r8:+.1f}%` / `{r20:+.1f}%`")
         cand_text = "\n".join(cand_lines) if cand_lines else "> 暂无多头达标标的"
 
         card = f"""### {title_prefix}
@@ -630,7 +638,7 @@ class StarBankOmniV59Notifier:
 > 🚦 **状态判定**: **{stage_desc}**
 {guide_section}
 ---
-#### 📊 【今日实操买单与精确份额 ({'早盘态势速查' if is_morning else '尾盘 14:48 执行'})】
+#### {'📊 【早盘模拟测算规模 (⚠️观察窗口·14:48最终定型)】' if is_morning else '🚦 【尾盘 14:48 最终实操买单与精确份额】'}
 {alloc_text}
 
 ---

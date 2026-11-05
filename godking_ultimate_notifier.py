@@ -648,8 +648,18 @@ class GodKingUltimateNotifier:
             r3 = cd.get('r3', 0.0)
             r8 = cd.get('r8', 0.0)
             r20 = cd.get('r20', 0.0)
-            tag = "🌟个股龙头" if code in STOCK_SET else "长矛ETF"
-            cand_lines.append(f"> {i}. **[{tag}] {name} ({code})**: 动量分 `{score:.2f}` | 3/8/20日: `{r3:+.1f}%` / `{r8:+.1f}%` / `{r20:+.1f}%`")
+            if cd.get('is_limit_up_locked'):
+                s_tag = "🔒 涨停熔断(顺延)"
+            elif score > 10.0:
+                s_tag = "🚀 超级主升"
+            elif score > 5.0:
+                s_tag = "📈 强劲上行"
+            elif score > 0:
+                s_tag = "📉 震荡蓄势"
+            else:
+                s_tag = "🔴 弱势钝化"
+            tag = "🌟行业龙头" if code in STOCK_SET else "🌐全球/科技ETF"
+            cand_lines.append(f"> {i}. **[{tag}] {name} ({code})**: 动量分 `{score:.2f}` ({s_tag}) | 3/8/20日: `{r3:+.1f}%` / `{r8:+.1f}%` / `{r20:+.1f}%`")
         cand_text = "\n".join(cand_lines) if cand_lines else "> 暂无多头达标标的"
 
         card = f"""### 👑【终极神王体 · 苍穹七十一矛·全天候巅峰版 (71矛)】
