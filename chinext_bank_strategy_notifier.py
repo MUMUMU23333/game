@@ -504,11 +504,12 @@ class StarBankOmniV59Notifier:
             else:
                 state_to_save[f'entry_{exec_code}'] = state[f'entry_{exec_code}']
 
-        try:
-            with open(self.state_path, 'w', encoding='utf-8') as f:
-                json.dump(state_to_save, f, ensure_ascii=False, indent=2)
-        except Exception:
-            pass
+        if persist:
+            try:
+                with open(self.state_path, 'w', encoding='utf-8') as f:
+                    json.dump(state_to_save, f, ensure_ascii=False, indent=2)
+            except Exception:
+                pass
 
         return {
             'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -707,7 +708,7 @@ class StarBankOmniV59Notifier:
                 print(f"🛑 [尾盘窗口硬守卫拦截] 当前时间 {datetime.now().strftime('%H:%M:%S')} 非 14:35~15:10 尾盘决策窗口，硬锁拒绝发射尾盘卡！")
                 return
 
-        decision = self.calculate_strategy_signal()
+        decision = self.calculate_strategy_signal(persist=not dry_run)
         card_md = self.format_markdown_card(decision)
         print("\n" + card_md + "\n")
 

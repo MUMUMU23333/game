@@ -647,6 +647,18 @@ def check_and_wait_cloud_push(script_dir: str = SCRIPT_DIR) -> bool:
 
 def main():
     no_push = any(arg in sys.argv for arg in ["--no-push", "--local-only", "-n"])
+    dry_run = any(arg in sys.argv for arg in ["--dry-run", "-d"])
+    force = any(arg in sys.argv for arg in ["--force", "-f"])
+
+    # 🛑 尾盘窗口硬守卫：严防盘后、半夜非交易时间误触发推送
+    now_dt = datetime.now()
+    now_h, now_m = now_dt.hour, now_dt.minute
+    is_in_window = (now_h == 14 and now_m >= 35) or (now_h == 15 and now_m <= 10)
+
+    if not (force or dry_run or no_push) and not is_in_window:
+        print(f"🛑 [尾盘窗口硬守卫拦截] 当前时间 {now_dt.strftime('%H:%M:%S')} 非 14:35~15:10 尾盘决策窗口！")
+        print("💡 [安全保护生效] 系统已自动终止非交易时段的误发推送。如需测试请加 --dry-run 或 --force。")
+        return
 
     if "--check-cloud" in sys.argv:
         if check_and_wait_cloud_push():
@@ -678,8 +690,8 @@ def main():
     print("=" * 100)
 
     # 发送推送
-    if no_push:
-        print("💡 [方案A全托管守护模式] 已激活 --no-push，决策状态已持久化，网络发射权由云端唯一接管，本地静默不重复通知。")
+    if no_push or dry_run:
+        print("💡 [Dry-run / 方案A全托管守护模式] 决策计算完毕，本地静默不触发企业微信推送。")
     else:
         notifier.send_wecom_notification(decision)
 

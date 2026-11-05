@@ -576,11 +576,12 @@ class GodKingUltimateNotifier:
             else:
                 new_state[f'entry_{exec_code}'] = state[f'entry_{exec_code}']
 
-        try:
-            with open(self.state_path, 'w', encoding='utf-8') as f:
-                json.dump(new_state, f, indent=2, ensure_ascii=False)
-        except Exception:
-            pass
+        if persist:
+            try:
+                with open(self.state_path, 'w', encoding='utf-8') as f:
+                    json.dump(new_state, f, indent=2, ensure_ascii=False)
+            except Exception:
+                pass
 
         return {
             'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
