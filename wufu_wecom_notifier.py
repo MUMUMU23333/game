@@ -139,8 +139,10 @@ class WuFuWeComNotifier:
                 except Exception:
                     pass
 
+                now_dt = datetime.now()
+                can_append_today = (now_dt.hour > 9 or (now_dt.hour == 9 and now_dt.minute >= 15))
                 if snap_price > 0:
-                    if last_date_str < today_str:
+                    if last_date_str < today_str and can_append_today:
                         closes_list.append(snap_price)
                     elif last_date_str == today_str:
                         closes_list[-1] = snap_price

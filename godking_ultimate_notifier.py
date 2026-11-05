@@ -370,8 +370,11 @@ class GodKingUltimateNotifier:
             q = self.fetch_realtime_quote(c)
             quotes[c] = q
 
-        # 👑【核心升级 1：零时滞动态烛线缝合 (消灭 T-1 时滞)】
+        # 👑【核心升级 1：零时滞动态烛线缝合 (消灭 T-1 时滞 · 盘前防重影硬守卫)】
         today_str = datetime.now().strftime('%Y-%m-%d')
+        now_dt = datetime.now()
+        # 盘前（09:15前）市场尚未开市，Sina/Tencent返回的仍为昨日收盘价，严禁当作今日K线拼接产生重影数据
+        can_append_today = (now_dt.hour > 9 or (now_dt.hour == 9 and now_dt.minute >= 15))
         for c in ALL_CODES:
             if c in raw_dfs and not raw_dfs[c].empty:
                 q = quotes.get(c, {})
@@ -379,7 +382,7 @@ class GodKingUltimateNotifier:
                 if q_price > 0:
                     df = raw_dfs[c].copy()
                     last_date_str = str(df['date'].iloc[-1])[:10]
-                    if last_date_str < today_str:
+                    if last_date_str < today_str and can_append_today:
                         prev_close = q.get('prev_close', df['close'].iloc[-1])
                         open_p = q.get('open_price', q_price)
                         high_p = max(open_p, q_price, prev_close)
@@ -591,6 +594,7 @@ class GodKingUltimateNotifier:
             'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             'stage_desc': stage_desc,
             'exec_code': exec_code,
+            'curr_holding': curr_holding,
             'stage_exp': stage_exp,
             'target_weights': target_weights,
             'scissors_info': scissors_info,

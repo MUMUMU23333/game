@@ -279,8 +279,10 @@ class StarBankOmniV59Notifier:
             q = self.fetch_realtime_quote(c)
             quotes[c] = q
 
-        # 👑【核心升级：零时滞动态烛线热缝合 (彻底消灭 T-1 滞后与历史虚假数据误判死穴)】
+        # 👑【核心升级：零时滞动态烛线热缝合 (彻底消灭 T-1 滞后 · 盘前防重影硬守卫)】
         today_str = datetime.now().strftime('%Y-%m-%d')
+        now_dt = datetime.now()
+        can_append_today = (now_dt.hour > 9 or (now_dt.hour == 9 and now_dt.minute >= 15))
         for c in ALL_CODES:
             if c in raw_dfs and not raw_dfs[c].empty:
                 q = quotes.get(c, {})
@@ -288,7 +290,7 @@ class StarBankOmniV59Notifier:
                 if q_price > 0:
                     df = raw_dfs[c].copy()
                     last_date_str = str(df['date'].iloc[-1])[:10]
-                    if last_date_str < today_str:
+                    if last_date_str < today_str and can_append_today:
                         prev_close = q.get('prev_close', df['close'].iloc[-1])
                         open_p = q.get('open_price', q_price)
                         high_p = max(q.get('high_price', q_price), open_p, q_price, prev_close)
