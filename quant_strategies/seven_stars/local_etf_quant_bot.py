@@ -330,7 +330,14 @@ def run_strategy_check():
             
         score = calculate_momentum_score(prices, curr_price)
         if score is not None:
-            status_tag = "📈 上行趋势" if score > 0 else "📉 回调筑底"
+            if score > 0.5:
+                status_tag = "🚀 单边强势主升"
+            elif score > 0:
+                status_tag = "📈 温和震荡上行"
+            elif score >= -0.2:
+                status_tag = "📉 窄幅蓄势整理"
+            else:
+                status_tag = "🔴 弱势下行通道"
             scores_table.append(f"• `{etf[:6]}` {etf_name}: **{score:.3f}** ({status_tag} | 现价 `{curr_price:.3f}`)")
             if CONFIG["min_score_threshold"] < score < CONFIG["max_score_threshold"]:
                 scores.append((etf, etf_name, score, curr_price))
@@ -385,7 +392,11 @@ def run_strategy_check():
 
     if action_type != "STOP_LOSS":
         if target_code == current_holding:
-            action_msg = f"🛡️ **【继续持有最强龙头】**\n> 当前持仓：**{current_holding} {CONFIG['etf_names'].get(current_holding, '')}**\n> 动量优势：**{scores[0][2]:.3f}** (稳居榜首，继续持有吃满波段)"
+            if current_holding == CONFIG["defensive_etf"]:
+                action_msg = f"🛡️ **【继续维持防御状态】**\n> 当前持仓：**{current_holding} {CONFIG['etf_names'].get(current_holding, '')}**\n> 决策建议：全域进攻标的动量均 ≤ 0，维持货币基金避险，无需调仓"
+            else:
+                top_sc = scores[0][2] if scores else 0.0
+                action_msg = f"🛡️ **【继续持有最强龙头】**\n> 当前持仓：**{current_holding} {CONFIG['etf_names'].get(current_holding, '')}**\n> 动量优势：**{top_sc:.3f}** (稳居榜首，继续持有吃满波段)"
         else:
             prev_name = CONFIG["etf_names"].get(current_holding, current_holding)
             _, t_price = get_etf_data(target_code)
@@ -408,24 +419,24 @@ def run_strategy_check():
     # 4. 组装企业微信 Markdown 富文本卡片（包含全量持仓仓位与盈亏透视）
     hold_name_str = CONFIG["etf_names"].get(current_holding, "100% 现金")
     
-    markdown_content = f"""### 🔔 七星量化 ETF 动量决策与持仓盈亏报告
-> 📅 **计算时间**：`{time_str}`
-> 💰 **账户总资产**：`¥{total_assets:,.2f}` 元 (仓位: **{position_ratio:.1f}%**)
+    markdown_content = f"""# 🛡️ 七星量化 尾盘决策报告 ({today_str} 14:48)
+> 📅 **计算时间**：`{time_str}` | 💰 **总资产**：`¥{total_assets:,.2f}` 元 (仓位: **{position_ratio:.1f}%**)
 
 ---
-### 📦 【当前持仓与实时盈亏透视】
+### 🚦 【尾盘核心交易指令 (14:48 执行)】
+{action_msg}
+
+---
+### 📦 【当前持仓与生死线风控】
 • **当前标的**：**{current_holding} {hold_name_str}**
 • **持仓数量**：`{holding_shares:,}` 股 (持仓市值 `¥{holding_value:,.2f}` 元)
 • **买入成本**：`¥{entry_price:.3f}` 元 (建仓日期: `{entry_date}`)
 • **最新现价**：`¥{curr_hold_price:.3f}` 元
 • **浮动盈亏**：{pnl_emoji} **`{pnl_sign}¥{pnl_amount:,.2f}` 元 ({pnl_sign}{pnl_pct:.2f}%)**
-• **风控防线**：`¥{stop_loss_price:.3f}` 元 (距 5% 硬止损线尚有 **`+{stop_loss_buffer_pct:.2f}%`** 安全垫)
+• **生死风控**：-5% 硬止损线 `¥{stop_loss_price:.3f}` 元 (安全垫: **`{stop_loss_buffer_pct:+.2f}%`**)
 
 ---
-{action_msg}
-
----
-### 📊 今日 ETF 动量打分榜 (原版公式)
+### 📊 【全域动量天梯榜单 (加权拟合优度 R²)】
 {chr(10).join(scores_table)}
 
 > 💡 *风控提示：原版策略建议在每个交易日 14:47 卖出、14:48 买入执行。*

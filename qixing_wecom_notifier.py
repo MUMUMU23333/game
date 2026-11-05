@@ -178,7 +178,7 @@ class QiXingWeComNotifier:
                     'score': score if score is not None else -999.0,
                     'slope_ann': slope_ann,
                     'r2': r2,
-                    'status': '📈 上行趋势' if (score or 0) > 0 else '📉 回调蓄势'
+                    'status': '🚀 单边强势主升' if (score or 0) > 0.5 else ('📈 温和震荡上行' if (score or 0) > 0 else ('📉 窄幅蓄势整理' if (score or 0) >= -0.2 else '🔴 弱势下行通道'))
                 })
         
         candidates.sort(key=lambda x: x['score'], reverse=True)
@@ -274,10 +274,20 @@ class QiXingWeComNotifier:
 
         top1_score = top_candidates[0]['score'] if top_candidates else 1.506
 
-        markdown = f"""# 🛡️ 七星量化 持仓与动量报告 ({full_stage})
-> 💰 **账户总资产**：¥{total_asset:,.2f} 元 (仓位: {position_pct:.1f}%) | 状态：<font color="info">**【继续持有最强龙头】**</font>
+        action_headline = "【继续持有最强龙头】" if action_type == "HOLD" else ("【建议调仓换股】" if action_type == "BUY" else "【触发防守避险】")
+        if action_type == "HOLD":
+            action_detail = f"> 🎯 **今日指令**：{action_headline}\n> • 当前标的：`{current_pos['code']}` {current_pos['name']} | 动量得分 `{top1_score:.3f}`\n> • 执行建议：尾盘 14:48 维持持仓，无需任何手动买卖"
+        else:
+            action_detail = f"> 🎯 **今日指令**：{action_headline}"
+        markdown = f"""# 🛡️ 七星量化 尾盘决策报告 ({full_stage})
+> 💰 **账户总资产**：¥{total_asset:,.2f} 元 (仓位: {position_pct:.1f}%)
 
-### 📦 【当前持仓与实时盈亏】
+---
+### 🚦 【尾盘核心交易指令 (14:48 执行)】
+{action_detail}
+
+---
+### 📦 【当前持仓与生死线风控】
 • **当前标的**：`{current_pos['code']}` **{current_pos['name']}**
 • **持仓规模**：{current_pos['amount']:,} 股 (市值 ¥{current_pos['market_val']:,.2f} 元)
 • **持仓历时**：已持仓 **{current_pos['holding_days']}** 个交易日 (建仓日: {current_pos['buy_date']})
