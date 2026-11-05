@@ -359,7 +359,7 @@ class GodKingUltimateNotifier:
             'r3': r3, 'r8': r8, 'r20': r20, 'v_ratio': v_ratio
         }
 
-    def calculate_strategy_signal(self) -> dict:
+    def calculate_strategy_signal(self, persist: bool = True) -> dict:
         """执行 👑 V2.5 GodKing-Ultimate 【真·攻防一体 · 口径 A 稳健版】"""
         raw_dfs = {}
         quotes = {}
@@ -985,7 +985,7 @@ class GodKingUltimateNotifier:
         print("👑 正在执行【终极神王体 · 苍穹七十一矛·全天候巅峰版 (71矛)】尾盘 14:48 决策雷达...")
         print("=" * 80)
 
-        decision = self.calculate_strategy_signal()
+        decision = self.calculate_strategy_signal(persist=not dry_run)
         card_md = self.format_markdown_card(decision)
         print("\n" + card_md + "\n")
 

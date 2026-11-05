@@ -268,7 +268,7 @@ class StarBankOmniV59Notifier:
             'v_ratio': v_ratio
         }
 
-    def calculate_strategy_signal(self) -> dict:
+    def calculate_strategy_signal(self, persist: bool = True) -> dict:
         """执行 👑 V5.8 Apex-Master 终极信号决策"""
         raw_dfs = {}
         quotes = {}
