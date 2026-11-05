@@ -1,0 +1,82 @@
+name: 👑 跨市场巅峰夜盘映射策略每日 09:35 自动决策与排雷推送 (CrossMarket-Apex)
+
+on:
+  # 提前错峰预热：每个交易日北京时间 09:12 (UTC 01:12) 唤醒 Runner (预留裕度，避开全球整点拥堵)
+  schedule:
+    - cron: '12 1 * * 1-5'
+
+  # 支持在 GitHub 网页上一键手动点击触发
+  workflow_dispatch:
+    inputs:
+      skip_wait:
+        description: '是否跳过等待立即执行 (true/false)'
+        required: false
+        default: 'false'
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  run-cross-market-apex:
+    runs-on: ubuntu-latest
+    env:
+      TZ: 'Asia/Shanghai'
+
+    steps:
+      - name: 检出量化策略仓库代码
+        uses: actions/checkout@v4
+
+      - name: 配置 Python 3.11 运行环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: 'requirements.txt'
+
+      - name: 安装量化核心计算与推送依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # ----------------------------------------------------------------------
+      # 🛑 前置交易日休市熔断守卫：非交易日自动优雅退出，不执行后续任何计算与推送
+      # ----------------------------------------------------------------------
+      - name: 🛑 A股交易日休市熔断检测 (周末/法定节假日优雅阻断)
+        id: guard
+        run: |
+          python trade_day_guard.py --assert-trade-day
+
+      # ----------------------------------------------------------------------
+      # ⏳ 毫秒级准点对齐至北京时间 09:35:00 (避开早盘09:30恶性脉冲，放量站稳VWAP正式决策)
+      # ----------------------------------------------------------------------
+      - name: ⏳ 毫秒级对齐至早盘 09:35:00
+        if: "${{ (steps.guard.outputs.is_trade_day == 'true' || inputs.skip_wait) }}"
+        run: |
+          if [ "${{ github.event_name == 'schedule' || !inputs.skip_wait }}" = "true" ]; then
+            python precision_scheduler.py --target 09:35:00
+          fi
+
+      # ----------------------------------------------------------------------
+      # 执行跨市场巅峰夜盘映射策略决策、排雷风控预警与企业微信推送
+      # ----------------------------------------------------------------------
+      - name: 🚀 执行 跨市场夜盘映射策略计算、顶级排雷风控与企业微信推送
+        if: "${{ (steps.guard.outputs.is_trade_day == 'true' || inputs.skip_wait) }}"
+        env:
+          CROSS_MARKET_WEBHOOK: ${{ secrets.CROSS_MARKET_WEBHOOK }}
+          GODKING_WEBHOOK: ${{ secrets.GODKING_WEBHOOK }}
+          WECOM_WEBHOOK: ${{ secrets.WECOM_WEBHOOK }}
+        run: |
+          python cross_market_apex_strategy.py --push
+
+      # ----------------------------------------------------------------------
+      # 原子化持久化同步状态与缓存
+      # ----------------------------------------------------------------------
+      - name: 💾 原子化同步并持久化状态与推送缓存
+        if: "${{ (steps.guard.outputs.is_trade_day == 'true' || inputs.skip_wait) }}"
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add .cross_market_apex_state.json .cross_market_apex_cache.json || true
+          git commit -m "chore(cross_market): auto sync cross-market apex states [skip ci]" || echo "无状态变更"
+          git push || true

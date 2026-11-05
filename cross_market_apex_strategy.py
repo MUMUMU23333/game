@@ -135,12 +135,12 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATE_FILE = os.path.join(BASE_DIR, ".cross_market_apex_state.json")
 CACHE_FILE = os.path.join(BASE_DIR, ".cross_market_apex_cache.json")
 
-# 企业微信 Webhook
+# 企业微信 Webhook (默认指向跨市场夜盘专用机器人通道)
 WECOM_WEBHOOK = (
     os.environ.get("CROSS_MARKET_WEBHOOK") or
     os.environ.get("GODKING_WEBHOOK") or
     os.environ.get("WECOM_WEBHOOK") or
-    "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=ff8a4364-c59a-4e7e-957d-7f1ce2e16a8c"
+    "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=733198ae-6848-4c0a-9aa8-6898da878c56"
 )
 
 
@@ -473,7 +473,7 @@ class CrossMarketApexEngine:
         return decision_result
 
     def format_wecom_markdown(self, decision: dict) -> str:
-        """生成符合 Anthropic / 极简科技美学的高质感企业微信 Markdown 战报"""
+        """生成符合顶级对冲基金/外资大行晨会标准的极简高质感企业微信 Markdown 战报"""
         now_str = decision["timestamp"]
         macro = decision["macro"]
         t = decision["target"]
@@ -490,71 +490,128 @@ class CrossMarketApexEngine:
             status_color = "🟡"
             
         md = []
-        md.append("👑【天枢总指挥部 · 跨市场巅峰夜盘映射策略 (CrossMarket-Apex)】")
-        md.append(f"⏰ 决策时间: `{now_str}` (五重闭环防收割版)")
-        md.append(f"{status_color} 状态判定: **{status_badge}**")
+        md.append("👑【天枢总指挥部 · 全球跨市场夜盘映射决策晨报 (CrossMarket-Apex)】")
+        md.append(f"⏰ 决策时刻: `{now_str}` | 架构: `对冲基金五重闭环防收割版`")
+        md.append(f"{status_color} 战术状态: **{status_badge}**")
         md.append(f"📝 战术成因: *{decision['reason']}*")
         md.append("---")
         
-        md.append("🌐 【隔夜外盘与对冲基金宏观四象限】")
+        # ─────────────────────────────────────────────────────────────
+        # 1. 🚨 机构级排雷风控 · 今日高危/可能暴雷板块与陷阱预警 (放在最前)
+        # ─────────────────────────────────────────────────────────────
+        md.append("🚨 【⚠️ 机构级排雷风控 · 今日高危/暴雷板块与陷阱预警】")
+        md.append("> 顶级机构生存铁律：先排雷避险，再争取阿尔法超额！")
+        md.append("❌ 1. **传统光伏主链与内卷组件 (通威/隆基/光伏ETF 515790)**")
+        md.append("   • 排雷逻辑: 硅料严重过剩、欧美双反加征关税，美股映射严重脱节，严禁盲目抄底！")
+        md.append("❌ 2. **传统政企IT与本地软件 (用友网络/广联达/云计算ETF 516510)**")
+        md.append("   • 排雷逻辑: 地方IT预算削减，缺乏海外AI算力真Capex支撑，反弹即是诱多卖点！")
+        md.append("❌ 3. **隔夜消息刺激高开诱多杂毛 (开盘 Gap > +3.2%)**")
+        md.append("   • 排雷逻辑: 90%概率大单诱多后开盘反手砸盘，历史追高次日大跌概率超 72%！")
+        md.append("❌ 4. **纯地缘与法案压制CXO (药明康德 603259 / 药明生物)**")
+        md.append("   • 排雷逻辑: 美《生物安全法案》压制长线外资，地缘扰动大，冲高回落风险极高！")
+        md.append("🛑 【防割铁律】: 集合竞价高开 **> +3.2%** 或开盘跌破 VWAP **-1.2%** 一票否决！")
+        md.append("---")
+        
+        # ─────────────────────────────────────────────────────────────
+        # 2. 🌐 全球宏观状态机与宏观四象限
+        # ─────────────────────────────────────────────────────────────
+        md.append("🌐 【全球宏观状态机与宏观四象限 (Bridgewater/AQR)】")
         md.append(f"• 🏛️ 宏观状态: **{macro.get('regime_desc', '标准运行')}**")
-        md.append(f"• 🇺🇸 纳指隔夜: `{macro['nasdaq_chg']:+.2f}%` | 恐慌指数 VIX: `{macro['vix']:.2f}` (警戒阈值: 20 / 28)")
+        md.append(f"• 🇺🇸 纳指隔夜: `{macro['nasdaq_chg']:+.2f}%` | 恐慌指数 VIX: `{macro['vix']:.2f}` (警戒: 20 / 28)")
         md.append(f"• 📈 美债基准: 20年+美债TLT `{macro.get('tlt_chg', 0.0):+.2f}%` (现价: ${macro.get('tlt_price', 82.0):.2f} · 折现率锚)")
         md.append(f"• 🇭🇰 港股前哨: 恒生科技 `{macro['hstech_chg']:+.2f}%` | 恒指 `{macro['hsi_chg']:+.2f}%`")
         md.append(f"• 💱 离岸汇率: USD/CNH `{macro['cnh_rate']:.4f}` | COMEX黄金: `{macro['gold_chg']:+.2f}%`")
         md.append("---")
         
-        md.append("📊 【今日实操买单与精确份额 (09:35 确认执行)】")
+        # ─────────────────────────────────────────────────────────────
+        # 3. 📊 今日实操买单与精确份额
+        # ─────────────────────────────────────────────────────────────
+        md.append("📊 【今日实操买单与精确挂单 (09:35 确认执行)】")
         md.append(f"🎯 标的名称: **{t['name']} ({t['code']})** | 目标权重: `{t['allocation']}`")
         md.append(f"💰 最新参考价: `¥{t['price']:.3f}` 元")
         md.append(f"🛡️ 4万元本金推荐买入: **¥{t['cost']:,.2f} 元** ➔ 挂单 **{t['shares']} 股** ({t['shares']//100} 手)")
         md.append(f"💵 预留安全备用金: `¥{t['cash_left']:,.2f} 元`")
         md.append("---")
         
-        md.append("📋 【全域映射梯队天梯榜 (Top 4 · 精选顶尖标的与承接)】")
+        # ─────────────────────────────────────────────────────────────
+        # 4. 📋 8大板块 16 顶尖神将天梯榜 (Top 4 动量精锐)
+        # ─────────────────────────────────────────────────────────────
+        md.append("📋 【8大板块精选 16 顶尖神将天梯榜 (Top 4 动量精锐)】")
         for i, c in enumerate(decision["candidates"][:4], 1):
             cfg = c["config"]
             t_q = c["target_quote"]
             t_m = c["target_meta"]
-            s_q = c.get("secondary_quote") or {}
+            s_m = c.get("secondary_meta") or {}
             above_tag = "✅ 站稳均线" if c["is_above_vwap"] else "❌ 跌破均线"
-            gap_tag = "✅ 射击区" if c["is_gap_safe"] else "⚠️ 抢跑透支"
-            sec_info = f" | 备选: {s_q.get('name','--')}({s_q.get('code','--')})" if s_q else ""
+            gap_tag = "✅ 黄金射击区" if c["is_gap_safe"] else "⚠️ 抢跑透支"
+            sec_info = f" | 备选: {s_m.get('name','--')}({s_m.get('code','--')})" if s_m else ""
+            name_display = t_m.get("name", t_q.get("name", ""))
             md.append(
-                f"{i}. [{cfg['tier']}] **{cfg['name']}** (胜率期望: `{cfg['win_rate_exp']}`)\n"
-                f"   • 首选标的: **{t_q['name']}({t_q['code']})** | 现价: ¥{t_q['price']:.3f} ({t_q['chg']:+.2f}%) | {above_tag} | {gap_tag}{sec_info}\n"
-                f"   • 驱动逻辑: *{cfg['driver_desc']}*"
+                f"{i}. [{cfg['tier'][:2]}] **{cfg['name']}** (期望胜率: `{cfg['win_rate_exp']}`)\n"
+                f"   • 标的: **{name_display}({t_q['code']})** | ¥{t_q['price']:.3f} ({t_q['chg']:+.2f}%) | {above_tag} | {gap_tag}{sec_info}\n"
+                f"   • 逻辑: *{cfg['driver_desc']}*"
             )
         md.append("---")
         
-        md.append("🛡️ 【风控与防守监控】")
-        md.append("🛑 日内保护红线: 破 VWAP 分时成交均线 **-1.20%** 自动断路离场")
-        md.append("🎯 隔夜止盈目标: 阶梯触发 **+4.0% / +7.5%** 动态吊灯止盈")
-        md.append("⚡ 隔夜防守底线: 收盘破 EMA5 或净值回撤 **-2.50%** 无条件止损")
-        md.append("💡 *【天枢总指挥部量化工程总线 · 跨市场五重闭环守护 · 彻底消灭开盘假高开诱多】*")
+        # ─────────────────────────────────────────────────────────────
+        # 5. 🛡️ 机构级动态风控纪律
+        # ─────────────────────────────────────────────────────────────
+        md.append("🛡️ 【机构级动态风控纪律】")
+        md.append("🛑 日内保护: 盘中跌破 VWAP 分时均线 **-1.20%** 自动断路离场")
+        md.append("🎯 动态止盈: **+4.0%** 锁定半仓利润，**+7.5%** 启动移动吊灯止盈")
+        md.append("⚡ 隔夜底线: 收盘破 EMA5 均线或单笔回撤 **-2.50%** 无条件强制止损")
+        md.append("💡 *【天枢总指挥部量化工程总线 · 顶级对冲基金晨会标准 · 敬畏市场，知止而后有定】*")
         
         return "\n".join(md)
 
     def push_to_wecom(self, markdown_text: str) -> bool:
-        """推送至企业微信机器人"""
+        """推送至企业微信机器人 (支持自动 4096 字节智能切分保护)"""
         if not self.webhook_url:
             print("[!] 未配置 Webhook URL，跳过推送")
             return False
-        payload = {
-            "msgtype": "markdown",
-            "markdown": {"content": markdown_text}
-        }
-        try:
-            resp = self.session.post(self.webhook_url, json=payload, timeout=8)
-            res_json = resp.json()
-            if res_json.get("errcode") == 0:
-                print("✅ 跨市场夜盘映射战报已成功推送至企业微信！")
-                return True
+            
+        # 企业微信对 markdown content 的 UTF-8 字节数限制为 4096
+        chunks = []
+        lines = markdown_text.split("\n")
+        current_chunk = []
+        current_bytes = 0
+        
+        for line in lines:
+            line_bytes = len((line + "\n").encode('utf-8'))
+            if current_bytes + line_bytes > 4020:
+                chunks.append("\n".join(current_chunk))
+                current_chunk = [line]
+                current_bytes = line_bytes
             else:
-                print(f"[!] 企业微信推送返回错误: {res_json}")
-        except Exception as e:
-            print(f"[!] 企业微信推送异常: {e}")
-        return False
+                current_chunk.append(line)
+                current_bytes += line_bytes
+        if current_chunk:
+            chunks.append("\n".join(current_chunk))
+            
+        success = True
+        for i, chunk in enumerate(chunks):
+            payload = {
+                "msgtype": "markdown",
+                "markdown": {"content": chunk}
+            }
+            try:
+                resp = self.session.post(self.webhook_url, json=payload, timeout=8)
+                res_json = resp.json()
+                if res_json.get("errcode") == 0:
+                    if len(chunks) > 1:
+                        print(f"✅ 跨市场夜盘映射战报第 {i+1}/{len(chunks)} 段已成功推送！")
+                    else:
+                        print("✅ 跨市场夜盘映射战报已成功推送至企业微信！")
+                else:
+                    print(f"[!] 企业微信推送返回错误: {res_json}")
+                    success = False
+            except Exception as e:
+                print(f"[!] 企业微信推送异常: {e}")
+                success = False
+            if len(chunks) > 1 and i < len(chunks) - 1:
+                time.sleep(0.5)
+                
+        return success
 
     def run_once(self, push: bool = False, principal: float = 40000.0, simulate_normal: bool = False):
         """执行单次评估并打印/推送"""
