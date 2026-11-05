@@ -470,9 +470,10 @@ class CrossMarketApexEngine:
             # ---------------------------------------------------------
             is_unlocked_by_resilience = False
             if key in banned_sectors:
-                # 即使所属板块被美股大跌报警，但如果 A股该标的早盘拒绝跟随跳水 (Gap >= -1.5%)
-                # 且 09:35 分时逆势放量站稳均线上方 (Price >= VWAP * 1.004 且实体走红 Price > Open)
-                if (quote_1["gap"] >= -1.5 and 
+                # 🛑 钱学森工程控制论铁律：在全局系统性流动性危机 (is_panic_market) 下，硬阻断一切单资产开锁！
+                # 只有在非全局系统性危机的局部调整中，才允许优质个股逆势开锁！
+                if (not is_panic_market and
+                    quote_1["gap"] >= -1.5 and 
                     quote_1["price"] >= quote_1["vwap"] * 1.004 and 
                     quote_1["price"] > quote_1["open_price"]):
                     is_unlocked_by_resilience = True
@@ -634,21 +635,28 @@ class CrossMarketApexEngine:
         md.append(f"💵 预留安全备用金: `¥{t['cash_left']:,.2f} 元`")
         md.append("---")
         
-        # 4. 📋 8大板块精选天梯榜 (Top 4)
-        md.append("📋 【8大板块精选天梯榜 (Top 4)】")
-        for i, c in enumerate(decision["candidates"][:4], 1):
-            cfg = c["config"]
-            t_q = c["target_quote"]
-            t_m = c["target_meta"]
-            s_m = c.get("secondary_meta") or {}
-            above_tag = "✅均线站稳" if c["is_above_vwap"] else "❌均线跌破"
-            gap_tag = "✅黄金射击区" if c["is_gap_safe"] else "⚠️抢跑透支"
-            sec_info = f" | 备选: {s_m.get('name','--')}({s_m.get('code','--')})" if s_m else ""
-            name_display = t_m.get("name", t_q.get("name", ""))
-            md.append(
-                f"{i}. [{cfg['tier'][:2]}] **{cfg['name']}** (胜率: `{cfg['win_rate_exp']}`)\n"
-                f"   • 标的: **{name_display}({t_q['code']})** | ¥{t_q['price']:.3f} ({t_q['chg']:+.2f}%) | {above_tag} | {gap_tag}{sec_info}"
-            )
+        # 4. 📋 8大板块精选天梯榜
+        if "DEFENSE" in action:
+            md.append("📋 【全域映射监控池 (🔴 全局流动性危机 · 全线封锁)】")
+            md.append("• 🛑 全局风暴熔断中：外盘重挫且VIX飙升，全市场股票与行业ETF全部一票否决，坚决不买！")
+            md.append("• 🛡️ 唯一允许实操指令: **银华日利(511880)** 100% 货币纯化保本避险。")
+        else:
+            md.append("📋 【8大板块精选天梯榜 (Top 4)】")
+            for i, c in enumerate(decision["candidates"][:4], 1):
+                cfg = c["config"]
+                t_q = c["target_quote"]
+                t_m = c["target_meta"]
+                s_m = c.get("secondary_meta") or {}
+                above_tag = "✅均线站稳" if c["is_above_vwap"] else "❌均线跌破"
+                gap_tag = "✅黄金射击区" if c["is_gap_safe"] else "⚠️抢跑透支"
+                if c.get("is_unlocked"):
+                    gap_tag = "🌟逆势承接开锁"
+                sec_info = f" | 备选: {s_m.get('name','--')}({s_m.get('code','--')})" if s_m else ""
+                name_display = t_m.get("name", t_q.get("name", ""))
+                md.append(
+                    f"{i}. [{cfg['tier'][:2]}] **{cfg['name']}** (胜率: `{cfg['win_rate_exp']}`)\n"
+                    f"   • 标的: **{name_display}({t_q['code']})** | ¥{t_q['price']:.3f} ({t_q['chg']:+.2f}%) | {above_tag} | {gap_tag}{sec_info}"
+                )
         md.append("---")
         
         # 5. 🛡️ 机构级动态风控纪律
