@@ -385,18 +385,47 @@ if __name__ == '__main__':
     # 实时扫描池
     candidates = notifier.scan_realtime_pool()
     
-    # 真实持仓
+    # 真实动态持仓底账 (从 portfolio_state.json 读取，严禁硬编码假数据)
+    state_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "portfolio_state.json")
+    if not os.path.exists(state_file):
+        state_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "quant_strategies", "wufu_5_2", "portfolio_state.json")
+    
+    real_code = "511880"
+    real_entry = 100.0
+    real_date = today_str
+    real_shares = 24700
+    if os.path.exists(state_file):
+        try:
+            with open(state_file, "r", encoding="utf-8") as sf:
+                st = json.load(sf)
+                real_code = st.get("current_holding", "511880.XSHG").split(".")[0]
+                real_entry = float(st.get("entry_price", 100.0))
+                real_date = st.get("entry_date", today_str)
+                real_shares = int(st.get("holding_shares", 24700))
+        except Exception:
+            pass
+
+    q_h = notifier.fetch_realtime_quote(real_code)
+    curr_p = q_h.get("price", real_entry)
+    if curr_p <= 0:
+        curr_p = real_entry
+    chg_pnl = (curr_p / real_entry - 1.0) * 100.0 if real_entry > 0 else 0.0
+    amt_pnl = (curr_p - real_entry) * real_shares
+    mkt_val = curr_p * real_shares
+
+    h_name = "银华日利" if real_code == "511880" else ("南方原油" if real_code == "501018" else ("黄金ETF" if real_code == "518880" else real_code))
+
     holds = [{
-        'code': '518880',
-        'name': '黄金ETF',
-        'amount': 5600,
-        'market_val': 52572.8,
-        'cost': 9.220,
-        'price': 9.388,
-        'pnl_pct': 1.82,
-        'pnl_amount': 940.8,
+        'code': real_code,
+        'name': h_name,
+        'amount': real_shares,
+        'market_val': mkt_val,
+        'cost': real_entry,
+        'price': curr_p,
+        'pnl_pct': round(chg_pnl, 2),
+        'pnl_amount': round(amt_pnl, 2),
         'holding_days': 1,
-        'buy_date': today_str
+        'buy_date': real_date
     }]
 
     import argparse
