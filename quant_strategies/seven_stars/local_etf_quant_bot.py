@@ -275,14 +275,16 @@ def calculate_momentum_score(prices: np.ndarray, curr_price: float):
     r2 = 1 - ss_res / ss_tot if ss_tot else 0
     score = ann_ret * r2
     
+    is_circuit_break = False
     if len(prices) >= 4:
         recent_ret = min(prices[-1] / prices[-2],
                          prices[-2] / prices[-3],
                          prices[-3] / prices[-4])
         if recent_ret < CONFIG["loss_limit"]:
             score = 0
+            is_circuit_break = True
             
-    return score
+    return score, is_circuit_break
 
 
 # ==================== 6. 核心逻辑执行与通知推送 ====================
@@ -328,9 +330,12 @@ def run_strategy_check():
             scores_table.append(f"• `{etf[:6]}` {etf_name}: 行情数据获取中...")
             continue
             
-        score = calculate_momentum_score(prices, curr_price)
-        if score is not None:
-            if score > 0.5:
+        score_res = calculate_momentum_score(prices, curr_price)
+        if score_res is not None:
+            score, is_cb = score_res
+            if is_cb:
+                status_tag = "🛑 触及急跌熔断 (禁买)"
+            elif score > 0.5:
                 status_tag = "🚀 单边强势主升"
             elif score > 0:
                 status_tag = "📈 温和震荡上行"

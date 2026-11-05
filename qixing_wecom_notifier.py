@@ -153,13 +153,15 @@ class QiXingWeComNotifier:
         score = ann_ret * r2
         
         if len(closes) >= 4:
+            is_circuit_break = False
             recent_ret = min(closes[-1] / closes[-2],
                              closes[-2] / closes[-3],
                              closes[-3] / closes[-4])
             if recent_ret < 0.97:
                 score = 0.0
+                is_circuit_break = True
                 
-        return round(score, 3), round(slope * 250 * 100, 2), round(r2, 3)
+        return round(score, 3), round(slope * 250 * 100, 2), round(r2, 3), is_circuit_break
 
     def scan_realtime_etf_pool(self):
         candidates = []
@@ -168,8 +170,18 @@ class QiXingWeComNotifier:
         for code, name in ETF_POOL:
             closes, price, chg = self.fetch_kline_and_quote(code)
             if closes is not None and price is not None:
-                score, slope_ann, r2 = self.calculate_momentum_score(closes, price)
+                score, slope_ann, r2, is_cb = self.calculate_momentum_score(closes, price)
                 quotes_map[code] = {'price': price, 'chg': chg, 'name': name}
+                if is_cb:
+                    status_desc = "🛑 触及急跌熔断 (禁买)"
+                elif (score or 0) > 0.5:
+                    status_desc = "🚀 单边强势主升"
+                elif (score or 0) > 0:
+                    status_desc = "📈 温和震荡上行"
+                elif (score or 0) >= -0.2:
+                    status_desc = "📉 窄幅蓄势整理"
+                else:
+                    status_desc = "🔴 弱势下行通道"
                 candidates.append({
                     'code': code,
                     'name': name,
@@ -178,7 +190,7 @@ class QiXingWeComNotifier:
                     'score': score if score is not None else -999.0,
                     'slope_ann': slope_ann,
                     'r2': r2,
-                    'status': '🚀 单边强势主升' if (score or 0) > 0.5 else ('📈 温和震荡上行' if (score or 0) > 0 else ('📉 窄幅蓄势整理' if (score or 0) >= -0.2 else '🔴 弱势下行通道'))
+                    'status': status_desc
                 })
         
         candidates.sort(key=lambda x: x['score'], reverse=True)
