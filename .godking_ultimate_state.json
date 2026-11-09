@@ -1,8 +1,8 @@
 {
-  "last_update": "2026-11-06 14:48:54",
-  "stage_desc": "🛡️ 市场无达标主升浪标的 (最高分 10.4 < 12分门槛) · 100% 避险配置银行",
+  "last_update": "2026-11-09 14:48:46",
+  "stage_desc": "🛡️ 市场无达标主升浪标的 (最高分 11.6 < 12分门槛) · 100% 避险配置银行",
   "exec_code": null,
-  "curr_holding": "002636",
+  "curr_holding": null,
   "target_weights": {
     "601288": 100.0
   },
