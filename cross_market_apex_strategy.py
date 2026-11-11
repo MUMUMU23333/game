@@ -515,6 +515,14 @@ class CrossMarketApexEngine:
             primary_target = config.get("top_etf") or config.get("top_stock")
             secondary_target = config.get("top_stock_2") or config.get("top_stock") or config.get("top_etf")
             
+            # 👑 机构级交叉品种主营业务穿透排雷 (Cross-Commodity Penetration):
+            # 紫金矿业(601899) 兼具巨量铜工业金属业务(铜利润占比超50%)。
+            # 当隔夜美股自由港(FCX)大跌导致铜金属板块(COPPER_METAL)触发硬封锁时，
+            # 紫金矿业禁止作为黄金主攻标的买入，系统自动智能降级切换至纯金标的【山东黄金 (600547)】！
+            if key == "GOLD_COMMODITY" and "COPPER_METAL" in banned_sectors:
+                if primary_target and primary_target.get("code") == "601899":
+                    primary_target = config.get("top_stock_2", primary_target)
+            
             p_key = f"{primary_target['market']}{primary_target['code']}"
             s_key = f"{secondary_target['market']}{secondary_target['code']}" if secondary_target else None
             
