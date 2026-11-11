@@ -198,9 +198,11 @@ class CrossMarketApexEngine:
                 amt = float(parts[37]) * 10000.0 if len(parts) > 37 and parts[37] else (vol * price * 100.0)
                 chg = float(parts[32]) if parts[32] else ((price / prev_close - 1) * 100 if prev_close > 0 else 0.0)
                 gap = round((open_p / prev_close - 1) * 100, 2) if prev_close > 0 and open_p > 0 else 0.0
+                turnover = float(parts[38]) if len(parts) > 38 and parts[38] else 0.0
+                volume_ratio = float(parts[49]) if len(parts) > 49 and parts[49] else 1.0
                 
-                # 计算分时 VWAP (均价)
-                vwap = round(amt / (vol * 100.0), 3) if vol > 0 else price
+                # 计算分时 VWAP (均价) - 优先使用交易所官方加权均价 parts[51]
+                vwap = float(parts[51]) if len(parts) > 51 and parts[51] and float(parts[51]) > 0 else (round(amt / (vol * 100.0), 3) if vol > 0 else price)
                 
                 return {
                     'code': code,
@@ -215,6 +217,8 @@ class CrossMarketApexEngine:
                     'gap': gap,
                     'volume': vol,
                     'amount': amt,
+                    'turnover': turnover,
+                    'volume_ratio': volume_ratio,
                     'vwap': vwap
                 }
         except Exception as e:
@@ -248,7 +252,9 @@ class CrossMarketApexEngine:
                     amt = float(parts[37]) * 10000.0 if len(parts) > 37 and parts[37] else (vol * price * 100.0)
                     chg = float(parts[32]) if parts[32] else ((price / prev_close - 1) * 100 if prev_close > 0 else 0.0)
                     gap = round((open_p / prev_close - 1) * 100, 2) if prev_close > 0 and open_p > 0 else 0.0
-                    vwap = round(amt / (vol * 100.0), 3) if vol > 0 else price
+                    turnover = float(parts[38]) if len(parts) > 38 and parts[38] else 0.0
+                    volume_ratio = float(parts[49]) if len(parts) > 49 and parts[49] else 1.0
+                    vwap = float(parts[51]) if len(parts) > 51 and parts[51] and float(parts[51]) > 0 else (round(amt / (vol * 100.0), 3) if vol > 0 else price)
                     quotes[sec_id] = {
                         'code': code,
                         'name': name,
@@ -261,6 +267,8 @@ class CrossMarketApexEngine:
                         'gap': gap,
                         'volume': vol,
                         'amount': amt,
+                        'turnover': turnover,
+                        'volume_ratio': volume_ratio,
                         'vwap': vwap
                     }
         except Exception as e:
@@ -493,13 +501,14 @@ class CrossMarketApexEngine:
                     banned_sectors.append(info["group_key"])
 
         # 2. 批量拉取所有候选 A股 / ETF 实时行情 (单次 HTTP 请求毫秒级搞定)
-        sec_keys = []
+        sec_keys = ["sh000300", "sh000001"]  # 纳入大盘基准 (沪深300与上证指数) 用于计算相对强弱Alpha
         for cfg in MAPPING_RADAR_POOL.values():
             for t_k in ["top_etf", "top_stock", "top_stock_2"]:
                 item = cfg.get(t_k)
                 if item:
                     sec_keys.append(f"{item['market']}{item['code']}")
         quotes_map = self.fetch_batch_a_quotes(list(set(sec_keys)))
+        benchmark_chg = quotes_map.get("sh000300", {}).get("chg", 0.0)
 
         candidate_signals = []
         for key, config in MAPPING_RADAR_POOL.items():
@@ -527,38 +536,105 @@ class CrossMarketApexEngine:
             curr_p = quote_1["price"]
             vwap = quote_1["vwap"]
             chg = quote_1["chg"]
+            vr = quote_1.get("volume_ratio", 1.0)
+            turnover = quote_1.get("turnover", 0.0)
             
-            # 微观结构健康度打分 (按各板块网格寻优帕累托最优射击区自适应匹配)
+            # -----------------------------------------------------------------
+            # 👑 华尔街顶级对冲基金级【五维连续量化评分卡 (5-Factor Continuous Scorecard)】
+            # 满分 100 分 + 3 分微弱历史先验，彻底摒弃旧版“粗暴阶跃二值化与静态T0死板加分”！
+            # 1. 竞价缺口与帕累托黄金射击区因子 (Auction & Gap Quality, 25分)
+            # 2. 分时均线承接连续强度因子 (VWAP Support & Continuous Distance, 25分)
+            # 3. 机构量能爆发与量比异动因子 (Volume Surge & Liquidity Alpha, 20分)
+            # 4. 相对大盘超额相对强度因子 (Alpha RS vs Broad Market, 15分)
+            # 5. 宏观顺风与隔夜外盘弹性因子 (Macro Beta Alignment, 15分)
+            # -----------------------------------------------------------------
+            
+            # ① 维度 1: 竞价缺口与黄金射击区质量 (25分)
             gap_min = config.get("gap_min", 0.3)
             gap_max = config.get("gap_max", 3.0)
-            is_gap_safe = (gap_min <= gap <= gap_max) or is_unlocked_by_resilience # 黄金射击区 (严禁恶意诱多)
-            is_above_vwap = (curr_p >= vwap * 0.999)    # 站上分时均线
+            center = (gap_min + gap_max) / 2.0
+            half_width = max((gap_max - gap_min) / 2.0, 0.5)
+            is_gap_safe = (gap_min <= gap <= gap_max)
             
-            score = 0.0
-            if "T0" in config["tier"]:
-                score += 35.0
-            elif "T1" in config["tier"]:
-                score += 30.0
-            else:
-                score += 25.0
-                
-            if is_above_vwap:
-                score += 30.0
             if is_gap_safe:
-                score += 25.0
+                # 倒 U 型帕累托连续得分：居于中轴得满分 25分，靠近边缘连续衰减至 17分
+                dist_ratio = abs(gap - center) / half_width
+                score_gap = round(25.0 - 8.0 * dist_ratio, 2)
+            elif gap < gap_min:
+                if gap >= 0:
+                    # 微幅平开/弱低开但未破位，给予基础安全分 8~12分
+                    score_gap = round(8.0 + 4.0 * (gap / max(gap_min, 0.1)), 2)
+                else:
+                    # 跌破昨收负收益低开，执行线性惩罚扣分 (-10 ~ -25分)
+                    score_gap = round(max(-25.0, -10.0 + gap * 5.0), 2)
             else:
-                score -= 25.0  # ⚠️ 未入射击区或低开破位重罚，严禁被板块固有分带病通关！
+                # gap > gap_max: 恶意高开、抢跑透支、散户追高陷阱，重罚 -25分！
+                score_gap = -25.0
                 
-            if chg > gap:  # 日内呈现开盘后继续上攻态势 (走实体阳线)
-                score += 10.0
-            elif chg < 0:  # 盘中处于下跌翻绿走弱态势
-                score -= 15.0  # 负收益扣分
+            # ② 维度 2: 分时均线承接连续强度 (25分)
+            vwap_diff = ((curr_p - vwap) / vwap) * 100.0 if vwap > 0 else 0.0
+            is_above_vwap = (curr_p >= vwap * 0.998)  # 允许 0.2% 浮点微差
+            
+            if curr_p >= vwap:
+                if 0.1 <= vwap_diff <= 1.5:
+                    # 黄金承接带：稳健站上均线且未过度透支，满分 25分
+                    score_vwap = 25.0
+                elif vwap_diff > 1.5:
+                    # 乖离过大：日内分时急拉超 1.5%，谨防脉冲回落，连续递减
+                    score_vwap = round(max(15.0, 25.0 - (vwap_diff - 1.5) * 5.0), 2)
+                else:
+                    # 贴线微强 (0.0% ~ 0.1%)
+                    score_vwap = 18.0
+            else:
+                if vwap_diff >= -0.5:
+                    # 均线下方缠斗 (0 ~ -0.5%)，微弱防守分 5分
+                    score_vwap = 5.0
+                else:
+                    # 跌破均线超 -0.5%，空头杀跌状态，线性重罚扣分 (-10 ~ -20分)
+                    score_vwap = round(max(-20.0, -10.0 + vwap_diff * 5.0), 2)
+                    
+            # ③ 维度 3: 机构量能爆发与量比异动 (20分)
+            if vr >= 2.0:
+                score_vol = 20.0  # 主力抢筹爆量突破
+            elif vr >= 1.2:
+                score_vol = round(14.0 + (vr - 1.2) / 0.8 * 5.0, 2)  # 14~19分健康放量配合
+            elif vr >= 0.8:
+                score_vol = 8.0   # 平量跟风
+            else:
+                score_vol = -10.0 # 严重缩量、假抽搐、无承接流动性陷阱，重罚扣分
                 
+            # ④ 维度 4: 相对大盘超额相对强度 (15分)
+            alpha = chg - benchmark_chg
+            if alpha >= 1.5:
+                score_alpha = 15.0  # 逆势领跑龙头
+            elif alpha >= 0.5:
+                score_alpha = round(10.0 + (alpha - 0.5) * 5.0, 2)  # 稳健跑赢大盘
+            elif alpha >= -0.5:
+                score_alpha = 6.0   # 与大盘同步
+            else:
+                score_alpha = round(max(-10.0, -5.0 + alpha * 2.0), 2)  # 弱于大盘，资金流出扣分
+                
+            # ⑤ 维度 5: 宏观顺风与隔夜外盘弹性 (15分)
+            score_macro = 0.0
             if key in preferred_sectors:
-                score += 15.0  # 宏观顺风奖分
-            if is_unlocked_by_resilience:
-                score += 20.0  # 逆势强承接特等奖分 (利空出尽反包)
+                score_macro += 10.0  # 宏观状态机顺风
+                # 检查外盘映射标的隔夜弹性
+                for tkr, info in macro.get("us_anchors", {}).items():
+                    if info.get("group_key") == key:
+                        anchor_chg = info.get("chg", 0.0)
+                        if anchor_chg >= 1.5:
+                            score_macro += 5.0  # 外盘大涨共振
+                        elif anchor_chg > 0.0:
+                            score_macro += 2.5
+                        break
+            else:
+                score_macro = 2.0
                 
+            # 历史微弱先验加权 (只保留微调，杜绝霸榜)
+            prior = 3.0 if "T0" in config["tier"] else (1.5 if "T1" in config["tier"] else 0.0)
+            
+            score = round(score_gap + score_vwap + score_vol + score_alpha + score_macro + prior, 2)
+                  
             candidate_signals.append({
                 "group_key": key,
                 "config": config,
@@ -567,6 +643,13 @@ class CrossMarketApexEngine:
                 "secondary_quote": quote_2,
                 "secondary_meta": secondary_target,
                 "score": score,
+                "factor_breakdown": {
+                    "gap": score_gap,
+                    "vwap": score_vwap,
+                    "vol": score_vol,
+                    "alpha": score_alpha,
+                    "macro": score_macro
+                },
                 "is_gap_safe": is_gap_safe,
                 "is_above_vwap": is_above_vwap,
                 "is_unlocked": is_unlocked_by_resilience
@@ -759,8 +842,8 @@ class CrossMarketApexEngine:
                 sec_info = f" | 备选: {s_m.get('name','--')}({s_m.get('code','--')})" if s_m else ""
                 name_display = t_m.get("name", t_q.get("name", ""))
                 md.append(
-                    f"{i}. [{cfg['tier'][:2]}] **{cfg['name']}** (胜率: `{cfg['win_rate_exp']}`)\n"
-                    f"   • 标的: **{name_display}({t_q['code']})** | ¥{t_q['price']:.3f} ({t_q['chg']:+.2f}%) | {above_tag} | {gap_tag}{sec_info}"
+                    f"{i}. [{cfg['tier'][:2]}] **{cfg['name']}** (五维评分: `{c['score']:.1f}` | 胜率: `{cfg['win_rate_exp']}`)\n"
+                    f"   • 标的: **{name_display}({t_q['code']})** | ¥{t_q['price']:.3f} ({t_q['chg']:+.2f}%) | 量比: `{t_q.get('volume_ratio', 1.0):.2f}` | {above_tag} | {gap_tag}{sec_info}"
                 )
         md.append("---")
         
