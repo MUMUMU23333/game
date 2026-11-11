@@ -516,19 +516,12 @@ class CrossMarketApexEngine:
                 continue
 
             # ---------------------------------------------------------
-            # 核心创新：【逆势强承接豁免开锁 (Resilient VWAP Reversal Absorption)】
+            # 🛑 机构铁律：【外盘大跌受累板块当日 100% 一票否决硬封锁】
+            # 坚决杜绝“上面刚提示该板块暴雷排雷，下面又推荐买入”的严重矛盾！
             # ---------------------------------------------------------
             is_unlocked_by_resilience = False
             if key in banned_sectors:
-                # 🛑 钱学森工程控制论铁律：在全局系统性流动性危机 (is_panic_market) 下，硬阻断一切单资产开锁！
-                # 只有在非全局系统性危机的局部调整中，才允许优质个股逆势开锁！
-                if (not is_panic_market and
-                    quote_1["gap"] >= -1.5 and 
-                    quote_1["price"] >= quote_1["vwap"] * 1.004 and 
-                    quote_1["price"] > quote_1["open_price"]):
-                    is_unlocked_by_resilience = True
-                else:
-                    continue  # 确实跟随外盘大跌受累，维持一票否决
+                continue  # 无论个股如何躁动，板块触发外盘黑天鹅当日坚决不买！
                 
             gap = quote_1["gap"]
             curr_p = quote_1["price"]
@@ -553,8 +546,14 @@ class CrossMarketApexEngine:
                 score += 30.0
             if is_gap_safe:
                 score += 25.0
+            else:
+                score -= 25.0  # ⚠️ 未入射击区或低开破位重罚，严禁被板块固有分带病通关！
+                
             if chg > gap:  # 日内呈现开盘后继续上攻态势 (走实体阳线)
                 score += 10.0
+            elif chg < 0:  # 盘中处于下跌翻绿走弱态势
+                score -= 15.0  # 负收益扣分
+                
             if key in preferred_sectors:
                 score += 15.0  # 宏观顺风奖分
             if is_unlocked_by_resilience:
@@ -575,7 +574,14 @@ class CrossMarketApexEngine:
             
         # 按得分降序排列
         candidate_signals.sort(key=lambda x: x["score"], reverse=True)
-        top_pick = candidate_signals[0] if candidate_signals else None
+        
+        # 👑 机构级四重硬约束过滤器 (必须同时满足：1.处于黄金射击区 2.分时站上均线 3.综合得分>=70分)
+        # 杜绝任何大跌低开、抢跑透支的劣质标的凭基础分侥幸通关！
+        eligible_picks = [
+            c for c in candidate_signals 
+            if c.get("is_gap_safe") and c.get("is_above_vwap") and c.get("score", 0.0) >= 70.0
+        ]
+        best_eligible = eligible_picks[0] if eligible_picks else None
         
         # 3. 裁定最终战术指令
         target_action = "OBSERVE"
@@ -602,11 +608,18 @@ class CrossMarketApexEngine:
             reason = f"触发全球防守熔断: {panic_reason} ➔ 资金纯化避险"
         elif not hk_sentry_confirmed:
             target_action = "SENTRY_BLOCKED"
-            reason = "港股前哨兵(恒生科技)早盘跳水转弱，判定外盘为虚假突破 ➔ 一票否决追买"
-        elif top_pick and top_pick["score"] >= 65.0:
+            target_code = "--"
+            target_name = "现金空仓保护"
+            target_price = 0.0
+            allocation_ratio = 0.0
+            shares = 0
+            actual_cost = 0.0
+            cash_left = principal
+            reason = "港股前哨兵(恒生科技)早盘跳水转弱，判定外盘为虚假突破 ➔ 一票否决追买，保持空仓观望"
+        elif best_eligible:
             target_action = "BUY_CONFIRMED"
-            t_q = top_pick["target_quote"]
-            recommended_target = top_pick["target_meta"]
+            t_q = best_eligible["target_quote"]
+            recommended_target = best_eligible["target_meta"]
             target_code = t_q["code"]
             target_name = t_q["name"]
             target_price = t_q["price"]
@@ -618,12 +631,19 @@ class CrossMarketApexEngine:
                 actual_cost = round(shares * target_price, 2)
                 cash_left = round(principal - actual_cost, 2)
             reason = (
-                f"🌟 捕获【{top_pick['config']['name']}】最优共振买点 "
-                f"(胜率期望: {top_pick['config']['win_rate_exp']} | 分时均线: ¥{t_q['vwap']:.3f} | 现价: ¥{t_q['price']:.3f})"
+                f"🌟 捕获【{best_eligible['config']['name']}】最优共振买点 "
+                f"(胜率期望: {best_eligible['config']['win_rate_exp']} | 分时均线: ¥{t_q['vwap']:.3f} | 现价: ¥{t_q['price']:.3f})"
             )
         else:
-            target_action = "WAIT_FOR_0935"
-            reason = "尚未满足 09:35 VWAP 放量站稳铁律，继续保持雷达监控"
+            target_action = "OBSERVE_NO_GAP"
+            target_code = "--"
+            target_name = "现金空仓保护"
+            target_price = 0.0
+            allocation_ratio = 0.0
+            shares = 0
+            actual_cost = 0.0
+            cash_left = principal
+            reason = "全市场候选板块均未进入帕累托黄金射击区 (普遍抢跑透支或低开破位) ➔ 执行风控一票否决，保持100%空仓观望，严禁盲目抄底！"
 
         decision_result = {
             "timestamp": now.strftime("%Y-%m-%d %H:%M:%S"),
@@ -657,7 +677,12 @@ class CrossMarketApexEngine:
         t = decision["target"]
         action = decision["action"]
         
-        status_badge = "🟢 触发买单" if "BUY" in action else ("🔴 防御避险" if "DEFENSE" in action else "🟡 观望等待")
+        if "BUY" in action:
+            status_badge = "🟢 触发买单"
+        elif "DEFENSE" in action:
+            status_badge = "🔴 防御避险"
+        else:
+            status_badge = "🟡 空仓观望 (未入射击区)"
             
         md = []
         md.append("👑【天枢总指挥部 · 跨市场夜盘映射晨报】")
@@ -696,11 +721,23 @@ class CrossMarketApexEngine:
         md.append(f"• 美债TLT: `{macro.get('tlt_chg', 0.0):+.2f}%` (${macro.get('tlt_price', 82.0):.1f}) | 恒生科技: `{macro['hstech_chg']:+.2f}%` | 离岸CNH: `{macro['cnh_rate']:.4f}`")
         md.append("---")
         
-        # 3. 📊 今日实操买单与精确份额
-        md.append("📊 【今日实操买单 (09:35 确认执行)】")
-        md.append(f"🎯 标的: **{t['name']} ({t['code']})** | 目标权重: `{t['allocation']}`")
-        md.append(f"🛡️ 4万本金挂单: **¥{t['cost']:,.2f} 元** ➔ 买入 **{t['shares']} 股** ({t['shares']//100} 手) | 参考价: `¥{t['price']:.3f}`")
-        md.append(f"💵 预留安全备用金: `¥{t['cash_left']:,.2f} 元`")
+        # 3. 📊 今日实操指令
+        principal = decision.get("principal", 40000.0)
+        if "BUY" in action:
+            md.append("📊 【今日实操买单 (09:35 确认执行)】")
+            md.append(f"🎯 标的: **{t['name']} ({t['code']})** | 目标权重: `{t['allocation']}`")
+            md.append(f"🛡️ 4万本金挂单: **¥{t['cost']:,.2f} 元** ➔ 买入 **{t['shares']} 股** ({t['shares']//100} 手) | 参考价: `¥{t['price']:.3f}`")
+            md.append(f"💵 预留安全备用金: `¥{t['cash_left']:,.2f} 元`")
+        elif "DEFENSE" in action:
+            md.append("📊 【今日实操指令 (🔴 货币纯化避险)】")
+            md.append(f"🎯 避险标的: **银华日利 (511880)** | 目标权重: `100%`")
+            md.append(f"🛡️ 4万本金挂单: **¥{t['cost']:,.2f} 元** ➔ 买入 **{t['shares']} 股** ({t['shares']//100} 手) | 参考价: `¥{t['price']:.3f}`")
+            md.append(f"💵 预留安全备用金: `¥{t['cash_left']:,.2f} 元`")
+        else:
+            md.append("📊 【今日实操指令 (🟡 空仓观望保护)】")
+            md.append("🎯 当前战术: **保持 100% 现金空仓，不买入任何股票**")
+            md.append(f"🛡️ 4万安全备用金: **¥{principal:,.2f} 元** (100% 完整留存)")
+            md.append(f"📝 观望逻辑: *{decision['reason']}*")
         md.append("---")
         
         # 4. 📋 8大板块精选天梯榜
