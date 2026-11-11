@@ -1,0 +1,25 @@
+{
+  "baseline": {
+    "trades": 178,
+    "win_rate": 63.48,
+    "avg_win": 3.27,
+    "avg_loss": 2.05,
+    "plr": 1.6,
+    "total_return": 871.1,
+    "final_capital": 388438.39,
+    "max_dd": 10.55,
+    "sharpe": 6.53
+  },
+  "upgraded": {
+    "trades": 121,
+    "win_rate": 69.42,
+    "avg_win": 3.12,
+    "avg_loss": 1.91,
+    "plr": 1.63,
+    "total_return": 535.93,
+    "final_capital": 254370.09,
+    "max_dd": 13.2,
+    "sharpe": 6.44
+  },
+  "trades_count": 121
+}
