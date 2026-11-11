@@ -501,7 +501,7 @@ class CrossMarketApexEngine:
                     banned_sectors.append(info["group_key"])
 
         # 2. 批量拉取所有候选 A股 / ETF 实时行情 (单次 HTTP 请求毫秒级搞定)
-        sec_keys = ["sh000300", "sh000001"]  # 纳入大盘基准 (沪深300与上证指数) 用于计算相对强弱Alpha
+        sec_keys = ["sh000300", "sh000001", "sz399001"]  # 纳入大盘基准与两市成交额
         for cfg in MAPPING_RADAR_POOL.values():
             for t_k in ["top_etf", "top_stock", "top_stock_2"]:
                 item = cfg.get(t_k)
@@ -509,6 +509,13 @@ class CrossMarketApexEngine:
                     sec_keys.append(f"{item['market']}{item['code']}")
         quotes_map = self.fetch_batch_a_quotes(list(set(sec_keys)))
         benchmark_chg = quotes_map.get("sh000300", {}).get("chg", 0.0)
+        
+        # 👑 升级二：全市场总成交额动态温控仪 (实时拉取两市成交额)
+        sh_amt_yi = quotes_map.get("sh000001", {}).get("amount", 0.0) / 100000000.0
+        sz_amt_yi = quotes_map.get("sz399001", {}).get("amount", 0.0) / 100000000.0
+        total_market_turnover = round((sh_amt_yi + sz_amt_yi) / 10000.0, 2)
+        if total_market_turnover <= 0.05:  # 盘前或休市默认基准 1.68万亿
+            total_market_turnover = 1.68
 
         candidate_signals = []
         for key, config in MAPPING_RADAR_POOL.items():
@@ -708,23 +715,76 @@ class CrossMarketApexEngine:
             cash_left = principal
             reason = "港股前哨兵(恒生科技)早盘跳水转弱，判定外盘为虚假突破 ➔ 一票否决追买，保持空仓观望"
         elif best_eligible:
-            target_action = "BUY_CONFIRMED"
             t_q = best_eligible["target_quote"]
             recommended_target = best_eligible["target_meta"]
             target_code = t_q["code"]
             target_name = t_q["name"]
             target_price = t_q["price"]
-            allocation_ratio = 1.0
             
-            # 计算 100 股一手向下取整买入
-            if target_price > 0:
-                shares = int(principal / target_price / 100) * 100
+            # -------------------------------------------------------------
+            # 👑 升级一：两阶段买入验真机制 (Two-Stage Auction Confirmation)
+            # 阶段 1 (09:25 ~ 09:30): 集合竞价雷达观察态 (STAGE1_RADAR)
+            # 阶段 2 (09:30 之后，特别在 09:35 确认): 实体放量终审确认 (BUY_CONFIRMED)
+            # -------------------------------------------------------------
+            is_pre_market = (now.hour == 9 and now.minute < 30)
+            
+            # 终审验真 1: 是否走实体阳线 (P >= Open * 0.998)，防止高开被主力暴力下砸
+            is_dumped = (t_q["price"] < t_q["open_price"] * 0.998)
+            # 终审验真 2: 开盘量比是否充沛 (VR >= 1.0)
+            is_volume_sufficient = (t_q.get("volume_ratio", 1.0) >= 1.0)
+            
+            if is_pre_market:
+                target_action = "STAGE1_RADAR"
+                allocation_ratio = 1.0
+                reason = (
+                    f"📡 09:25 竞价捕获【{best_eligible['config']['name']}】预选标的 "
+                    f"({t_q['name']} {t_q['code']} | 现价: ¥{t_q['price']:.3f}) ➔ 处于黄金射击区，请于 09:35 确认实体放量！"
+                )
+            elif is_dumped:
+                target_action = "OBSERVE_FALSE_BREAK"
+                allocation_ratio = 0.0
+                reason = (
+                    f"⚠️ 标的【{t_q['name']}】早盘高开后跌破开盘价 (现价:¥{t_q['price']:.3f} < 开盘:¥{t_q['open_price']:.3f}) "
+                    f"➔ 判定为主力诱多假突破，一票否决不追高，保持空仓观望！"
+                )
+            elif not is_volume_sufficient:
+                target_action = "OBSERVE_LOW_VOLUME"
+                allocation_ratio = 0.0
+                reason = (
+                    f"⚠️ 标的【{t_q['name']}】量比仅为 {t_q.get('volume_ratio',1.0):.2f} < 1.0 (缩量冲高) "
+                    f"➔ 缺乏增量资金承接，谨防午后跳水，保持空仓观望！"
+                )
+            else:
+                target_action = "BUY_CONFIRMED"
+                
+                # -------------------------------------------------------------
+                # 👑 升级二：全市场总成交额温控仪 (Market Liquidity Thermometer)
+                # -------------------------------------------------------------
+                if total_market_turnover >= 1.8:
+                    allocation_ratio = 1.0  # 放量牛市/强多头态：100% 满仓主攻
+                    market_fluid_desc = f"放量强攻态 (两市: {total_market_turnover:.2f}万亿 >= 1.8万亿 · 满仓主攻)"
+                elif total_market_turnover >= 1.3:
+                    allocation_ratio = 0.5  # 存量轮动态：50% 动态半仓，留存50%防守现金
+                    market_fluid_desc = f"存量震荡态 (两市: {total_market_turnover:.2f}万亿 · 50%半仓进攻，留存备用金)"
+                else:
+                    allocation_ratio = 0.3  # 地量防御态：30% 极小仓试探
+                    market_fluid_desc = f"地量弱势态 (两市: {total_market_turnover:.2f}万亿 < 1.3万亿 · 严格控仓30%)"
+                
+                reason = (
+                    f"🌟 捕获【{best_eligible['config']['name']}】最优共振买点 "
+                    f"(胜率期望: {best_eligible['config']['win_rate_exp']} | 分时均线: ¥{t_q['vwap']:.3f} | 现价: ¥{t_q['price']:.3f} | {market_fluid_desc})"
+                )
+
+            # 计算买入股数
+            target_alloc_amt = principal * allocation_ratio
+            if target_price > 0 and allocation_ratio > 0:
+                shares = int(target_alloc_amt / target_price / 100) * 100
                 actual_cost = round(shares * target_price, 2)
                 cash_left = round(principal - actual_cost, 2)
-            reason = (
-                f"🌟 捕获【{best_eligible['config']['name']}】最优共振买点 "
-                f"(胜率期望: {best_eligible['config']['win_rate_exp']} | 分时均线: ¥{t_q['vwap']:.3f} | 现价: ¥{t_q['price']:.3f})"
-            )
+            else:
+                shares = 0
+                actual_cost = 0.0
+                cash_left = principal
         else:
             target_action = "OBSERVE_NO_GAP"
             target_code = "--"
@@ -756,6 +816,7 @@ class CrossMarketApexEngine:
                 "cash_left": cash_left
             },
             "candidates": candidate_signals,
+            "total_market_turnover": total_market_turnover,
             "us_drop_warnings": us_drop_warnings
         }
         
@@ -769,11 +830,13 @@ class CrossMarketApexEngine:
         action = decision["action"]
         
         if "BUY" in action:
-            status_badge = "🟢 触发买单"
+            status_badge = "🟢 触发买单 (09:35确认)"
+        elif "STAGE1" in action:
+            status_badge = "📡 09:25 竞价初筛雷达"
         elif "DEFENSE" in action:
             status_badge = "🔴 防御避险"
         else:
-            status_badge = "🟡 空仓观望 (未入射击区)"
+            status_badge = "🟡 空仓观望 (防守保护)"
             
         md = []
         md.append("👑【天枢总指挥部 · 跨市场夜盘映射晨报】")
@@ -805,20 +868,26 @@ class CrossMarketApexEngine:
             md.append("🛑 【防割铁律】: 集合竞价高开 > +3.2% 标的一票否决，严禁追高！")
         md.append("---")
         
-        # 2. 🌐 全球宏观状态机与宏观四象限
-        md.append("🌐 【全球宏观状态机】")
+        # 2. 🌐 全球宏观状态机与全市场温控仪
+        turnover_display = decision.get("total_market_turnover", 1.68)
+        md.append("🌐 【全球宏观状态机 & 全市场温控仪】")
         md.append(f"• 宏观状态: **{macro.get('regime_desc', '标准运行')}**")
-        md.append(f"• 纳指: `{macro['nasdaq_chg']:+.2f}%` | 标普: `{macro['spx_chg']:+.2f}%` | VIX恐慌: `{macro['vix']:.1f}` (警戒: 20/28)")
-        md.append(f"• 美债TLT: `{macro.get('tlt_chg', 0.0):+.2f}%` (${macro.get('tlt_price', 82.0):.1f}) | 恒生科技: `{macro['hstech_chg']:+.2f}%` | 离岸CNH: `{macro['cnh_rate']:.4f}`")
+        md.append(f"• 两市总成交: `{turnover_display:.2f} 万亿元` | 纳指: `{macro['nasdaq_chg']:+.2f}%` | 标普: `{macro['spx_chg']:+.2f}%`")
+        md.append(f"• VIX恐慌: `{macro['vix']:.1f}` (警戒: 20/28) | 美债TLT: `{macro.get('tlt_chg', 0.0):+.2f}%` | 离岸CNH: `{macro['cnh_rate']:.4f}`")
         md.append("---")
         
         # 3. 📊 今日实操指令
         principal = decision.get("principal", 40000.0)
         if "BUY" in action:
             md.append("📊 【今日实操买单 (09:35 确认执行)】")
-            md.append(f"🎯 标的: **{t['name']} ({t['code']})** | 目标权重: `{t['allocation']}`")
+            md.append(f"🎯 标的: **{t['name']} ({t['code']})** | 动态权重: `{t['allocation']}`")
             md.append(f"🛡️ 4万本金挂单: **¥{t['cost']:,.2f} 元** ➔ 买入 **{t['shares']} 股** ({t['shares']//100} 手) | 参考价: `¥{t['price']:.3f}`")
             md.append(f"💵 预留安全备用金: `¥{t['cash_left']:,.2f} 元`")
+        elif "STAGE1" in action:
+            md.append("📊 【今日实操指令 (📡 09:25 竞价初筛雷达)】")
+            md.append(f"🎯 预选主攻标的: **{t['name']} ({t['code']})** | 预备权重: `{t['allocation']}`")
+            md.append(f"⏳ 实体放量终审: **请于 09:35 观察分时放量 (量比>=1.1 且走红实体) 最终拍板！**")
+            md.append(f"💵 完整备用金: **¥{principal:,.2f} 元** (当前安全留存)")
         elif "DEFENSE" in action:
             md.append("📊 【今日实操指令 (🔴 货币纯化避险)】")
             md.append(f"🎯 避险标的: **银华日利 (511880)** | 目标权重: `100%`")
@@ -911,6 +980,94 @@ class CrossMarketApexEngine:
                 
         return success
 
+    def monitor_intraday_sentinel(self, holding_code: str = "", entry_price: float = 0.0, peak_price: float = 0.0, push: bool = True) -> dict:
+        """
+        👑 升级四：盘中移动止盈止损自动巡航守护哨兵 (Intraday Sentinel Daemon)
+        对持仓标的动态巡航，精准捕获：
+        1. 移动止盈 (Trailing Profit Lock): 浮盈 >= +4.0% 且自高位回撤 >= 2.0% 锁定胜果
+        2. VWAP 均线断路器 (VWAP Breaker): 破分时 VWAP <= -1.20% 断路离场
+        3. 极端硬止损 (Hard Stop): 浮亏 <= -3.0% 无条件切断风险
+        """
+        # 如果未指定 holding_code，尝试从状态文件自动装载上次买单
+        if not holding_code:
+            try:
+                if os.path.exists(STATE_FILE):
+                    with open(STATE_FILE, "r", encoding="utf-8") as f:
+                        st = json.load(f)
+                        if "BUY" in st.get("action", ""):
+                            holding_code = st.get("target", {}).get("code", "")
+                            entry_price = float(st.get("target", {}).get("price", 0.0))
+            except Exception as e:
+                print(f"[!] 自动装载持仓状态异常: {e}")
+                
+        if not holding_code or holding_code == "--" or entry_price <= 0:
+            print("[i] 当前无活动股票持仓，无需启动盘中止损止盈哨兵。")
+            return {"status": "NO_POSITION"}
+            
+        market = "sh" if holding_code.startswith("6") or holding_code.startswith("5") else "sz"
+        quote = self.fetch_realtime_a_quote(holding_code, market)
+        if not quote:
+            print(f"[!] 无法获取持仓标的 {holding_code} 行情")
+            return {"status": "ERROR"}
+            
+        p = quote["price"]
+        vwap = quote["vwap"]
+        name = quote["name"]
+        
+        peak_p = max(peak_price, p, entry_price)
+        gain_pct = round(((p / entry_price) - 1) * 100, 2) if entry_price > 0 else 0.0
+        max_gain_pct = round(((peak_p / entry_price) - 1) * 100, 2) if entry_price > 0 else 0.0
+        retrace_pct = round(((p / peak_p) - 1) * 100, 2) if peak_p > 0 else 0.0
+        vwap_dist = round(((p / vwap) - 1) * 100, 2) if vwap > 0 else 0.0
+        
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        alert_triggered = False
+        md = []
+        
+        # 1. 移动止盈锁利 (高位回撤 2%)
+        if max_gain_pct >= 4.0 and retrace_pct <= -2.0:
+            alert_triggered = True
+            md.append("# <font color=\"info\">**🎯 移动止盈警报 · 锁定利润平仓**</font>")
+            md.append(f"• 标的名称: **{name} ({holding_code})**")
+            md.append(f"• 当前价格: **¥{p:.3f}** | 成本价: **¥{entry_price:.3f}** | 浮动盈亏: **{gain_pct:+.2f}%**")
+            md.append(f"• 最高曾达: **¥{peak_p:.3f} (+{max_gain_pct:.2f}%)** | 高点回撤: **{retrace_pct:.2f}%**")
+            md.append("## <font color=\"info\">**🛡️ 机器指令: 触碰 2.0% 利润回撤保护线，建议立即止盈离场，守住胜利果实！**</font>")
+            
+        # 2. VWAP 均线断路器 (跌破 VWAP -1.20%)
+        elif vwap_dist <= -1.20:
+            alert_triggered = True
+            md.append("# <font color=\"info\">**🛑 VWAP 均线断路器熔断 · 紧急止损离场**</font>")
+            md.append(f"• 标的名称: **{name} ({holding_code})**")
+            md.append(f"• 当前价格: **¥{p:.3f}** | 分时均线: **¥{vwap:.3f}** (均线偏离: **{vwap_dist:.2f}% <= -1.2%**)")
+            md.append(f"• 浮动盈亏: **{gain_pct:+.2f}%**")
+            md.append("## <font color=\"info\">**🛡️ 机器指令: 分时重心彻底击穿均线，空头下砸，坚决无条件止损出局！**</font>")
+            
+        # 3. 硬止损线 (-3.0%)
+        elif gain_pct <= -3.0:
+            alert_triggered = True
+            md.append("# <font color=\"info\">**🛑 触发硬止损线 (-3.0%) · 切断风险离场**</font>")
+            md.append(f"• 标的名称: **{name} ({holding_code})**")
+            md.append(f"• 当前价格: **¥{p:.3f}** | 买入成本: **¥{entry_price:.3f}** | 浮亏: **{gain_pct:.2f}% <= -3.0%**")
+            md.append("## <font color=\"info\">**🛡️ 机器指令: 触碰不可逾越的风控红线，无条件切断风险！**</font>")
+            
+        if alert_triggered and push:
+            md_text = "\n".join(md)
+            print("\n" + md_text + "\n")
+            self.push_to_wecom(md_text)
+            
+        return {
+            "time": now_str,
+            "holding_code": holding_code,
+            "name": name,
+            "price": p,
+            "entry_price": entry_price,
+            "peak_price": peak_p,
+            "gain_pct": gain_pct,
+            "retrace_pct": retrace_pct,
+            "vwap_dist": vwap_dist,
+            "alert_triggered": alert_triggered
+        }
+
     def run_once(self, push: bool = False, principal: float = 40000.0, simulate_normal: bool = False):
         """执行单次评估并打印/推送"""
         decision = self.evaluate_strategy_decision(principal=principal, simulate_normal=simulate_normal)
@@ -938,7 +1095,13 @@ if __name__ == "__main__":
     parser.add_argument("--push", action="store_true", help="是否推送到企业微信")
     parser.add_argument("--principal", type=float, default=40000.0, help="本金规模 (默认 40,000 元)")
     parser.add_argument("--simulate-normal", action="store_true", help="模拟常规偏多市场环境测试")
+    parser.add_argument("--sentinel", action="store_true", help="运行盘中移动止盈止损守护哨兵巡航")
+    parser.add_argument("--holding-code", type=str, default="", help="监控持仓标的代码 (如 601899)")
+    parser.add_argument("--entry-price", type=float, default=0.0, help="持仓买入成本价")
     args = parser.parse_args()
     
     engine = CrossMarketApexEngine()
-    engine.run_once(push=args.push, principal=args.principal, simulate_normal=args.simulate_normal)
+    if args.sentinel:
+        engine.monitor_intraday_sentinel(holding_code=args.holding_code, entry_price=args.entry_price, push=args.push)
+    else:
+        engine.run_once(push=args.push, principal=args.principal, simulate_normal=args.simulate_normal)
