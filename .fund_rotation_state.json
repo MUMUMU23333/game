@@ -1,11 +1,11 @@
 {
   "strategy": "Fund-Sovereign Apex Barbell 8.5",
-  "holding_code": "005125",
-  "holding_name": "华宝标普中国A股红利低波C",
-  "entry_date": "2026-11-05",
+  "holding_code": "023350",
+  "holding_name": "诺安多策略混合C(小微盘量化黑马)",
+  "entry_date": "2026-11-12",
   "entry_nav": 3.1747,
   "peak_nav": 3.2817,
-  "last_action": "ROTATE_FROM_025489_TO_016814",
-  "last_action_date": "2026-10-30 14:49:12",
+  "last_action": "ROTATE_FROM_005125_TO_023350",
+  "last_action_date": "2026-11-12 14:48:52",
   "is_in_position": true
 }
