@@ -1,11 +1,11 @@
 {
-  "last_update": "2026-11-16 14:48:51",
-  "stage_desc": "🛡️ 触发 ATR 动态吊灯跳车 (距峰值回撤 -10.20% · 红线 -7.00%) ➔ 100% 切换至农业银行/黄金防御壁垒",
+  "last_update": "2026-11-17 14:48:52",
+  "stage_desc": "🛡️ 处于风控防御冷却期 (剩余 2 天) · 坚守农业银行防守",
   "exec_code": null,
-  "curr_holding": "002931",
+  "curr_holding": null,
   "target_weights": {
     "601288": 100.0
   },
-  "defense_cooldown": 2,
+  "defense_cooldown": 1,
   "caliber": "口径A_真攻防一体_稳健6.25倍"
 }
