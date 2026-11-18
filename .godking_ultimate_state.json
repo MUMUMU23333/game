@@ -1,11 +1,11 @@
 {
-  "last_update": "2026-11-17 14:48:52",
-  "stage_desc": "🛡️ 处于风控防御冷却期 (剩余 2 天) · 坚守农业银行防守",
+  "last_update": "2026-11-18 14:48:51",
+  "stage_desc": "🛡️ 处于风控防御冷却期 (剩余 1 天) · 坚守农业银行防守",
   "exec_code": null,
   "curr_holding": null,
   "target_weights": {
     "601288": 100.0
   },
-  "defense_cooldown": 1,
+  "defense_cooldown": 0,
   "caliber": "口径A_真攻防一体_稳健6.25倍"
 }
