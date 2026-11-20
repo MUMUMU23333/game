@@ -1,13 +1,13 @@
 {
-  "last_update": "2026-11-19 14:48:45",
-  "stage_desc": "🌟 零时滞多头共振开仓 (领涨龙头: 华胜天成 · 动量分: 31.9)",
+  "last_update": "2026-11-20 14:49:13",
+  "stage_desc": "🌟 零时滞动量爆发 (换仓/买入龙头: 华胜天成 · 动量分: 33.0)",
   "exec_code": "600410",
-  "curr_holding": null,
+  "curr_holding": "600410",
   "target_weights": {
     "600410": 100.0
   },
   "defense_cooldown": 0,
   "caliber": "口径A_真攻防一体_稳健6.25倍",
-  "peak_600410": 17.07,
+  "peak_600410": 17.3,
   "entry_600410": 17.07
 }
