@@ -1,9 +1,9 @@
 {
-  "current_holding": "520830.XSHG",
-  "entry_price": 0.835,
-  "holding_shares": 158325900,
-  "cash": 2013292.5000000298,
-  "entry_date": "2026-11-18",
+  "current_holding": "511880.XSHG",
+  "entry_price": 100.991,
+  "holding_shares": 1293600,
+  "cash": 1990202.4000000358,
+  "entry_date": "2026-11-23",
   "is_a_share_weak": true,
   "weak_start_date": null,
   "weak_days_count": 0
